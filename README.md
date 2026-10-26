@@ -16,6 +16,14 @@
 | `docs/api-design.md` | 统一响应/分页/错误码与全模块接口清单 |
 | `docs/development-plan.md` | 阶段 0–8 实施计划与依赖关系 |
 | `docs/test-plan.md` | 测试用例清单与执行记录规则 |
+| `docs/test-report.md` | **测试报告**：192 项回归结果、守护点、发现并修复的缺陷清单 |
+| `docs/acceptance.md` | **验收清单 + 十分钟演示脚本**（含 CPT90 三条链路的操作步骤与讲解词） |
+| `docs/user-manual.md` | 用户手册：管理员 / 部门主管 / 员工三视角操作说明 |
+| `docs/known-issues.md` | 已知问题与限制：受阻能力、暂缓功能、测试覆盖边界、演示数据说明 |
+| `docs/defense-qa.md` | **答辩问答题库**：架构、业务、安全、工程、收尾，含现场应急 |
+| `docs/deployment.md` | 部署指南：Redis、Compose、K8s、CI、Docker 磁盘迁出 C 盘 |
+| `docs/face-sdk-integration.md` | 真实人脸识别 SDK 的接入改造清单 |
+| `docs/uniapp-evaluation.md` | 小程序可行性评估（结论：不做） |
 | `docs/progress.md` | 当前完成情况、阻塞项与下一步 |
 | `docs/sql/` | 数据库建表脚本与演示数据 |
 | `docs/reference/` | **原始资料只读存档**（`北游JavaEE工程实践(4周).docx`、`项目总指令.docx`、`项目分析.docx`）+ 优先级说明 |
@@ -148,23 +156,28 @@ curl -s http://localhost:5173/api/system/health
 
 ## 8. 当前状态（2026-10-26）
 
-| 项 | 状态 |
-|---|---|
-| 阶段 0 项目审计与实施计划 | ✅ 完成（7 份文档） |
-| **阶段 1 项目骨架与开发环境** | ✅ **已完成关闭**（2026-10-26 11:27） |
-| Git 版本管理 | ✅ 已 `git init`，提交 `685f9b1` → `c2e2b77` |
-| 原始资料归档 | ✅ 3 份 docx 已移入 `docs/reference/` 只读存档 |
-| 后端 `mvn package` | ✅ BUILD SUCCESS |
-| 前端 `npm run build` | ✅ built in 8.06s |
-| **数据库初始化** | ✅ **BK-1 已解除**：23 表 + 演示数据导入完成，`database.connected=true` |
-| `/api/system/health`、`/swagger-ui/index.html` | ✅ 均 200 |
-| 前后端联调 | ✅ 5173 → proxy → 8080 返回真实 JSON |
+| 阶段 | 内容 | 状态 |
+|---|---|---|
+| 0 | 项目审计与实施计划 | ✅ 7 份文档 |
+| 1 | 骨架与开发环境（11 个 Maven 模块 + Vue3 前端） | ✅ |
+| 2 | 认证鉴权 + 员工/组织/场所 CRUD | ✅ |
+| 3 | 二维码 + H5 扫码打卡闭环 | ✅ 30 项回归 |
+| 4 | 统计与看板（幂等重算 + 定时任务） | ✅ 32 项回归 |
+| 5 | AI 知识库（retrieval-only）+ 人脸模拟适配层 | ✅ 46 项回归 |
+| 6 | Redis 缓存、定时任务、文件鉴权下载、H5 响应式、uni-app 评估、Docker/K8s/CI 真跑 | ✅ 20 项回归 |
+| 7 | 测试、构建与验收 | ✅ **192 项全通过** + 验收清单/演示脚本 |
+| 8 | 文档与答辩 | ✅ Markdown 已产出（测试报告、用户手册、已知问题、答辩题库），待学校模板后套格式 |
 
-**阶段 1 的 5 项验收标准全部通过，无遗留未完成项。**
+**质量门禁**：一条命令跑完全量回归
 
-当前进行方向 → **阶段 2：认证鉴权 + 员工/组织/办公场所 CRUD**。
-完成标志：管理员登录 → 建公司/部门 → 建场所（含手动坐标）→ 建员工并绑定场所，全流程数据落库且重启后仍在。
+```bash
+export LZ_MYSQL_BIN="D:/gjcmysql/mysql-5.7.19-winx64/bin/mysql.exe"
+export LZ_MYSQL_PWD=<本机 MySQL 口令>
+npm run verify
+# Maven 单元测试 64 项 + 接口回归 128 项 = 192 项
+```
 
-详见 `docs/progress.md`。
+**当前进度已到阶段 8 收尾**，Git 从 `685f9b1` 起共约 20 次提交。
+详见 `docs/progress.md`；验收与演示见 `docs/acceptance.md`。
 
 > ⚠️ **当前后台进程**：后端 8080、前端 dev server 5173 正在运行，可直接访问验证。

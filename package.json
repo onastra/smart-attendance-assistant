@@ -1,0 +1,18 @@
+{
+  "name": "lianzhi-attendance",
+  "version": "1.0.0-SNAPSHOT",
+  "private": true,
+  "description": "联智考勤系统 —— 毕业生实习管理平台（模块化单体 Spring Boot 3 + Vue 3）",
+  "scripts": {
+    "verify": "node scripts/verify-all.mjs",
+    "verify:api": "node scripts/verify-all.mjs --api-only",
+    "verify:unit": "cd server && mvn -B test",
+    "build:backend": "cd server && mvn -B package",
+    "build:frontend": "cd web && npm run build",
+    "compose:up": "cd deploy && docker compose up -d --build",
+    "compose:down": "cd deploy && docker compose down"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
