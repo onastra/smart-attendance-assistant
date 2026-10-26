@@ -84,6 +84,33 @@ lz:
 
 ## 3. Docker Compose（已实跑）
 
+### 3.0 把 Docker 数据盘迁出 C 盘（本机已执行）
+
+WSL2 后端的 Docker 把所有镜像、容器、数据卷放在一个虚拟磁盘里：
+
+```
+C:\Users\<你>\AppData\Local\Docker\wsl\disk\docker_data.vhdx
+```
+
+**这个 vhdx 只增不减**——删掉容器和镜像后文件也不会缩小。本机实测它涨到 **14 GB**，
+是 C 盘告急的主因（容器实际占用 8.1GB 镜像 + 3.7GB 数据卷 + 2.5GB 构建缓存）。
+
+迁移办法：**Docker Desktop → Settings → Resources → Advanced → Disk image location**，
+改成 `D:\Docker\wsl\disk` 后 Apply & Restart，Docker 会自动搬完，**镜像与数据卷全部保留**
+（本机实测：迁移前 C 盘可用 11 GB，迁移后 **24 GB**，19 个镜像 0 丢失）。
+
+> 注意网上流传的 `wsl --export docker-desktop-data` 教程对新版 Docker Desktop **不适用**——
+> 新版已不再有独立的 `docker-desktop-data` 发行版，数据统一在上述 vhdx 里。
+
+### 3.1 启动与停止
+
+镜像重建前必须先在本机打包 JAR，否则容器里用的还是上一版产物
+（`mvn package` 若报 `Unable to rename lz-app.jar`，说明本机 8080 的 java 进程正占用它，先停掉即可）：
+
+```bash
+cd server && mvn package
+cd ../deploy && docker compose up -d --build backend
+```
 ```bash
 cd deploy
 docker compose up -d --build     # 首次构建约 1-2 分钟（前端 npm ci 占大头）
@@ -96,11 +123,17 @@ docker compose down -v           # 连数据卷一起清掉，下次会重新初
   也就不可能绕过 CI 的测试门禁。
 - MySQL 用 `mysql:5.7` 并加 `--ngram_token_size=2`：中文全文检索按 2 字切词，与知识库检索口径一致。
 - 初始化脚本 `deploy/mysql-init/01-init.sh` **按时间顺序**导入：
-  `schema → data → patch2 → patch3 → patch4 → patch5 → 14 天演示打卡`。
+  `schema → data → patch2 → patch3 → patch4 → patch5 → patch6(文件模块) → 14 天演示打卡`。
   顺序不能颠倒：增量脚本用 `INSERT IGNORE` 追加权限码，若先跑会占掉 `AUTO_INCREMENT` 的 id，
   `data.sql` 再按显式 id 插入就主键冲突（实测 ERROR 1062）。
-- 日汇总不在 SQL 里算，部署后调用一次接口重算（避免两处实现口径漂移）：
-  `POST /api/statistics/daily-rebuild?dateFrom=2026-10-12&dateTo=2026-10-25`
+- **首次部署后必须跑一次日汇总重算**，否则看板是全 0 —— 初始化只导入了打卡流水，
+  `att_daily_stat` 是空的（实测：99 条流水 / 0 条汇总，概览返回 `personDays=0`）：
+  ```bash
+  curl -X POST http://localhost:18080/api/statistics/daily-rebuild -H "Authorization: Bearer <token>"
+  ```
+  不带日期参数时会**自动按"最早一条打卡流水 ~ 今天"推导区间**。
+  这一点是 2026-10-26 实测修掉的缺陷：原实现无参数只重算当天，而演示流水落在过去 14 天，
+  结果管理员点了重算、看板依旧全 0，验收现场会被读成"统计模块没做"。
 
 ---
 

@@ -62,4 +62,11 @@
         INSERT INTO job_exec_log (job_name, start_time, end_time, success, affected_rows, message)
         VALUES (#{jobName}, #{startTime}, #{endTime}, #{success}, #{affectedRows}, #{message})
     </insert>
+
+    <!-- 最早一条打卡流水的日期。
+         用于"不带参数的重算"自动推导重算区间：
+         首次部署时演示流水落在过去若干天，若只重算今天，看板会一直是空的。 -->
+    <select id="selectEarliestRecordDate" resultType="java.time.LocalDate">
+        SELECT DATE(MIN(checkin_time)) FROM att_record WHERE checkin_time IS NOT NULL
+    </select>
 </mapper>

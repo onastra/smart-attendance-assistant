@@ -200,4 +200,15 @@ public class DailyStatService {
     public int statDays() {
         return statMapper.countStatDays();
     }
+
+    /**
+     * 最早一条打卡流水的日期；没有任何流水时返回 null。
+     *
+     * <p>不带参数的重算用它来推导区间：首次部署时演示流水落在过去若干天，
+     * 若只重算今天，<code>att_daily_stat</code> 几乎为空，看板会显示全 0，
+     * 看起来就像统计模块没实现。</p>
+     */
+    public LocalDate earliestRecordDate() {
+        return statMapper.selectEarliestRecordDate();
+    }
 }

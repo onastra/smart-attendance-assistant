@@ -124,8 +124,28 @@ public class StatisticsController {
                 data.put("days", results.size());
                 jobLogService.log("DAILY_STAT_MANUAL_RANGE", start, LocalDateTime.now(), true, rows,
                         "range=" + from + "~" + to);
+            } else if (date == null) {
+                /*
+                 * 不带任何日期参数：按"最早一条打卡流水 ~ 今天"全量重算。
+                 *
+                 * 为什么不用 LocalDate.now() 只算今天：
+                 * 首次部署后演示/历史流水都在过去若干天，att_daily_stat 是空的，
+                 * 管理员点重算却只 Today 有数据，看板依旧全 0，
+                 * 这在验收现场会被直接读成"统计模块没做"。
+                 */
+                LocalDate earliest = dailyStatService.earliestRecordDate();
+                LocalDate from = earliest != null ? earliest : LocalDate.now();
+                LocalDate to = LocalDate.now();
+                List<RebuildResult> results = dailyStatService.rebuildRange(from, to);
+                int rows = results.stream().mapToInt(RebuildResult::getAffectedRows).sum();
+                data.put("results", results);
+                data.put("affectedRows", rows);
+                data.put("days", results.size());
+                data.put("range", from + "~" + to);
+                jobLogService.log("DAILY_STAT_MANUAL_ALL", start, LocalDateTime.now(), true, rows,
+                        "range=" + from + "~" + to + "（按流水区间自动推导）");
             } else {
-                LocalDate target = date != null ? date : LocalDate.now();
+                LocalDate target = date;
                 RebuildResult result = dailyStatService.rebuild(target);
                 data.put("result", result);
                 data.put("affectedRows", result.getAffectedRows());

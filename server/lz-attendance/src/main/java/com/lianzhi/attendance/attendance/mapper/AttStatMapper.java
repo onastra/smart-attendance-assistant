@@ -48,6 +48,13 @@ public interface AttStatMapper {
     /** 汇总覆盖的日期范围，用于告诉调用方"看板现在有几天数据" */
     int countStatDays();
 
+    /**
+     * 最早一条打卡流水的日期；一条记录都没有时返回 null。
+     *
+     * <p>用于不带参数的重算自动推导区间，而不是机械地只算今天。</p>
+     */
+    LocalDate selectEarliestRecordDate();
+
     /** 定时任务执行日志：每次重算留痕，便于排查"今天的汇总到底跑没跑" */
     int insertJobLog(@Param("jobName") String jobName,
                      @Param("startTime") LocalDateTime startTime,
