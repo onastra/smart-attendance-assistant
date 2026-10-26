@@ -143,8 +143,8 @@
 | C 二维码与 H5 打卡 | 12 | 12 | ✅ **已实现**（阶段 3）：HMAC-SHA256 签名二维码（动态码/长期码/一次性码）、ZXing PNG 输出、H5 扫码+手动输入兜底、打卡校验链与落库、本人/管理员查询与数据范围收敛 |
 | D 统计看板 | 9 | 9 | ✅ **已实现**（阶段 4）：`att_daily_stat` 幂等重算 + Spring Task 每日重算（写 `job_exec_log`）、summary/trend/department/place-heat 四个统计接口、ECharts 看板（统计卡/趋势/部门对比/出勤构成/场所时段）、响应带 `dataSource` 区分真实与演示数据 |
 | E 请假/加班审批 | 7 | 0 | ⏸ **暂缓**（Q-1 于 2026-10-26 决议不做）；`biz_application`/`biz_application_approval` 表已作为结构预留，业务代码不实现 |
-| F AI 知识库 | 11 | 0 | 未实现（先做真实检索） |
-| G 人脸识别 | 7 | 0 | 5 条为替代方案待实现；2 条**受阻**（缺授权/设备） |
+| F AI 知识库 | 11 | 11 | ✅ **已实现**（阶段 5）：PDFBox/POI 解析 9 种格式、ChunkSplitter 窗口+重叠、MySQL ngram 全文检索（可见范围在 SQL 层过滤）、`LlmClient` 可插拔 + `NoopLlmClient` 默认降级 `retrieval-only`、来源引用、问答日志脱敏 |
+| G 人脸识别 | 7 | 5 | ✅ **替代方案已实现**（阶段 5）：`FaceRecognitionService` 接口 + `NoopFaceRecognitionService`（`mock=true`、`[MOCK]` 日志）+ ArcSoft 条件装配占位 + `docs/face-sdk-integration.md`；另 2 条 **受阻**（真实 SDK 与活体，缺授权/设备） |
 | H Redis/Nacos/Task | 6 | 0 | Nacos 为**已配置未启用**；Redis 待安装 |
 | I 移动端 | 4 | 0 | H5 必做；uni-app 扩展 |
 | J 存储/集成/部署 | 6 | 0 | 本地文件存储待实现；Docker/CI/K8s 待确认 |
@@ -170,7 +170,11 @@
    - 按你的要求补录了 **14 天演示流水**（2026-10-12 ~ 10-25，94 条，全部 `source='SAMPLE'`），趋势图有 14 个数据点、按周 2 点、按月 1 点。
    - 完成标志已达成：重算 → 汇总 → 看板呈现；演示数据在接口 `dataSource=mixed` 与界面徽标两处如实标注。
    - 一处**如实提示**：缺勤 11 人天中有 10 人天来自阶段 2 创建的验证账号「验证员工张三」（在职但从未打卡）。若希望统计更干净，可将其置为离职后重算（`UPDATE hr_employee SET status=0 WHERE emp_no='EMP202610261574';`）。
-5. 下一步进入**阶段 5（AI 知识库与高级能力）**：文档解析 → 切分 → MySQL ngram 全文检索 → `NoopLlmClient` 降级检索模式 → 人脸模拟适配层。**需要你拍板两件事**：① 是否接受"检索-only 降级模式"（无大模型 Key 时）；② 虹软 SDK 授权是否确定拿不到（决定模块 G 走模拟适配层）。
+5. ✅ **阶段 5 已完成**（2026-10-26）：`scripts/verify-phase5.mjs` 实测 **46 项断言全部通过**，阶段 3（30 项）、阶段 4（32 项）回归仍全绿。
+   - 两项待拍板的问题已于 2026-10-26 由你确认：① 接受无大模型 Key 时降级 `retrieval-only` 且不伪造回答；② 虹软 SDK 授权当前拿不到，模块 G 走模拟适配层。
+   - **模块 F**：真实生成了 PDF/DOCX/XLSX/PPTX/MD 五份样例文档（`docs/samples/kb/`，由 `scripts/gen-sample-docs/SampleDocGenerator.java` 用 POI/PDFBox 生成，不是手工伪造的二进制）跑通"解析 → 切片 → 检索 → 问答 → 来源引用"全链路；未命中时返回"未找到足够依据"而不是编造。
+   - **模块 G**：录入/核验闭环可用，但每一层都标注 `mock=true`，考勤仍以二维码打卡为准；真实 SDK 改造清单已写入 `docs/face-sdk-integration.md`。
+   - BK-4 / BK-5 均按"明确标注 + 保留接入点"处理，不做任何伪造。
 
 ---
 
@@ -185,3 +189,4 @@
 | 2026-10-26 | 2 | **阶段 2 完成**：权限码 25→44（新增幂等补丁脚本 `patch-phase2-permission.sql`）；实现认证鉴权、PermissionChecker、账号/角色/员工/组织/场所五组 CRUD；前端登录页 + 路由守卫 + 五个管理页；修复 5 个真实问题（BCrypt 摘要格式、图标未注册、分页取值、权限码缺失等）；端到端实测通过，数据全部落库 |
 | 2026-10-26 | 3 | **阶段 3 完成**：先与你确认四项口径（考勤规则全局可配、动态码+长期码、摄像头+手动输入兜底、围栏可选校验）后开工。补 `att_qrcode.qr_type` 字段与权限码（44→46，含新增 `attendance:qrcode:invalidate`、`attendance:record:admin`）；实现二维码签发/HMAC-SHA256 签名/ZXing PNG、10 步打卡校验链、本人与管理员查询（数据范围 ALL/DEPT/SELF）、H5 打卡页与三个后台页面；新增 `scripts/verify-phase3.mjs` 端到端脚本，30 项断言全通过。修复 2 个真实缺陷：管理端考勤查询与普通员工共用权限码（已拆分）、二维码 PNG 接口需带 token（改为取二进制转临时 URL） |
 | 2026-10-26 | 4 | **阶段 4 完成**：按你的要求补录 14 天演示流水（`scripts/seed-sample-attendance.mjs`，94 条，全部 `source='SAMPLE'` 且 request_id 带 `SAMPLE-` 前缀可一键清除）。幂等补丁 `patch-phase4-statistics.sql`：补 `att_daily_stat.checkin_count` 列、纳管 `att_record.source` 的 SAMPLE 取值、新增 `statistics:rebuild` 权限码（47 条，仅 ADMIN）。实现日汇总重算（判定 REST/ABSENT/LATE/EARLY/NORMAL，唯一键 upsert 幂等）、Spring Task 每日 01:30 重算并写 `job_exec_log`、四个统计接口（均带 `dataSource`）、ECharts 看板（统计卡 + 趋势 + 部门对比 + 出勤构成 + 场所时段）。新增 `scripts/verify-phase4.mjs`，32 项断言全通过；阶段 3 回归 30 项仍全绿。修复 1 个真实缺陷：`ON DUPLICATE KEY UPDATE` 返回值三态（1/2/0）导致"影响行数"在两次重算间不一致（168 → 90），改为以覆盖员工数为准 |
+| 2026-10-26 | 5 | **阶段 5 完成**：先由你确认两项口径（接受无 Key 时降级 `retrieval-only`、虹软授权拿不到故模块 G 走模拟适配层）。**模块 F**：引入 PDFBox 2.0.30 + POI 5.2.5，实现 9 种格式的解析器、ChunkSplitter（窗口 300 + 重叠 60 + 短块合并）、MySQL ngram 全文检索（可见范围过滤写在 WHERE 里而非返回后过滤）、`LlmClient` 接口 + `NoopLlmClient` 默认 + OpenAI 兼容实现（`ConditionalOnProperty`，缺 Key 只降级不崩溃）、`AgentOrchestrator`（检索无命中即返回"未找到足够依据"，绝不交给模型编造）、问答日志脱敏。**模块 G**：`FaceRecognitionService` 接口 + `NoopFaceRecognitionService`（图片指纹哈希比对，`mock=true`、`[MOCK]` 日志）+ `ArcSoftFaceRecognitionService` 条件装配（缺 SDK 时明确报错而非崩溃）+ `docs/face-sdk-integration.md`。幂等补丁 `patch-phase5-knowledge.sql`：权限码 47→50（新增 `kb:doc:delete`/`kb:doc:rebuild`/`kb:qa:log`，下放 `face:enroll` 给员工）、`kb_document.content_hash` 加索引。新增 `scripts/verify-phase5.mjs`，46 项断言全通过；阶段 3（30 项）、阶段 4（32 项）回归仍全绿。发现并记录 1 个环境特性：MySQL 5.7 InnoDB 全文索引对刚插入的行有极短缓存合并时延，连续上传后立刻检索偶发漏命中，重跑即恢复 |

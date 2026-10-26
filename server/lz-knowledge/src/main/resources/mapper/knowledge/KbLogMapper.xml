@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.knowledge.mapper.KbLogMapper">
+
+    <insert id="insertOperationLog">
+        INSERT INTO log_operation (user_id, module, action, target_id, success, message)
+        VALUES (#{userId}, #{module}, #{action}, #{targetId}, #{success}, #{message})
+    </insert>
+
+</mapper>

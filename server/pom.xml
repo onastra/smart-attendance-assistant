@@ -47,6 +47,10 @@
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.6.0</springdoc.version>
         <hutool.skip>true</hutool.skip>
+        <!-- 文档解析（模块 F）。PDFBox 与 POI 均不在 Spring Boot 依赖管理清单内，必须显式锁版本。
+             选定版本与 JDK 17 实测兼容：PDFBox 2.0.30（3.x 的 API 有破坏性变更，暂不升级）、POI 5.2.5。 -->
+        <pdfbox.version>2.0.30</pdfbox.version>
+        <poi.version>5.2.5</poi.version>
         <!-- 密码散列。仅取 crypto 子项目，避免引入 Spring Security 全家桶；
              该 artifact 不在 Spring Boot 的依赖管理清单内，必须显式锁版本，
              取值与 Spring Boot 3.3.5 对应的 Spring Security 大版本保持一致。 -->
@@ -152,6 +156,28 @@
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
                 <version>${springdoc.version}</version>
+            </dependency>
+
+            <!-- 文档解析（模块 F：知识库） -->
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox</artifactId>
+                <version>${pdfbox.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-scratchpad</artifactId>
+                <version>${poi.version}</version>
             </dependency>
 
             <!-- ===== 微服务：已配置未启用（仅版本登记，任何模块都不得直接引用） ===== -->

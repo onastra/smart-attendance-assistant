@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.face.mapper.FaceFeatureMapper">
+
+    <sql id="Columns">
+        f.id, f.employee_id AS employeeId, f.provider, f.feature_hash AS featureHash,
+        f.mock_flag AS mockFlag, f.enroll_time AS enrollTime, f.status,
+        e.name AS employeeName, e.emp_no AS empNo
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO face_feature (employee_id, provider, feature_hash, mock_flag, status)
+        VALUES (#{employeeId}, #{provider}, #{featureHash}, #{mockFlag}, #{status})
+    </insert>
+
+    <update id="updateFeature">
+        UPDATE face_feature
+        SET feature_hash = #{featureHash},
+            mock_flag    = #{mockFlag},
+            enroll_time  = NOW(),
+            status       = 1
+        WHERE employee_id = #{employeeId}
+          AND provider    = #{provider}
+    </update>
+
+    <select id="selectOne" resultType="com.lianzhi.attendance.face.entity.FaceFeature">
+        SELECT <include refid="Columns"/>
+        FROM face_feature f
+        LEFT JOIN hr_employee e ON e.id = f.employee_id
+        WHERE f.employee_id = #{employeeId}
+          AND f.provider    = #{provider}
+          AND f.status      = 1
+    </select>
+
+    <select id="selectPage" resultType="com.lianzhi.attendance.face.entity.FaceFeature">
+        SELECT <include refid="Columns"/>
+        FROM face_feature f
+        LEFT JOIN hr_employee e ON e.id = f.employee_id
+        <where>
+            f.status = 1
+            <if test="keyword != null and keyword != ''">
+                AND (e.name LIKE CONCAT('%', #{keyword}, '%') OR e.emp_no LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY f.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*)
+        FROM face_feature f
+        LEFT JOIN hr_employee e ON e.id = f.employee_id
+        <where>
+            f.status = 1
+            <if test="keyword != null and keyword != ''">
+                AND (e.name LIKE CONCAT('%', #{keyword}, '%') OR e.emp_no LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <update id="disable">
+        UPDATE face_feature
+        SET status = 0
+        WHERE employee_id = #{employeeId}
+          AND provider    = #{provider}
+    </update>
+
+</mapper>

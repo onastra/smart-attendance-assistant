@@ -195,15 +195,16 @@
 
 ### 2.8 知识库与 AI 问答（模块 F）
 
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| POST | `/api/kb/documents`（multipart） | 上传并解析入库 |
-| GET | `/api/kb/documents` | 文档列表（受可见范围约束） |
-| DELETE | `/api/kb/documents/{id}` | 删除文档与切片 |
-| POST | `/api/kb/documents/{id}/reindex` | 重建索引/重切 |
-| POST | `/api/kb/ask` | `{question, topK}` → 答案 + 来源片段 + `mode` |
-| GET | `/api/kb/status` | 解析/检索/模型能力状态（是否配置了 Key） |
-| GET | `/api/kb/qa-logs` | 问答日志（管理员） |
+| 方法 | 路径 | 说明 | 权限 |
+|---|---|---|---|
+| POST | `/api/kb/documents`（multipart） | 上传并解析入库（PDF/DOCX/XLSX/PPTX/DOC/XLS/PPT/TXT/MD） | `kb:doc:upload` |
+| GET | `/api/kb/documents` | 文档列表（带 `canRead` 标记） | `kb:doc:list` |
+| DELETE | `/api/kb/documents/{id}` | 删除文档与切片（不可恢复） | `kb:doc:delete` |
+| POST | `/api/kb/documents/{id}/rebuild` | 用留存原文件重建索引/重切 | `kb:doc:rebuild` |
+| PUT | `/api/kb/documents/{id}/visibility` | 修改可见范围 PUBLIC / DEPT / PRIVATE | `kb:doc:upload` |
+| POST | `/api/kb/ask` | `{question, documentId?, topK?}` → 答案 + 来源引用 + `mode` | `kb:ask` |
+| GET | `/api/kb/llm-status` | 生成能力状态（是否有可用模型、降级说明） | `kb:ask` |
+| GET | `/api/kb/qa-logs` | 问答日志（**不含答案正文**，仅管理员） | `kb:qa:log` |
 
 `POST /api/kb/ask` 响应示例（未配置模型 Key 的降级模式）：
 
@@ -211,25 +212,45 @@
 {
   "code": 0, "message": "OK",
   "data": {
-    "mode": "retrieval-only",
-    "answer": null,
+    "question": "请假需要提前申请吗",
+    "mode": "retrieval-only",        // retrieval-only / llm-augmented
+    "grounded": true,                // false = 检索无足够依据，answer 是"未找到足够依据"
+    "reason": null,                  // NO_HIT / BELOW_THRESHOLD / NO_DOCUMENT
+    "model": null,                   // 有模型时写模型名
+    "topScore": 0.5596,
+    "latencyMs": 41,
+    "llmNotice": "未配置大模型服务（lz.llm.enabled=false 或缺 api-key），当前为检索模式：只返回命中的原文片段，不做生成，也不会编造答案。",
+    "answer": "当前为检索模式：未启用生成模型，以下直接展示命中的原文片段（未做改写）。",
     "sources": [
-      { "documentId": 12, "documentTitle": "员工考勤管理制度.pdf", "chunkIndex": 7, "score": 3.41, "snippet": "第三章 考勤规则……" }
-    ],
-    "notice": "未检测到大模型配置，当前仅返回原文检索结果；如需生成式回答，请配置 LZ_LLM_API_KEY。"
+      {
+        "chunkId": 9,
+        "documentId": 7,
+        "documentTitle": "员工请假与加班管理办法",
+        "section": "第 1 段 ~ 第 2 段",   // 页码 / 工作表+行数 / 段落序号
+        "excerpt": "第一章 请假 员工请假须提前在系统提交申请……",
+        "score": 0.5596
+      }
+    ]
   }
 }
 ```
 
+检索命中判定：`MATCH(content) AGAINST(? IN NATURAL LANGUAGE MODE) > lz.kb.min-score`（默认 0.05）。
+MySQL 5.7 的 ngram 解析器按 `ngram_token_size=2` 切词，**单字查询永远命中不了**，
+因此关键词长度小于 2 时自动退化为 `LIKE` 子串匹配，并在来源里如实标注命中方式。
+
 ### 2.9 人脸识别（模块 G）
 
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | `/api/face/status` | 返回当前 provider 与是否为模拟实现 |
-| POST | `/api/face/enroll` | 录入（模拟实现返回 `mock:true`，不存 original image） |
-| POST | `/api/face/verify` | 人脸打卡校验（响应必须含 `mock`） |
+| 方法 | 路径 | 说明 | 权限 |
+|---|---|---|---|
+| GET | `/api/face/status` | 返回 provider / `mock` / 是否可用 / 隐私说明 | `face:verify` |
+| POST | `/api/face/enroll` | 录入（默认本人；管理员可带 `employeeId` 代办）。响应含 `mock`，**不存原始图片** | `face:enroll` |
+| POST | `/api/face/verify` | 人脸核验（响应必须含 `mock`、`similarity`、`threshold`） | `face:verify` |
+| GET | `/api/face/features` | 人脸录入情况（仅系统管理员） | `face:enroll` |
 
 ⚠️ 模拟实现在 UI 与日志中一律标注"模拟识别"，不得描述为真实活体检测。
+响应示例：`{"provider":"noop","mock":true,"passed":true,"similarity":1.0,"threshold":0.6,"reason":"OK"}`。
+真实 SDK 接入点与改造清单见 `docs/face-sdk-integration.md`。
 
 ### 2.10 运维与任务（模块 H）
 

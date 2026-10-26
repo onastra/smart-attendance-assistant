@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.knowledge.mapper.KbChunkMapper">
+
+    <!-- 可见范围过滤。
+         PUBLIC 全员可读；DEPT 要求提问人部门等于文档归属部门（deptId 为 null 时天然不匹配）；
+         PRIVATE 仅上传人本人可读。
+         必须放在 WHERE 里：先按相关度取 TopN 再过滤，会让无权文档因排序靠前被返回。 -->
+    <sql id="Visible_Document">
+        AND (
+            doc.visibility = 'PUBLIC'
+            OR (doc.visibility = 'DEPT' AND doc.owner_dept_id = #{deptId})
+            OR (doc.visibility = 'PRIVATE' AND doc.created_by = #{userId})
+        )
+        AND doc.status = 'READY'
+    </sql>
+
+    <insert id="insertBatch">
+        INSERT INTO kb_chunk (document_id, chunk_index, section, content, token_estimate)
+        VALUES
+        <foreach collection="chunks" item="c" separator=",">
+            (#{c.documentId}, #{c.chunkIndex}, #{c.section}, #{c.content}, #{c.tokenEstimate})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByDocumentId">
+        DELETE FROM kb_chunk WHERE document_id = #{documentId}
+    </delete>
+
+    <select id="selectByDocumentId" resultType="com.lianzhi.attendance.knowledge.entity.KbChunk">
+        SELECT id, document_id AS documentId, chunk_index AS chunkIndex, section, content,
+               token_estimate AS tokenEstimate, created_at AS createdAt
+        FROM kb_chunk
+        WHERE document_id = #{documentId}
+        ORDER BY chunk_index
+    </select>
+
+    <select id="searchByFullText" resultType="com.lianzhi.attendance.knowledge.dto.ChunkHit">
+        SELECT
+            c.id                                                                   AS chunkId,
+            c.document_id                                                          AS documentId,
+            doc.title                                                              AS documentTitle,
+            c.section                                                              AS section,
+            c.content                                                              AS content,
+            MATCH(c.content) AGAINST (#{keyword} IN NATURAL LANGUAGE MODE)         AS score
+        FROM kb_chunk c
+        JOIN kb_document doc ON doc.id = c.document_id
+        WHERE MATCH(c.content) AGAINST (#{keyword} IN NATURAL LANGUAGE MODE) &gt; #{minScore}
+        <include refid="Visible_Document"/>
+        <if test="documentId != null">
+            AND c.document_id = #{documentId}
+        </if>
+        ORDER BY score DESC, c.id
+        LIMIT #{limit}
+    </select>
+
+    <select id="searchByLike" resultType="com.lianzhi.attendance.knowledge.dto.ChunkHit">
+        SELECT
+            c.id          AS chunkId,
+            c.document_id AS documentId,
+            doc.title     AS documentTitle,
+            c.section     AS section,
+            c.content     AS content,
+            1.0           AS score
+        FROM kb_chunk c
+        JOIN kb_document doc ON doc.id = c.document_id
+        WHERE c.content LIKE CONCAT('%', #{keyword}, '%')
+        <include refid="Visible_Document"/>
+        <if test="documentId != null">
+            AND c.document_id = #{documentId}
+        </if>
+        ORDER BY c.id
+        LIMIT #{limit}
+    </select>
+
+</mapper>

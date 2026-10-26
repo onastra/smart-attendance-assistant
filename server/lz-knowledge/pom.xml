@@ -19,5 +19,24 @@
             <groupId>com.lianzhi.attendance</groupId>
             <artifactId>lz-framework</artifactId>
         </dependency>
+
+        <!-- 文档解析。PDFBox 负责 PDF，POI 负责 Office 三件套（含旧版 doc/xls/ppt）。
+             这些依赖只在知识库模块使用，不污染其它业务模块。 -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-scratchpad</artifactId>
+        </dependency>
     </dependencies>
 </project>

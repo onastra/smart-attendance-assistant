@@ -86,27 +86,27 @@
 
 | 编号 | 需求名称 | 依据 | 优先级 | 前端 | 后端接口 | 数据表 | 权限 | 测试用例 | 实现状态 | 验收方式 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| REQ-F-01 | 上传/导入文档（PDF/Word/Excel/PPT 分阶段） | P6（多模态知识解析与入库） | 必做（文本类）/ 扩展（OCR、音视频） | kb-upload.vue | POST /api/kb/documents | kb_document | 上传者/管理员 | TC-F-01 PDF/Word 解析成功并入库 | 未实现 | 实操演示 |
-| REQ-F-02 | 解析、切分、索引与元数据管理 | P6（自动解析、智能切片与向量化） | 必做 | — | ChunkSplitter + FULLTEXT 索引 | kb_chunk | 管理员 | TC-F-02 切分长度与重叠符合配置 | 未实现 | 单元测试 |
-| REQ-F-03 | 可更新知识库（增删改重建） | P6（可更新的企业专属知识底座） | 必做 | 文档列表 | PUT/DELETE /api/kb/documents/{id} | kb_document | 管理员 | TC-F-03 删除后检索不再命中 | 未实现 | 接口测试 |
-| REQ-F-04 | 自然语言提问入口 | P6/项目名 AI Agent | 必做 | kb-qa.vue | POST /api/kb/ask | kb_qa_log | 登录用户 | TC-F-04 提问返回结构化结果 | 未实现 | 演示 |
-| REQ-F-05 | 基于文档内容的检索回答 + 来源引用 | IDX-F5 | 必做 | 答案区 + 来源列表 | Retriever（MySQL ngram 全文检索） | kb_chunk | 受文档可见范围限制 | TC-F-05 返回来源文档名与片段位置 | 未实现 | 演示 + 单元测试 |
-| REQ-F-06 | 检索不足时明确告知，不编造答案 | IDX-F6（明确要求） | 必做 | 提示文案 | 命中阈值守卫 | — | — | TC-F-06 无命中时返回"未找到足够依据" | 未实现 | 自动化测试 |
-| REQ-F-07 | 清晰的 Agent / 检索 / 模型 / 工具调用边界 | IDX-F7 | 必做 | — | 分层：AgentOrchestrator → Retriever → LlmClient | — | — | TC-F-07 各层可独立单测 | 未实现 | 单元测试 |
-| REQ-F-08 | 模型 API / 向量服务配置化 | IDX-F8 | 必做 | — | `lz.llm.*` 配置项 | — | — | TC-F-08 未配置 Key 时仍能启动 | 未实现 | 冷启动验证 |
-| REQ-F-09 | 无 Key 时可降级为检索模式并提示 | IDX-F9 | 必做 | 缺失提示条 | NoopLlmClient + 提示 | — | — | TC-F-09 响应含 `mode=retrieval-only` | 未实现 | 自动化测试 |
-| REQ-F-10 | 文档访问权限控制 | IDX-F10 | 必做 | — | 可见范围过滤（部门/角色/公开） | kb_document(visibility) | 受限文档非授权不可读 | TC-F-10 越权文档不出现在检索结果 | 未实现 | 越权测试 |
-| REQ-F-11 | 问答日志（脱敏） | IDX-F11 | 必做 | — | 异步落库 | kb_qa_log | 管理员 | TC-F-11 日志不记录完整答案正文与密钥 | 未实现 | 日志抽查 |
+| REQ-F-01 | 上传/导入文档（PDF/Word/Excel/PPT 分阶段） | P6（多模态知识解析与入库） | 必做（文本类）/ 扩展（OCR、音视频） | kb-upload.vue | POST /api/kb/documents | kb_document | 上传者/管理员 | TC-F-01 PDF/Word 解析成功并入库 | 已实现 · 2026-10-26 | 实操演示 + `verify-phase5.mjs` |
+| REQ-F-02 | 解析、切分、索引与元数据管理 | P6（自动解析、智能切片与向量化） | 必做 | — | ChunkSplitter + FULLTEXT 索引 | kb_chunk | 管理员 | TC-F-02 切分长度与重叠符合配置 | 已实现 · 2026-10-26 | `verify-phase5.mjs` |
+| REQ-F-03 | 可更新知识库（增删改重建） | P6（可更新的企业专属知识底座） | 必做 | 文档列表 | PUT/DELETE /api/kb/documents/{id} | kb_document | 管理员 | TC-F-03 删除后检索不再命中 | 已实现 · 2026-10-26 | 接口测试 |
+| REQ-F-04 | 自然语言提问入口 | P6/项目名 AI Agent | 必做 | kb-qa.vue | POST /api/kb/ask | kb_qa_log | 登录用户 | TC-F-04 提问返回结构化结果 | 已实现 · 2026-10-26 | 演示 |
+| REQ-F-05 | 基于文档内容的检索回答 + 来源引用 | IDX-F5 | 必做 | 答案区 + 来源列表 | Retriever（MySQL ngram 全文检索） | kb_chunk | 受文档可见范围限制 | TC-F-05 返回来源文档名与片段位置 | 已实现 · 2026-10-26 | 演示 + 自动化 |
+| REQ-F-06 | 检索不足时明确告知，不编造答案 | IDX-F6（明确要求） | 必做 | 提示文案 | 命中阈值守卫 | — | — | TC-F-06 无命中时返回"未找到足够依据" | 已实现 · 2026-10-26 | 自动化测试 |
+| REQ-F-07 | 清晰的 Agent / 检索 / 模型 / 工具调用边界 | IDX-F7 | 必做 | — | 分层：AgentOrchestrator → Retriever → LlmClient | — | — | TC-F-07 各层可独立单测 | 已实现 · 2026-10-26 | 分层可独立构造 |
+| REQ-F-08 | 模型 API / 向量服务配置化 | IDX-F8 | 必做 | — | `lz.llm.*` 配置项 | — | — | TC-F-08 未配置 Key 时仍能启动 | 已实现 · 2026-10-26 | 冷启动验证 |
+| REQ-F-09 | 无 Key 时可降级为检索模式并提示 | IDX-F9 | 必做 | 缺失提示条 | NoopLlmClient + 提示 | — | — | TC-F-09 响应含 `mode=retrieval-only` | 已实现 · 2026-10-26 | 自动化测试 |
+| REQ-F-10 | 文档访问权限控制 | IDX-F10 | 必做 | — | 可见范围过滤（部门/角色/公开） | kb_document(visibility) | 受限文档非授权不可读 | TC-F-10 越权文档不出现在检索结果 | 已实现 · 2026-10-26 | 越权测试 |
+| REQ-F-11 | 问答日志（脱敏） | IDX-F11 | 必做 | — | 异步落库 | kb_qa_log | 管理员 | TC-F-11 日志不记录完整答案正文与密钥 | 已实现 · 2026-10-26 | 日志抽查 |
 
 ## 模块 G：人脸识别与活体检测
 
 | 编号 | 需求名称 | 依据 | 优先级 | 前端 | 后端接口 | 数据表 | 权限 | 测试用例 | 实现状态 | 验收方式 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| REQ-G-01 | 人脸识别服务接口与适配层 | P13–15（人脸检测/跟踪/比对）→ 无 SDK 授权，走 IDX-G 替代方案 | 必做（适配层） | — | FaceRecognitionService 接口 | — | — | TC-G-01 接口可被替换实现 | 未实现 | 单元测试 |
-| REQ-G-02 | 模拟实现（明确标注） | IDX-G2 | 必做 | 人脸打卡页带"模拟"徽章 | NoopFaceRecognitionService | face_feature(hash) | 员工本人 | TC-G-02 响应 `mock=true` | 未实现 | 演示 + 自动化 |
-| REQ-G-03 | 界面与日志标注模拟 | IDX-G3 | 必做 | 徽章/警示条 | `[MOCK]` 日志前缀 | — | — | TC-G-03 日志含 MOCK 标记 | 未实现 | 抽查 |
-| REQ-G-04 | 真实 SDK 接入点与文档 | IDX-G4 | 必做（文档） | — | `lz.face.provider=arcsoft` 条件装配 | — | — | TC-G-04 切换配置后提示缺少授权文件而非崩溃 | 未实现 | 配置验证 |
-| REQ-G-05 | 生物特征数据最小化存储说明 | IDX-G7 | 必做 | 隐私说明 | `lz.face.store-image=false` | — | — | TC-G-05 默认不落原始人脸图 | 未实现 | 配置 + 文档 |
+| REQ-G-01 | 人脸识别服务接口与适配层 | P13–15（人脸检测/跟踪/比对）→ 无 SDK 授权，走 IDX-G 替代方案 | 必做（适配层） | — | FaceRecognitionService 接口 | — | — | TC-G-01 接口可被替换实现 | 已实现 · 2026-10-26 | 切 provider 即换实现 |
+| REQ-G-02 | 模拟实现（明确标注） | IDX-G2 | 必做 | 人脸打卡页带"模拟"徽章 | NoopFaceRecognitionService | face_feature(hash) | 员工本人 | TC-G-02 响应 `mock=true` | 已实现 · 2026-10-26 | 演示 + `verify-phase5.mjs` |
+| REQ-G-03 | 界面与日志标注模拟 | IDX-G3 | 必做 | 徽章/警示条 | `[MOCK]` 日志前缀 | — | — | TC-G-03 日志含 MOCK 标记 | 已实现 · 2026-10-26 | 抽查 |
+| REQ-G-04 | 真实 SDK 接入点与文档 | IDX-G4 | 必做（文档） | — | `lz.face.provider=arcsoft` 条件装配 | — | — | TC-G-04 切换配置后提示缺少授权文件而非崩溃 | 已实现 · 2026-10-26 | 配置验证 + `docs/face-sdk-integration.md` |
+| REQ-G-05 | 生物特征数据最小化存储说明 | IDX-G7 | 必做 | 隐私说明 | `lz.face.store-image=false` | — | — | TC-G-05 默认不落原始人脸图 | 已实现 · 2026-10-26 | 配置 + 文档 |
 | REQ-G-06 | 真实虹软 SDK 集成 | P14（虹软 SDK 使用） | **受阻** | — | ArcSoftFaceRecognitionService | — | — | — | **受阻**：缺 SDK 授权/AppId/设备 | 待外部条件 |
 | REQ-G-07 | 活体检测 / 人证核验 / 人脸质量 | P14（活体检测、人证核验） | **受阻** | — | 同上 | — | — | — | **受阻**：同上，且不得用静态图冒充 | 待外部条件 |
 

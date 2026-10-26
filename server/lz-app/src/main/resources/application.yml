@@ -88,8 +88,25 @@ lz:
   face:
     # noop = 明确标注的模拟实现；arcsoft = 真实 SDK（需授权，当前不可得）
     provider: ${LZ_FACE_PROVIDER:noop}
+    # 真实 SDK 授权参数；目前无论是否填写都拿不到 SDK，填了也不会"假装可用"
+    app-id: ${LZ_FACE_APP_ID:}
+    sdk-key: ${LZ_FACE_SDK_KEY:}
     # 最小化生物特征存储：默认不保存原始人脸图片
     store-image: ${LZ_FACE_STORE_IMAGE:false}
+
+  # ===== 知识库（模块 F）=====
+  kb:
+    # 切片窗口与重叠。重叠用于避免一句话被切断后两边都检索不到
+    chunk-size: ${LZ_KB_CHUNK_SIZE:300}
+    chunk-overlap: ${LZ_KB_CHUNK_OVERLAP:60}
+    # 单文档最大抽取字符数，防止超大文件吃满内存
+    max-chars-per-document: ${LZ_KB_MAX_CHARS:200000}
+    # 全文检索相关度下限：低于此值视为没有真正命中，直接回复"未找到足够依据"
+    min-score: ${LZ_KB_MIN_SCORE:0.05}
+    # 一次问答最多带回几条来源
+    top-k: ${LZ_KB_TOP_K:5}
+    excerpt-length: ${LZ_KB_EXCERPT_LENGTH:120}
+    allowed-extensions: ${LZ_KB_EXTENSIONS:pdf,docx,xlsx,pptx,doc,xls,ppt,txt,md}
 
   llm:
     # 知识库生成增强：未配置 Key 时走 retrieval-only 模式，明确提示而非伪造答案

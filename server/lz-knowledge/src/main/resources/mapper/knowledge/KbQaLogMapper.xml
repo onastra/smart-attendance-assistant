@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.knowledge.mapper.KbQaLogMapper">
+
+    <!-- 只写元数据，不写答案正文：答案里含文档原文片段，落库等于复制一份绕过可见范围控制的数据 -->
+    <insert id="insert">
+        INSERT INTO kb_qa_log (user_id, question, hit_count, top_score, mode, latency_ms)
+        VALUES (#{userId}, #{question}, #{hitCount}, #{topScore}, #{mode}, #{latencyMs})
+    </insert>
+
+    <select id="selectRecent" resultType="com.lianzhi.attendance.knowledge.entity.KbQaLog">
+        SELECT l.id, l.user_id AS userId, l.question, l.hit_count AS hitCount,
+               l.top_score AS topScore, l.mode, l.latency_ms AS latencyMs,
+               l.created_at AS createdAt, u.username
+        FROM kb_qa_log l
+        LEFT JOIN sys_user u ON u.id = l.user_id
+        <where>
+            <if test="userId != null">
+                AND l.user_id = #{userId}
+            </if>
+        </where>
+        ORDER BY l.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM kb_qa_log
+    </select>
+
+</mapper>

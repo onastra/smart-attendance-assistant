@@ -71,6 +71,13 @@ const routes = [
         meta: { title: '我的考勤', icon: 'Clock', group: '考勤' }
       },
       {
+        // 与 H5 页共用同一组件：后台入口方便演示，手机端入口方便真机体验
+        path: 'face/mock',
+        name: 'face-mock',
+        component: () => import('@/views/h5/FaceCheckin.vue'),
+        meta: { title: '人脸打卡（模拟）', icon: 'Camera', group: '考勤', permission: 'face:verify' }
+      },
+      {
         path: 'statistics/dashboard',
         name: 'statistics-dashboard',
         component: () => import('@/views/statistics/Dashboard.vue'),
@@ -87,10 +94,22 @@ const routes = [
         name: 'roles',
         component: () => import('@/views/system/RoleManage.vue'),
         meta: { title: '角色权限', icon: 'Key', group: '系统', permission: 'system:role:list' }
+      },
+      {
+        path: 'kb/documents',
+        name: 'kb-documents',
+        component: () => import('@/views/knowledge/DocumentManage.vue'),
+        meta: { title: '知识库文档', icon: 'FolderOpened', group: '知识库', permission: 'kb:doc:list' }
+      },
+      {
+        path: 'kb/ask',
+        name: 'kb-ask',
+        component: () => import('@/views/knowledge/Ask.vue'),
+        meta: { title: '智能问答', icon: 'ChatDotRound', group: '知识库', permission: 'kb:ask' }
       }
     ]
   },
-  // H5 移动端打卡页：独立布局，不做后台缩放适配
+  // H5 移动端页面：独立布局，不做后台缩放适配
   {
     path: '/h5',
     children: [
@@ -99,6 +118,12 @@ const routes = [
         name: 'h5-checkin',
         component: () => import('@/views/h5/Checkin.vue'),
         meta: { title: '移动打卡', public: true, hidden: true }
+      },
+      {
+        path: 'face',
+        name: 'h5-face',
+        component: () => import('@/views/h5/FaceCheckin.vue'),
+        meta: { title: '人脸打卡（模拟）', public: true, hidden: true }
       }
     ]
   }

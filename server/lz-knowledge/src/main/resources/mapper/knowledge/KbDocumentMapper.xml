@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.knowledge.mapper.KbDocumentMapper">
+
+    <sql id="Base_Column_List">
+        id, title, file_type, file_size, file_id, content_hash, visibility, owner_dept_id,
+        status, parse_message, chunk_count, created_by, created_at
+    </sql>
+
+    <sql id="Visibility_Join">
+        LEFT JOIN org_department d ON d.id = doc.owner_dept_id
+        LEFT JOIN sys_user u ON u.id = doc.created_by
+    </sql>
+
+    <insert id="insertDocument" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO kb_document
+            (title, file_type, file_size, file_id, content_hash, visibility, owner_dept_id,
+             status, parse_message, chunk_count, created_by)
+        VALUES
+            (#{title}, #{fileType}, #{fileSize}, #{fileId}, #{contentHash}, #{visibility},
+             #{ownerDeptId}, #{status}, #{parseMessage}, #{chunkCount}, #{createdBy})
+    </insert>
+
+    <select id="selectById" resultType="com.lianzhi.attendance.knowledge.entity.KbDocument">
+        SELECT
+            doc.id, doc.title, doc.file_type AS fileType, doc.file_size AS fileSize,
+            doc.file_id AS fileId, doc.content_hash AS contentHash, doc.visibility,
+            doc.owner_dept_id AS ownerDeptId, doc.status, doc.parse_message AS parseMessage,
+            doc.chunk_count AS chunkCount, doc.created_by AS createdBy, doc.created_at AS createdAt,
+            d.dept_name AS ownerDeptName, u.nickname AS createdByName
+        FROM kb_document doc
+        <include refid="Visibility_Join"/>
+        WHERE doc.id = #{id}
+    </select>
+
+    <sql id="Page_Where">
+        <where>
+            <if test="title != null and title != ''">
+                AND doc.title LIKE CONCAT('%', #{title}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND doc.status = #{status}
+            </if>
+            <if test="visibility != null and visibility != ''">
+                AND doc.visibility = #{visibility}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectPage" resultType="com.lianzhi.attendance.knowledge.entity.KbDocument">
+        SELECT
+            doc.id, doc.title, doc.file_type AS fileType, doc.file_size AS fileSize,
+            doc.file_id AS fileId, doc.content_hash AS contentHash, doc.visibility,
+            doc.owner_dept_id AS ownerDeptId, doc.status, doc.parse_message AS parseMessage,
+            doc.chunk_count AS chunkCount, doc.created_by AS createdBy, doc.created_at AS createdAt,
+            d.dept_name AS ownerDeptName, u.nickname AS createdByName
+        FROM kb_document doc
+        <include refid="Visibility_Join"/>
+        <include refid="Page_Where"/>
+        ORDER BY doc.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*)
+        FROM kb_document doc
+        <include refid="Page_Where"/>
+    </select>
+
+    <update id="updateParseResult">
+        UPDATE kb_document
+        SET status        = #{status},
+            chunk_count   = #{chunkCount},
+            parse_message = #{parseMessage}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateVisibility">
+        UPDATE kb_document
+        SET visibility    = #{visibility},
+            owner_dept_id = #{ownerDeptId}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM kb_document WHERE id = #{id}
+    </delete>
+
+    <select id="selectByHash" resultType="com.lianzhi.attendance.knowledge.entity.KbDocument">
+        SELECT <include refid="Base_Column_List"/>
+        FROM kb_document
+        WHERE content_hash = #{contentHash}
+    </select>
+
+    <select id="selectEmployeeDeptId" resultType="java.lang.Long">
+        SELECT dept_id FROM hr_employee WHERE id = #{employeeId}
+    </select>
+
+</mapper>
