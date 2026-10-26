@@ -30,12 +30,22 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /** 业务异常：按原样返回码与文案，不打堆栈，避免日志噪音。 */
+    /**
+     * 业务异常：按原样返回码与文案，不打堆栈，避免日志噪音。
+     *
+     * <p>异常上可以携带 data（例如打卡失败的原因码 {@code reason}），
+     * 必须透传出去：前端要据此区分"二维码过期"与"你不属于该场所"，
+     * 只靠 message 文案做分支判断是不可靠的。</p>
+     */
     @ExceptionHandler(BusinessException.class)
-    public R<Void> handleBusinessException(BusinessException e) {
+    public R<Object> handleBusinessException(BusinessException e) {
         String traceId = TraceIdUtil.generate();
-        log.warn("[业务逻辑被拒绝] traceId={} code={} message={}", traceId, e.getCode(), e.getMessage());
-        return R.fail(e.getCode(), e.getMessage());
+        log.warn("[业务逻辑被拒绝] traceId={} code={} message={} data={}",
+                traceId, e.getCode(), e.getMessage(), e.getData());
+        if (e.getData() != null) {
+            return R.fail(e.getCode(), e.getMessage(), e.getData()).traceId(traceId);
+        }
+        return R.fail(e.getCode(), e.getMessage()).traceId(traceId);
     }
 
     /** JSON 体参数校验失败（@RequestBody + @Valid）。 */

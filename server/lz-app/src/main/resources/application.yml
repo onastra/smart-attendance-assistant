@@ -98,6 +98,25 @@ lz:
     base-url: ${LZ_LLM_BASE_URL:}
     model: ${LZ_LLM_MODEL:}
 
+  # ===== 考勤业务口径（2026-10-26 确认：全局统一 + 配置化，暂不引入班次表）=====
+  attendance:
+    # 上下班时间与宽限：迟到 = 上班打卡晚于 上班时间 + 宽限分钟
+    work-start-time: ${LZ_ATTENDANCE_WORK_START:09:00}
+    work-end-time: ${LZ_ATTENDANCE_WORK_END:18:00}
+    late-grace-minutes: ${LZ_ATTENDANCE_LATE_GRACE:15}
+    early-leave-grace-minutes: ${LZ_ATTENDANCE_EARLY_GRACE:0}
+    # 同一员工同一场所同类型在该分钟数内的第二次提交视为重复打卡
+    duplicate-window-minutes: ${LZ_ATTENDANCE_DUP_WINDOW:5}
+    # true = 客户端上报了坐标才做围栏校验；未上报则跳过并在记录中标注，不谎称校验过
+    location-check-enabled: ${LZ_ATTENDANCE_LOCATION_CHECK:true}
+    # 二维码有效期：动态码 120 秒（前端倒计时刷新），长期固定码 24 小时（管理员手动失效）
+    qr-dynamic-ttl-seconds: ${LZ_QR_DYNAMIC_TTL:120}
+    qr-fixed-ttl-seconds: ${LZ_QR_FIXED_TTL:86400}
+    qr-max-ttl-seconds: ${LZ_QR_MAX_TTL:604800}
+    qr-image-size: ${LZ_QR_IMAGE_SIZE:320}
+    # 二维码签名密钥：与 JWT 密钥分开，正式环境请用 LZ_QR_SIGN_SECRET 注入
+    qr-sign-secret: ${LZ_QR_SIGN_SECRET:lianzhi-qr-default-secret-please-change}
+
   map:
     # 地图坐标采集：未配置 Key 时使用手动坐标录入
     provider: ${LZ_MAP_PROVIDER:none}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.attendance.mapper.AttSupportMapper">
+
+    <select id="selectPlaceBrief" resultType="com.lianzhi.attendance.attendance.entity.PlaceBrief">
+        SELECT id, place_name AS placeName, status, lng, lat, cover_radius_m AS coverRadiusM
+        FROM biz_place
+        WHERE id = #{placeId}
+    </select>
+
+    <select id="countBinding" resultType="long">
+        SELECT COUNT(*) FROM hr_employee_place
+        WHERE employee_id = #{employeeId} AND place_id = #{placeId} AND status = 1
+    </select>
+
+    <select id="countActiveEmployee" resultType="long">
+        SELECT COUNT(*) FROM hr_employee WHERE id = #{employeeId} AND status = 1
+    </select>
+
+    <select id="selectEmployeeName" resultType="string">
+        SELECT name FROM hr_employee WHERE id = #{employeeId}
+    </select>
+
+    <select id="selectEmployeeDeptId" resultType="long">
+        SELECT dept_id FROM hr_employee WHERE id = #{employeeId}
+    </select>
+
+    <insert id="insertOperationLog">
+        INSERT INTO log_operation (user_id, module, action, target_id, ip, success, message)
+        VALUES (#{userId}, #{module}, #{action}, #{targetId}, #{ip}, #{success}, #{message})
+    </insert>
+</mapper>

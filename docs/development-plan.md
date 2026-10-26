@@ -11,7 +11,7 @@
 | 0 | 项目审计与实施计划 | 已产出架构/需求矩阵/数据库/接口/测试/进度文档 | **已完成** |
 | 1 | 项目骨架与开发环境 | Maven 多模块 + Vue3 工程成型，`mvn compile` 与 `npm run build` 通过 | **✅ 已完成**（2026-10-26，含数据库初始化） |
 | 2 | 基础业务与权限 | 认证鉴权、角色权限、员工/组织/场所管理 | **✅ 已完成**（2026-10-26） |
-| 3 | 核心考勤闭环 | 二维码、H5 打卡、打卡记录、个人与管理员查询 | 未开始 |
+| 3 | 核心考勤闭环 | 二维码、H5 打卡、打卡记录、个人与管理员查询 | **✅ 已完成**（2026-10-26） |
 | 4 | 统计与可视化 | 统计汇总、Trend、ECharts 看板（审批模块已按 Q-1 暂缓） | 未开始 |
 | 5 | AI 知识库与高级能力 | 文档解析、切分、检索、问答与来源引用；人脸适配层 | 未开始 |
 | 6 | 基础设施与移动端扩展 | Redis（待安装）、Nacos（已配置未启用）、定时任务、存储与场景规则 | 未开始 |
@@ -100,6 +100,48 @@
 5. 日志：`log_operation` + 失败原因落 `traceId`。
 
 **完成标志**：管理员发布二维码 → 员工 H5 扫码 → 成功→落库；重复/过期/越权/非本场所四类失败均有明确提示。
+
+**开工前与你确认的四项口径（2026-10-26）**
+
+| 议题 | 结论 |
+|---|---|
+| 迟到/早退判定 | 全局可配（`lz.attendance.work-start-time` 等），暂不引入班次表；后续换班次表时判定逻辑不用改 |
+| 二维码类型 | 动态码（默认 120 秒，前端倒计时自动续发）+ 长期固定码（默认 24 小时，管理员手动失效），补 `att_qrcode.qr_type` 字段 |
+| H5 扫码方式 | 摄像头扫码（html5-qrcode）+ 手动粘贴 payload 兜底；非 HTTPS/localhost 环境自动降级并说明原因 |
+| 定位围栏 | 可选校验：上报了坐标才按 `cover_radius_m` 判断，未上报则跳过并在记录 remark 中标注"未做围栏校验" |
+
+**阶段 3 实际执行结果（2026-10-26）**
+
+| 验收项 | 命令/方式 | 结果 |
+|---|---|---|
+| 数据库补丁 | `docs/sql/patch-phase3-attendance.sql`（幂等） | ✅ `qr_type` 字段补齐；权限码 44→46（新增 `attendance:qrcode:invalidate`、`attendance:record:admin`）；ADMIN 46 / MANAGER 21 / EMPLOYEE 7 |
+| 后端构建 | `mvn -B -DskipTests package` | ✅ BUILD SUCCESS（ZXing core 3.2.1 + javase 3.2.0 走本地仓库，离线可用） |
+| 端到端验证 | `node scripts/verify-phase3.mjs` | ✅ **30 项断言全部通过**，0 失败 |
+| 前端构建 | `npm run build` | ✅ built in 7.75s（新增 Checkin/QrcodeManage/AdminRecords/MyRecords 四个页面） |
+| 前后端联调 | `curl http://localhost:5173/h5/checkin`、代理转发健康检查 | ✅ 均 200；5173 已监听 `0.0.0.0`，手机同局域网可访问 `http://192.168.1.4:5173/h5/checkin` |
+
+**覆盖的失败场景与原因码**
+
+| 场景 | 原因码 | 响应码 |
+|---|---|---|
+| 伪造/篡改签名 | `QR_SIGN_INVALID` | 40901 |
+| 二维码过期 | `QR_EXPIRED` | 40901 |
+| 已被管理员作废 | `QR_INVALID` | 40901 |
+| 一次性码二次使用 | `QR_USED` | 40901 |
+| 非本场所员工 | `PLACE_NOT_BOUND` | 40901 |
+| 场所已停用 | `PLACE_DISABLED` | 40901 |
+| 员工档案停用/未关联 | `EMPLOYEE_INACTIVE` / `EMPLOYEE_NOT_BOUND` | 40901 |
+| 5 分钟内重复打卡 | `DUPLICATE_CHECKIN` | 40901 |
+| 超出场所半径 | `OUT_OF_RANGE` | 40901（附带距离与半径） |
+| 非本系统二维码 | `QR_FORMAT_INVALID` / `QR_NOT_FOUND` | 40001 / 40401 |
+| 普通员工调管理端查询 | — | 40301 |
+
+**过程中发现并修复的真实缺陷**
+
+1. 管理端考勤查询与普通员工本人查询共用 `attendance:record:query` 权限码 → 普通员工可看到同部门同事考勤。已拆分出 `attendance:record:admin`（仅 ADMIN/MANAGER），实测普通员工调用返回 40301。
+2. 二维码图片接口需要登录态，而 `<img src>` 不会带 `Authorization` 头 → 改为前端带 token 取二进制再转临时 URL（见 `web/src/api/qrcode.js`）。
+3. `GlobalExceptionHandler` 原样丢弃 `BusinessException.data`，导致打卡失败原因码无法下发 → 改为透传 data（同时补齐 `R.fail(int, String, T)` 重载）。
+4. `docs/database-design.md` 描述的 `att_qrcode.qr_type` 在阶段 1 建表时漏建 → 幂等 DDL 补列（MySQL 5.7 无 `ADD COLUMN IF NOT EXISTS`，用 `information_schema` 判断）。
 
 ---
 

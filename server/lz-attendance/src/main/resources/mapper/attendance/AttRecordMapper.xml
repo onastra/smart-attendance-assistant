@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.attendance.mapper.AttRecordMapper">
+
+    <sql id="RecordColumns">
+        r.id, r.employee_id, r.place_id, r.qrcode_id, r.checkin_type, r.checkin_time,
+        r.source, r.result, r.lng, r.lat, r.client_ip, r.request_id, r.remark, r.created_at
+    </sql>
+
+    <sql id="ViewColumns">
+        <include refid="RecordColumns"/>,
+        e.emp_no AS empNo,
+        e.name   AS employeeName,
+        d.dept_name AS deptName,
+        p.place_name AS placeName,
+        CASE r.result
+             WHEN 'NORMAL' THEN '正常'
+             WHEN 'LATE'   THEN '迟到'
+             WHEN 'EARLY'  THEN '早退'
+             WHEN 'ABNORMAL' THEN '异常'
+             ELSE r.result END AS resultText,
+        CASE r.checkin_type
+             WHEN 'ON_DUTY'  THEN '上班'
+             WHEN 'OFF_DUTY' THEN '下班'
+             WHEN 'FIELD'    THEN '外勤'
+             ELSE r.checkin_type END AS checkinTypeText
+    </sql>
+
+    <sql id="QueryWhere">
+        <where>
+            <if test="employeeId != null">AND r.employee_id = #{employeeId}</if>
+            <if test="placeId != null">AND r.place_id = #{placeId}</if>
+            <if test="deptId != null">AND e.dept_id = #{deptId}</if>
+            <if test="checkinType != null and checkinType != ''">AND r.checkin_type = #{checkinType}</if>
+            <if test="result != null and result != ''">AND r.result = #{result}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (e.name LIKE CONCAT('%', #{keyword}, '%') OR e.emp_no LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="dateFrom != null and dateFrom != ''">AND r.checkin_time &gt;= CONCAT(#{dateFrom}, ' 00:00:00')</if>
+            <if test="dateTo != null and dateTo != ''">AND r.checkin_time &lt;= CONCAT(#{dateTo}, ' 23:59:59')</if>
+        </where>
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lianzhi.attendance.attendance.entity.AttRecord">
+        INSERT INTO att_record
+        (employee_id, place_id, qrcode_id, checkin_type, checkin_time, source,
+         result, lng, lat, client_ip, request_id, remark)
+        VALUES
+        (#{employeeId}, #{placeId}, #{qrcodeId}, #{checkinType}, #{checkinTime}, #{source},
+         #{result}, #{lng}, #{lat}, #{clientIp}, #{requestId}, #{remark})
+    </insert>
+
+    <select id="countByRequestId" resultType="long">
+        SELECT COUNT(*) FROM att_record WHERE request_id = #{requestId}
+    </select>
+
+    <select id="selectByRequestId" resultType="com.lianzhi.attendance.attendance.entity.AttRecordView">
+        SELECT
+        <include refid="ViewColumns"/>
+        FROM att_record r
+        LEFT JOIN hr_employee e ON e.id = r.employee_id
+        LEFT JOIN org_department d ON d.id = e.dept_id
+        LEFT JOIN biz_place p ON p.id = r.place_id
+        WHERE r.request_id = #{requestId}
+    </select>
+
+    <!-- 重复窗口检测：同一员工 + 同一场所 + 同一类型在窗口内已有记录 -->
+    <select id="countRecent" resultType="long">
+        SELECT COUNT(*) FROM att_record
+        WHERE employee_id = #{employeeId}
+          AND place_id = #{placeId}
+          AND checkin_type = #{checkinType}
+          AND checkin_time &gt;= #{since}
+    </select>
+
+    <select id="selectByQuery" resultType="com.lianzhi.attendance.attendance.entity.AttRecordView">
+        SELECT
+        <include refid="ViewColumns"/>
+        FROM att_record r
+        LEFT JOIN hr_employee e ON e.id = r.employee_id
+        LEFT JOIN org_department d ON d.id = e.dept_id
+        LEFT JOIN biz_place p ON p.id = r.place_id
+        <include refid="QueryWhere"/>
+        ORDER BY r.checkin_time DESC, r.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByQuery" resultType="long">
+        SELECT COUNT(*)
+        FROM att_record r
+        LEFT JOIN hr_employee e ON e.id = r.employee_id
+        LEFT JOIN org_department d ON d.id = e.dept_id
+        <include refid="QueryWhere"/>
+    </select>
+</mapper>

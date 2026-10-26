@@ -35,18 +35,18 @@
 
 | 编号 | 需求名称 | 依据 | 优先级 | 前端 | 后端接口 | 数据表 | 权限 | 测试用例 | 实现状态 | 验收方式 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| REQ-C-01 | 动态生成携带核心参数的二维码 | P11（二维码：二维码动态生成，携带核心参数） | 必做 | qrcode-manage.vue | POST /api/qrcodes、GET /api/qrcodes/{id}/image | att_qrcode | 管理员 | TC-C-01 生成含 placeId/nonce/expire/sign | 未实现 | 扫码实操 |
-| REQ-C-02 | 二维码签名与服务端校验 | IDX-C2（明确要求） | 必做 | — | QrSigner(HMAC-SHA256) | — | — | TC-C-02 篡改参数被拒；TC-C-03 伪造签名被拒 | 未实现 | 自动化测试 |
-| REQ-C-03 | 有效期、失效与重复使用限制 | IDX-C3 | 必做 | 后台失效按钮 | POST /api/qrcodes/{id}/invalidate、定时任务 | att_qrcode(expires_at,used,status) | 管理员 | TC-C-04 过期码打卡失败；TC-C-05 一次性码二次使用被拒 | 未实现 | 自动化测试 |
-| REQ-C-04 | H5 扫码打卡页面 | P9（移动端 H5 页面开发）、P11（H5 终端页面，用户扫码一体化信息提交） | 必做 | h5/checkin.vue | — | — | 需登录 | TC-C-06 移动浏览器打开并完成提交 | 未实现 | 真机/浏览器演示 |
-| REQ-C-05 | 打卡业务规则校验（身份/二维码状态/员工-场所关系） | IDX-C5 | 必做 | 结果反馈区 | CheckinValidator | — | — | TC-C-07 非本场所员工打卡被拒并返回原因 | 未实现 | 自动化测试 |
-| REQ-C-06 | 打卡记录落库（员工/类型/场所/时间/来源/结果） | P10（打卡记录上报、签到数据上传） | 必做 | — | POST /api/checkin | att_record | 登录用户 | TC-C-08 记录字段完整落库，重启后仍在 | 未实现 | DB 校验 |
-| REQ-C-07 | 防重放、防重复提交 | IDX-C7 | 必做 | 按钮幂等 | 幂等表/去重策略 | att_record_uniq / 幂等 key | — | TC-C-09 同一 nonce 二次提交拒绝 | 未实现 | 自动化测试 |
-| REQ-C-08 | 前端展示成功/失败及具体原因 | IDX-C8 | 必做 | h5 结果页 | ResultCode 枚举 | — | — | TC-C-10 每种失败原因有可读文案 | 未实现 | 页面演示 |
-| REQ-C-09 | 管理员查询打卡记录 | P11（概要：员工考勤实时数据报表） | 必做 | record-admin.vue | GET /api/admin/attendance/records | att_record | 管理员 | TC-C-11 多条件筛选结果正确 | 未实现 | 页面演示 |
-| REQ-C-10 | 员工查询本人考勤记录 | P6（移动应用：查看自己的考勤记录） | 必做 | record-mine.vue | GET /api/my/attendance/records | att_record | 登录用户（只能本人） | TC-C-12 越权查他人被拒 | 未实现 | 自动化 + 演示 |
-| REQ-C-11 | 业务日志 | IDX-C11 | 必做 | — | 操作/异常日志 | log_operation | — | TC-C-13 关键操作有日志落库 | 未实现 | 日志抽查 |
-| REQ-C-12 | 摄像头不可用时的二维码 content 输入替代方案 | IDX-C（浏览器/设备限制） | 必做 | h5 手动输入 | POST /api/checkin payload 支持 content | — | — | TC-C-14 手动粘贴 payload 可完成打卡 | 未实现 | 演示（并标注局限） |
+| REQ-C-01 | 动态生成携带核心参数的二维码 | P11（二维码：二维码动态生成，携带核心参数） | 必做 | qrcode-manage.vue | POST /api/qrcodes、GET /api/qrcodes/{id}/image | att_qrcode | 管理员 | TC-C-01 生成含 placeId/nonce/expire/sign | ✅ 已实现（阶段3） | 脚本验证 + 页面演示 |
+| REQ-C-02 | 二维码签名与服务端校验 | IDX-C2（明确要求） | 必做 | — | QrSigner(HMAC-SHA256) | — | — | TC-C-02 篡改参数被拒；TC-C-03 伪造签名被拒 | ✅ 已实现（阶段3） | 脚本验证（QR_SIGN_INVALID） |
+| REQ-C-03 | 有效期、失效与重复使用限制 | IDX-C3 | 必做 | 后台失效按钮 | POST /api/qrcodes/{id}/invalidate、定时任务 | att_qrcode(expires_at,used,status) | 管理员 | TC-C-04 过期码打卡失败；TC-C-05 一次性码二次使用被拒 | ✅ 已实现（阶段3） | 脚本验证（QR_EXPIRED / QR_USED） |
+| REQ-C-04 | H5 扫码打卡页面 | P9（移动端 H5 页面开发）、P11（H5 终端页面，用户扫码一体化信息提交） | 必做 | h5/checkin.vue | — | — | 需登录 | TC-C-06 移动浏览器打开并完成提交 | ✅ 已实现（阶段3） | H5 页面演示（/h5/checkin） |
+| REQ-C-05 | 打卡业务规则校验（身份/二维码状态/员工-场所关系） | IDX-C5 | 必做 | 结果反馈区 | CheckinValidator | — | — | TC-C-07 非本场所员工打卡被拒并返回原因 | ✅ 已实现（阶段3） | 脚本验证（PLACE_NOT_BOUND） |
+| REQ-C-06 | 打卡记录落库（员工/类型/场所/时间/来源/结果） | P10（打卡记录上报、签到数据上传） | 必做 | — | POST /api/checkin | att_record | 登录用户 | TC-C-08 记录字段完整落库，重启后仍在 | ✅ 已实现（阶段3） | 脚本验证 + DB 校验 |
+| REQ-C-07 | 防重放、防重复提交 | IDX-C7 | 必做 | 按钮幂等 | 幂等表/去重策略 | att_record_uniq / 幂等 key | — | TC-C-09 同一 nonce 二次提交拒绝 | ✅ 已实现（阶段3） | 脚本验证（幂等 requestId + 一次性码） |
+| REQ-C-08 | 前端展示成功/失败及具体原因 | IDX-C8 | 必做 | h5 结果页 | ResultCode 枚举 | — | — | TC-C-10 每种失败原因有可读文案 | ✅ 已实现（阶段3） | 页面演示（data.reason 翻译表） |
+| REQ-C-09 | 管理员查询打卡记录 | P11（概要：员工考勤实时数据报表） | 必做 | record-admin.vue | GET /api/admin/attendance/records | att_record | 管理员 | TC-C-11 多条件筛选结果正确 | ✅ 已实现（阶段3） | 脚本验证 + 页面演示 |
+| REQ-C-10 | 员工查询本人考勤记录 | P6（移动应用：查看自己的考勤记录） | 必做 | record-mine.vue | GET /api/my/attendance/records | att_record | 登录用户（只能本人） | TC-C-12 越权查他人被拒 | ✅ 已实现（阶段3） | 脚本验证（40301 + dataScope） |
+| REQ-C-11 | 业务日志 | IDX-C11 | 必做 | — | 操作/异常日志 | log_operation | — | TC-C-13 关键操作有日志落库 | ✅ 已实现（阶段3） | 日志抽查（log_operation，独立事务） |
+| REQ-C-12 | 摄像头不可用时的二维码 content 输入替代方案 | IDX-C（浏览器/设备限制） | 必做 | h5 手动输入 | POST /api/checkin payload 支持 content | — | — | TC-C-14 手动粘贴 payload 可完成打卡 | ✅ 已实现（阶段3） | H5 手动输入入口（摄像头不可用时降级） |
 
 ## 模块 D：考勤记录与统计看板
 

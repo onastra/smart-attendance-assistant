@@ -71,6 +71,16 @@ public class R<T> implements Serializable {
         return new R<>(code, message, null, null);
     }
 
+    /**
+     * 携带结构化错误附加信息（如打卡失败原因码 reason）。
+     *
+     * <p>存在意义：失败原因要能被程序判断，只把原因写进 message 文案会让前端
+     * 被迫做字符串匹配，一旦文案调整就全线失效。</p>
+     */
+    public static <T> R<T> fail(int code, String message, T data) {
+        return new R<>(code, message, data, null);
+    }
+
     /** 填充链路追踪 ID，便于前端报错后能凭 ID 在日志中定位。 */
     public R<T> traceId(String traceId) {
         return new R<>(this.code, this.message, this.data, traceId);

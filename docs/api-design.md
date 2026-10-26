@@ -113,14 +113,43 @@
 
 | 方法 | 路径 | 说明 | 权限 |
 |---|---|---|---|
-| POST | `/api/qrcodes` | 生成二维码（参数：placeId、有效期秒、是否一次性、类型） | 管理员 |
-| GET | `/api/qrcodes/{id}/image` | 返回 PNG 图片流 | 管理员 |
-| GET | `/api/qrcodes` | 二维码列表与状态 | 管理员 |
-| POST | `/api/qrcodes/{id}/invalidate` | 手动失效 | 管理员 |
+| POST | `/api/qrcodes` | 生成二维码（参数：placeId、qrType、ttlSeconds、onceOnly） | `attendance:qrcode:create` |
+| GET | `/api/qrcodes/{id}/image` | 返回 PNG 图片流（需带 token，前端取二进制后转临时 URL） | `attendance:qrcode:list` |
+| GET | `/api/qrcodes` | 二维码列表与状态（查询前惰性把过期码置为 EXPIRED） | `attendance:qrcode:list` |
+| POST | `/api/qrcodes/{id}/invalidate` | 手动失效 | `attendance:qrcode:invalidate` |
 | POST | `/api/checkin/request-id` | H5 端获取本次打卡幂等 requestId | 登录 |
-| POST | `/api/checkin` | 提交打卡（二维码 payload 或手动输入 content） | 登录 |
-| GET | `/api/my/attendance/records` | 本人考勤记录分页 | 登录 |
-| GET | `/api/admin/attendance/records` | 管理员查询（员工/部门/场所/日期/状态筛选） | 管理员 |
+| POST | `/api/checkin` | 提交打卡（二维码 payload 或手动输入 content） | 登录（员工身份取自 token，不接受入参传入） |
+| GET | `/api/my/attendance/records` | 本人考勤记录分页（服务端强制 employeeId） | 登录 |
+| GET | `/api/admin/attendance/records` | 管理员查询（员工/部门/场所/日期/状态筛选） | `attendance:record:admin` |
+
+> **权限码为何拆成两个**：`attendance:record:query`（本人查询，EMPLOYEE 也持有）与
+> `attendance:record:admin`（查他人，仅 ADMIN/MANAGER）若共用一个码，
+> 普通员工就能调管理端接口看到同部门同事的考勤。阶段 3 实测中已确认该越权并修复。
+
+**打卡失败响应**：全部走 4xxxx + `data.reason`，前端按原因码翻译成人话（见 `web/src/api/attendance.js` 的 `describeCheckinFailure`）。
+
+| 原因码 | 含义 | HTTP 业务码 |
+|---|---|---|
+| `QR_FORMAT_INVALID` / `QR_NOT_FOUND` | 不是本系统二维码 / 非本系统签发 | 40001 / 40401 |
+| `QR_SIGN_INVALID` / `QR_PAYLOAD_MISMATCH` | 签名校验未通过（疑似篡改） | 40901 |
+| `QR_EXPIRED` / `QR_INVALID` / `QR_USED` | 已过期 / 已作废 / 一次性码已用 | 40901 |
+| `PLACE_DISABLED` / `PLACE_NOT_BOUND` | 场所停用 / 员工不属于该场所 | 40901 |
+| `EMPLOYEE_NOT_BOUND` / `EMPLOYEE_INACTIVE` | 账号未关联档案 / 档案已停用 | 40901 |
+| `DUPLICATE_CHECKIN` | 重复打卡窗口（默认 5 分钟）内已打过 | 40901 |
+| `OUT_OF_RANGE` | 超出场所半径（附带 `distanceMeters`、`radiusMeters`） | 40901 |
+| `REQUEST_ID_CONFLICT` | 幂等号被他人占用 | 40901 |
+
+**考勤查询响应**（两个接口一致）：
+
+```jsonc
+{
+  "code": 0,
+  "data": {
+    "page": { "pageNum": 1, "pageSize": 5, "total": 4, "pages": 1, "list": [ /* AttRecordView */ ] },
+    "dataScope": "ALL"   // ALL=全部（ADMIN） / DEPT=本部门（MANAGER） / SELF=仅本人
+  }
+}
+```
 
 打卡成功响应示例：
 

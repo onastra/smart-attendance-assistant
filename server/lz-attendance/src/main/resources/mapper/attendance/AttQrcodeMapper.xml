@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.attendance.mapper.AttQrcodeMapper">
+
+    <sql id="QrcodeColumns">
+        q.id, q.place_id, q.biz_id, q.payload, q.sign, q.qr_type, q.once_only,
+        q.status, q.issue_time, q.expire_time, q.used_time, q.created_by, q.created_at
+    </sql>
+
+    <!-- 剩余秒数：已过期统一返回 0，避免前端拿到负数后显示奇怪的倒计时 -->
+    <sql id="RemainSeconds">
+        CASE WHEN q.expire_time &lt;= NOW() THEN 0
+             ELSE TIMESTAMPDIFF(SECOND, NOW(), q.expire_time) END AS remainSeconds
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lianzhi.attendance.attendance.entity.AttQrcode">
+        INSERT INTO att_qrcode
+        (place_id, biz_id, payload, sign, qr_type, once_only, status,
+         issue_time, expire_time, created_by)
+        VALUES
+        (#{placeId}, #{bizId}, #{payload}, #{sign}, #{qrType}, #{onceOnly}, #{status},
+         #{issueTime}, #{expireTime}, #{createdBy})
+    </insert>
+
+    <select id="selectById" resultType="com.lianzhi.attendance.attendance.entity.AttQrcode">
+        SELECT
+        <include refid="QrcodeColumns"/>,
+        p.place_name AS placeName,
+        <include refid="RemainSeconds"/>
+        FROM att_qrcode q
+        LEFT JOIN biz_place p ON p.id = q.place_id
+        WHERE q.id = #{id}
+    </select>
+
+    <select id="selectByBizId" resultType="com.lianzhi.attendance.attendance.entity.AttQrcode">
+        SELECT
+        <include refid="QrcodeColumns"/>,
+        p.place_name AS placeName,
+        <include refid="RemainSeconds"/>
+        FROM att_qrcode q
+        LEFT JOIN biz_place p ON p.id = q.place_id
+        WHERE q.biz_id = #{bizId}
+    </select>
+
+    <select id="selectByQuery" resultType="com.lianzhi.attendance.attendance.entity.AttQrcode">
+        SELECT
+        <include refid="QrcodeColumns"/>,
+        p.place_name AS placeName,
+        <include refid="RemainSeconds"/>
+        FROM att_qrcode q
+        LEFT JOIN biz_place p ON p.id = q.place_id
+        <where>
+            <if test="placeId != null">AND q.place_id = #{placeId}</if>
+            <if test="status != null and status != ''">AND q.status = #{status}</if>
+            <if test="qrType != null and qrType != ''">AND q.qr_type = #{qrType}</if>
+        </where>
+        ORDER BY q.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByQuery" resultType="long">
+        SELECT COUNT(*) FROM att_qrcode q
+        <where>
+            <if test="placeId != null">AND q.place_id = #{placeId}</if>
+            <if test="status != null and status != ''">AND q.status = #{status}</if>
+            <if test="qrType != null and qrType != ''">AND q.qr_type = #{qrType}</if>
+        </where>
+    </select>
+
+    <update id="updateStatus">
+        UPDATE att_qrcode SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <update id="markUsed">
+        UPDATE att_qrcode
+        SET status = 'USED', used_time = #{usedTime}
+        WHERE id = #{id} AND status = 'VALID'
+    </update>
+
+    <!-- 惰性过期：每次列二维码前先把超期的 VALID 码置为 EXPIRED -->
+    <update id="markExpired">
+        UPDATE att_qrcode
+        SET status = 'EXPIRED'
+        WHERE status = 'VALID' AND expire_time &lt; #{now}
+    </update>
+
+    <select id="countUsablePlace" resultType="long">
+        SELECT COUNT(*) FROM biz_place WHERE id = #{placeId} AND status = 1
+    </select>
+</mapper>

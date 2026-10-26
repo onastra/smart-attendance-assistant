@@ -53,6 +53,24 @@ const routes = [
         meta: { title: '办公场所', icon: 'Location', group: '考勤设施', permission: 'place:list' }
       },
       {
+        path: 'attendance/qrcodes',
+        name: 'qrcodes',
+        component: () => import('@/views/attendance/QrcodeManage.vue'),
+        meta: { title: '考勤二维码', icon: 'QrCode', group: '考勤', permission: 'attendance:qrcode:list' }
+      },
+      {
+        path: 'attendance/records',
+        name: 'attendance-records',
+        component: () => import('@/views/attendance/AdminRecords.vue'),
+        meta: { title: '考勤记录查询', icon: 'Document', group: '考勤', permission: 'attendance:record:admin' }
+      },
+      {
+        path: 'my/records',
+        name: 'my-records',
+        component: () => import('@/views/attendance/MyRecords.vue'),
+        meta: { title: '我的考勤', icon: 'Clock', group: '考勤' }
+      },
+      {
         path: 'system/users',
         name: 'users',
         component: () => import('@/views/system/UserManage.vue'),
@@ -66,14 +84,14 @@ const routes = [
       }
     ]
   },
-  // H5 移动端打卡页：独立布局，不做后台缩放适配（阶段 3 实现）
+  // H5 移动端打卡页：独立布局，不做后台缩放适配
   {
     path: '/h5',
     children: [
       {
         path: 'checkin',
         name: 'h5-checkin',
-        component: () => import('@/views/h5/CheckinPlaceholder.vue'),
+        component: () => import('@/views/h5/Checkin.vue'),
         meta: { title: '移动打卡', public: true, hidden: true }
       }
     ]
