@@ -172,13 +172,15 @@
 
 ### 2.6 统计（模块 D）
 
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | `/api/statistics/summary?scope=&startDate=&endDate=` | 出勤率/迟到/早退/缺勤/平均工时 |
-| GET | `/api/statistics/trend?type=day|week|month` | 趋势数据（ECharts） |
-| GET | `/api/statistics/department` | 部门维度对比 |
-| GET | `/api/statistics/place-heat?date=` | 场所按时段分布（无地图 Key 时返回时段数据而非地图图层） |
-| POST | `/api/statistics/daily-rebuild?date=` | 重算指定日汇总（幂等） |
+| 方法 | 路径 | 说明 | 权限 |
+|---|---|---|---|
+| GET | `/api/statistics/summary?dateFrom=&dateTo=` | 出勤率/迟到/早退/缺勤/平均工时，响应带 `dataSource` | `statistics:view` |
+| GET | `/api/statistics/trend?type=day\|week\|month` | 趋势数据（ECharts），非法粒度返回 40001 | `statistics:view` |
+| GET | `/api/statistics/department` | 部门维度对比 | `statistics:view` |
+| GET | `/api/statistics/place-heat?dateFrom=&dateTo=&placeId=` | 场所按时段分布（无地图 Key 时返回时段数据而非地图图层，响应 `mapEnabled=false`） | `statistics:view` |
+| POST | `/api/statistics/daily-rebuild?date=` | 重算指定日汇总（幂等）；传 `dateFrom`/`dateTo` 则重算区间（上限 400 天） | `statistics:rebuild`（仅 ADMIN） |
+
+**数据口径**：所有统计接口都返回 `dataScope`（ALL / DEPT / SELF，按角色收敛，服务端强制）与 `dataSource`（`real` / `sample` / `mixed`，见需求 IDX-D8）。日期缺省为最近 14 天；`dateFrom > dateTo` 返回 40001。
 
 ### 2.7 审批（模块 E）
 

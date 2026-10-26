@@ -22,13 +22,12 @@ import org.springframework.stereotype.Service;
 public class AttendanceService {
 
     /**
-     * 判断是否具有全量数据范围。
+     * 数据范围判定委托给 {@link DataScopeResolver}。
      *
-     * <p>当前用户上下文只带权限码不带角色码，这里以「账号管理」权限作为系统管理员标识：
-     * 该权限只有 ADMIN 角色持有（见 docs/sql/patch-phase2-permission.sql 的授权口径）。
-     * 若后续引入角色码字段，应改为显式判断角色而不是借道权限码。</p>
+     * <p>阶段 4 起统计接口也用同一套判定：如果两处各写一份，
+     * 迟早会出现"记录接口只能看本部门、统计接口能看到全公司"的越权漏洞。</p>
      */
-    private static final String FULL_SCOPE_PERMISSION = "system:user:list";
+    private final DataScopeResolver dataScopeResolver;
 
     private final AttRecordMapper recordMapper;
     private final AttSupportMapper supportMapper;
@@ -48,35 +47,21 @@ public class AttendanceService {
      * 管理员可查询的范围说明，用于在接口响应中如实告知前端"你看到的是哪个范围的数据"。
      */
     public String dataScope(AuthUser user) {
-        if (user != null && user.hasPermission(FULL_SCOPE_PERMISSION)) {
-            return "ALL";
-        }
-        Long deptId = deptIdOf(user);
-        if (deptId != null) {
-            return "DEPT";
-        }
-        return "SELF";
+        return dataScopeResolver.resolve(user);
     }
 
     private void applyDataScope(AttRecordQuery query, AuthUser user) {
-        if (user != null && user.hasPermission(FULL_SCOPE_PERMISSION)) {
+        String scope = dataScopeResolver.resolve(user);
+        if (DataScopeResolver.SCOPE_ALL.equals(scope)) {
             return;
         }
-        Long deptId = deptIdOf(user);
-        if (deptId != null) {
+        if (DataScopeResolver.SCOPE_DEPT.equals(scope)) {
             // 部门主管：无论前端怎么传，结果都被限制在本部门内
-            query.setDeptId(deptId);
+            query.setDeptId(dataScopeResolver.deptIdOf(user));
             return;
         }
         // 既不是管理员、又没有部门归属（例如账号尚未建档）：只能看自己的
-        query.setEmployeeId(user == null ? null : user.getEmployeeId());
-    }
-
-    private Long deptIdOf(AuthUser user) {
-        if (user == null || user.getEmployeeId() == null) {
-            return null;
-        }
-        return supportMapper.selectEmployeeDeptId(user.getEmployeeId());
+        query.setEmployeeId(dataScopeResolver.selfEmployeeId(user));
     }
 
     private PageResult<AttRecordView> doQuery(AttRecordQuery query) {

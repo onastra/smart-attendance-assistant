@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org/DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.attendance.mapper.StatisticsMapper">
+
+    <!--
+      统计概览。
+      出勤率的分母是"应出勤人天"= 人天数 - 休息日人天：
+      如果把休息日算进分母，双休日的存在会让出勤率天然偏低，看起来像考勤很差。
+    -->
+    <select id="selectSummary" resultType="com.lianzhi.attendance.attendance.dto.StatSummary">
+        SELECT
+            COUNT(*)                                                        AS personDays,
+            COUNT(DISTINCT s.employee_id)                                    AS employeeCount,
+            COUNT(DISTINCT s.stat_date)                                      AS statDays,
+            SUM(CASE WHEN s.status = 'NORMAL' THEN 1 ELSE 0 END)              AS normalDays,
+            SUM(CASE WHEN s.status = 'LATE'   THEN 1 ELSE 0 END)              AS lateDays,
+            SUM(CASE WHEN s.status = 'EARLY'  THEN 1 ELSE 0 END)              AS earlyDays,
+            SUM(CASE WHEN s.status = 'ABSENT' THEN 1 ELSE 0 END)              AS absentDays,
+            SUM(CASE WHEN s.status = 'REST'   THEN 1 ELSE 0 END)              AS restDays,
+            SUM(CASE WHEN s.source = 'SAMPLE' THEN 1 ELSE 0 END)              AS sampleDays,
+            IFNULL(SUM(s.checkin_count), 0)                                   AS checkinCount,
+            IFNULL(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes
+        FROM att_daily_stat s
+        JOIN hr_employee e ON e.id = s.employee_id
+        <where>
+            s.stat_date BETWEEN #{dateFrom} AND #{dateTo}
+            <if test="deptId != null">AND e.dept_id = #{deptId}</if>
+            <if test="employeeId != null">AND s.employee_id = #{employeeId}</if>
+        </where>
+    </select>
+
+    <!--
+      趋势数据：日 / 周 / 月三种粒度。
+      用 choose 拼三段几乎一样的 SQL 而不是 ${groupExpr} 动态注入——
+      后者虽然省事，但分组表达式一旦来自外部参数就是 SQL 注入入口，
+      多写几行换一个"不可能被注入"的静态语句是值得的。
+    -->
+    <select id="selectTrend" resultType="com.lianzhi.attendance.attendance.dto.TrendPoint">
+        SELECT
+            <choose>
+                <when test="query.type == 'week'">
+                    CONCAT(YEAR(s.stat_date), '-W', LPAD(WEEK(s.stat_date, 1), 2, '0'))
+                </when>
+                <when test="query.type == 'month'">
+                    DATE_FORMAT(s.stat_date, '%Y-%m')
+                </when>
+                <otherwise>
+                    s.stat_date
+                </otherwise>
+            </choose>                                                          AS period,
+            IFNULL(SUM(s.checkin_count), 0)                                    AS checkinCount,
+            SUM(CASE WHEN s.status = 'NORMAL' THEN 1 ELSE 0 END)                AS normalDays,
+            SUM(CASE WHEN s.status = 'LATE'   THEN 1 ELSE 0 END)                AS lateDays,
+            SUM(CASE WHEN s.status = 'EARLY'  THEN 1 ELSE 0 END)                AS earlyDays,
+            SUM(CASE WHEN s.status = 'ABSENT' THEN 1 ELSE 0 END)                AS absentDays,
+            IFNULL(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes,
+            -- 出勤率的分母排除休息日：周末没人打卡不是考勤问题
+            IFNULL(ROUND(SUM(CASE WHEN s.status IN ('NORMAL', 'LATE', 'EARLY') THEN 1 ELSE 0 END) * 100.0
+                   / NULLIF(SUM(CASE WHEN s.status &lt;&gt; 'REST' THEN 1 ELSE 0 END), 0), 1), 0) AS attendanceRate,
+            MAX(CASE WHEN s.source = 'SAMPLE' THEN 1 ELSE 0 END)                AS sample
+        FROM att_daily_stat s
+        JOIN hr_employee e ON e.id = s.employee_id
+        <where>
+            s.stat_date BETWEEN #{query.dateFrom} AND #{query.dateTo}
+            <if test="query.deptId != null">AND e.dept_id = #{query.deptId}</if>
+            <if test="query.employeeId != null">AND s.employee_id = #{query.employeeId}</if>
+        </where>
+        GROUP BY period
+        ORDER BY period
+    </select>
+
+    <!-- 部门对比：左连部门表，员工没挂部门时归入"未分配"而不是被丢掉 -->
+    <select id="selectDeptStat" resultType="com.lianzhi.attendance.attendance.dto.DeptStatItem">
+        SELECT
+            d.id                                                               AS deptId,
+            IFNULL(d.dept_name, '未分配部门')                                   AS deptName,
+            COUNT(DISTINCT s.employee_id)                                       AS employeeCount,
+            IFNULL(SUM(s.checkin_count), 0)                                     AS checkinCount,
+            SUM(CASE WHEN s.status = 'NORMAL' THEN 1 ELSE 0 END)                 AS normalDays,
+            SUM(CASE WHEN s.status = 'LATE'   THEN 1 ELSE 0 END)                 AS lateDays,
+            SUM(CASE WHEN s.status = 'EARLY'  THEN 1 ELSE 0 END)                 AS earlyDays,
+            SUM(CASE WHEN s.status = 'ABSENT' THEN 1 ELSE 0 END)                 AS absentDays,
+            IFNULL(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes,
+            IFNULL(ROUND(SUM(CASE WHEN s.status IN ('NORMAL', 'LATE', 'EARLY') THEN 1 ELSE 0 END) * 100.0
+                   / NULLIF(SUM(CASE WHEN s.status &lt;&gt; 'REST' THEN 1 ELSE 0 END), 0), 1), 0) AS attendanceRate
+        FROM att_daily_stat s
+        JOIN hr_employee e ON e.id = s.employee_id
+        LEFT JOIN org_department d ON d.id = e.dept_id
+        <where>
+            s.stat_date BETWEEN #{dateFrom} AND #{dateTo}
+            <if test="deptId != null">AND e.dept_id = #{deptId}</if>
+            <if test="employeeId != null">AND s.employee_id = #{employeeId}</if>
+        </where>
+        GROUP BY d.id, d.dept_name
+        ORDER BY checkinCount DESC
+    </select>
+
+    <!--
+      场所时段分布：小时粒度只能回流水表。
+      日期用半开区间 [from, to+1天)，避免漏掉截止日当天的记录
+      （直接 <= dateTo 会被解析成当天 00:00:00）。
+    -->
+    <select id="selectPlaceHour" resultType="com.lianzhi.attendance.attendance.dto.PlaceHourItem">
+        SELECT
+            p.id          AS placeId,
+            p.place_name  AS placeName,
+            HOUR(r.checkin_time) AS hour,
+            COUNT(*)      AS count
+        FROM att_record r
+        JOIN biz_place p ON p.id = r.place_id
+        JOIN hr_employee e ON e.id = r.employee_id
+        <where>
+            r.checkin_time &gt;= #{dateFrom}
+            AND r.checkin_time &lt; DATE_ADD(#{dateTo}, INTERVAL 1 DAY)
+            <if test="placeId != null">AND r.place_id = #{placeId}</if>
+            <if test="deptId != null">AND e.dept_id = #{deptId}</if>
+            <if test="employeeId != null">AND r.employee_id = #{employeeId}</if>
+        </where>
+        GROUP BY p.id, p.place_name, HOUR(r.checkin_time)
+        ORDER BY p.id, hour
+    </select>
+
+    <!-- 场所总量：给前端做筛选下拉与图例，hour 固定为 -1 表示"不是时段数据" -->
+    <select id="selectPlaceTotal" resultType="com.lianzhi.attendance.attendance.dto.PlaceHourItem">
+        SELECT
+            p.id          AS placeId,
+            p.place_name  AS placeName,
+            -1            AS hour,
+            COUNT(*)      AS count
+        FROM att_record r
+        JOIN biz_place p ON p.id = r.place_id
+        JOIN hr_employee e ON e.id = r.employee_id
+        <where>
+            r.checkin_time &gt;= #{dateFrom}
+            AND r.checkin_time &lt; DATE_ADD(#{dateTo}, INTERVAL 1 DAY)
+            <if test="deptId != null">AND e.dept_id = #{deptId}</if>
+            <if test="employeeId != null">AND r.employee_id = #{employeeId}</if>
+        </where>
+        GROUP BY p.id, p.place_name
+        ORDER BY count DESC
+    </select>
+</mapper>

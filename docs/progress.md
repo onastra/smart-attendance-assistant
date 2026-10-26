@@ -141,7 +141,7 @@
 | A 用户/员工/组织 | 7 | 7 | ✅ **已实现**（阶段 2）：JWT 登录/登出/身份查询、角色权限、员工 CRUD、公司/部门树/岗位、后端鉴权 |
 | B 办公场所 | 5 | 5 | ✅ **已实现**（阶段 2）：场所 CRUD、场所码生成、手动坐标录入（地图能力如实标注未接入）、员工-场所绑定 |
 | C 二维码与 H5 打卡 | 12 | 12 | ✅ **已实现**（阶段 3）：HMAC-SHA256 签名二维码（动态码/长期码/一次性码）、ZXing PNG 输出、H5 扫码+手动输入兜底、打卡校验链与落库、本人/管理员查询与数据范围收敛 |
-| D 统计看板 | 9 | 0 | 未实现 |
+| D 统计看板 | 9 | 9 | ✅ **已实现**（阶段 4）：`att_daily_stat` 幂等重算 + Spring Task 每日重算（写 `job_exec_log`）、summary/trend/department/place-heat 四个统计接口、ECharts 看板（统计卡/趋势/部门对比/出勤构成/场所时段）、响应带 `dataSource` 区分真实与演示数据 |
 | E 请假/加班审批 | 7 | 0 | ⏸ **暂缓**（Q-1 于 2026-10-26 决议不做）；`biz_application`/`biz_application_approval` 表已作为结构预留，业务代码不实现 |
 | F AI 知识库 | 11 | 0 | 未实现（先做真实检索） |
 | G 人脸识别 | 7 | 0 | 5 条为替代方案待实现；2 条**受阻**（缺授权/设备） |
@@ -166,7 +166,11 @@
    - 完成标志已达成：管理员登录 → 建公司/部门 → 建场所（手动坐标）→ 建员工并绑定场所，数据落库。
 3. ✅ **阶段 3 已完成**（2026-10-26）：二维码签发 → H5 打卡 → 落库 → 查询全链路打通，`scripts/verify-phase3.mjs` 实测 **30 项断言全部通过**。
    - 完成标志已达成：管理员发布二维码 → 员工 H5 打卡成功落库；重复提交/过期/伪造签名/非本场所/已作废/超出围栏六类失败均有明确原因码与文案。
-4. 下一步进入**阶段 4（统计与可视化）**：`att_daily_stat` 汇总 + Spring Task 每日重算 + summary/trend/department/place-heat 四个统计接口 + ECharts 看板。不需要你额外准备数据——阶段 3 已产生真实打卡流水，`data.sql` 另有 4 条演示记录；若需要更饱满的趋势图，可在阶段 4 开头批量补录若干天数据（会标注为演示数据）。
+4. ✅ **阶段 4 已完成**（2026-10-26）：`att_daily_stat` 幂等重算 + Spring Task 每日重算 + 四个统计接口 + ECharts 看板，`scripts/verify-phase4.mjs` 实测 **32 项断言全部通过**（含阶段 3 回归 30 项仍全绿）。
+   - 按你的要求补录了 **14 天演示流水**（2026-10-12 ~ 10-25，94 条，全部 `source='SAMPLE'`），趋势图有 14 个数据点、按周 2 点、按月 1 点。
+   - 完成标志已达成：重算 → 汇总 → 看板呈现；演示数据在接口 `dataSource=mixed` 与界面徽标两处如实标注。
+   - 一处**如实提示**：缺勤 11 人天中有 10 人天来自阶段 2 创建的验证账号「验证员工张三」（在职但从未打卡）。若希望统计更干净，可将其置为离职后重算（`UPDATE hr_employee SET status=0 WHERE emp_no='EMP202610261574';`）。
+5. 下一步进入**阶段 5（AI 知识库与高级能力）**：文档解析 → 切分 → MySQL ngram 全文检索 → `NoopLlmClient` 降级检索模式 → 人脸模拟适配层。**需要你拍板两件事**：① 是否接受"检索-only 降级模式"（无大模型 Key 时）；② 虹软 SDK 授权是否确定拿不到（决定模块 G 走模拟适配层）。
 
 ---
 
@@ -180,3 +184,4 @@
 | 2026-10-26 | 1 | **阶段 1 关闭**：收到 MySQL 凭据后完成建库（`lianzhi`）、执行 `schema.sql`（23 表）+ `data.sql`（无报错）、创建 gitignore 保护的 `application-local.yml`（含强 JWT 密钥）、重新打包并以 `local` profile 重启；`GET /api/system/health` 实测 **`database.connected=true`**，BK-1 解除。5 项验收标准全部通过 |
 | 2026-10-26 | 2 | **阶段 2 完成**：权限码 25→44（新增幂等补丁脚本 `patch-phase2-permission.sql`）；实现认证鉴权、PermissionChecker、账号/角色/员工/组织/场所五组 CRUD；前端登录页 + 路由守卫 + 五个管理页；修复 5 个真实问题（BCrypt 摘要格式、图标未注册、分页取值、权限码缺失等）；端到端实测通过，数据全部落库 |
 | 2026-10-26 | 3 | **阶段 3 完成**：先与你确认四项口径（考勤规则全局可配、动态码+长期码、摄像头+手动输入兜底、围栏可选校验）后开工。补 `att_qrcode.qr_type` 字段与权限码（44→46，含新增 `attendance:qrcode:invalidate`、`attendance:record:admin`）；实现二维码签发/HMAC-SHA256 签名/ZXing PNG、10 步打卡校验链、本人与管理员查询（数据范围 ALL/DEPT/SELF）、H5 打卡页与三个后台页面；新增 `scripts/verify-phase3.mjs` 端到端脚本，30 项断言全通过。修复 2 个真实缺陷：管理端考勤查询与普通员工共用权限码（已拆分）、二维码 PNG 接口需带 token（改为取二进制转临时 URL） |
+| 2026-10-26 | 4 | **阶段 4 完成**：按你的要求补录 14 天演示流水（`scripts/seed-sample-attendance.mjs`，94 条，全部 `source='SAMPLE'` 且 request_id 带 `SAMPLE-` 前缀可一键清除）。幂等补丁 `patch-phase4-statistics.sql`：补 `att_daily_stat.checkin_count` 列、纳管 `att_record.source` 的 SAMPLE 取值、新增 `statistics:rebuild` 权限码（47 条，仅 ADMIN）。实现日汇总重算（判定 REST/ABSENT/LATE/EARLY/NORMAL，唯一键 upsert 幂等）、Spring Task 每日 01:30 重算并写 `job_exec_log`、四个统计接口（均带 `dataSource`）、ECharts 看板（统计卡 + 趋势 + 部门对比 + 出勤构成 + 场所时段）。新增 `scripts/verify-phase4.mjs`，32 项断言全通过；阶段 3 回归 30 项仍全绿。修复 1 个真实缺陷：`ON DUPLICATE KEY UPDATE` 返回值三态（1/2/0）导致"影响行数"在两次重算间不一致（168 → 90），改为以覆盖员工数为准 |

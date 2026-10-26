@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org/DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.attendance.mapper.AttStatMapper">
+
+    <!--
+      某一天的流水聚合。
+      用条件聚合而不是多次查询：一次扫描同时拿到首次上班、末次下班、总条数、演示数据条数。
+      FIELD（外勤）计入上班，因为外勤也是当天开始工作的凭据。
+    -->
+    <select id="selectDailyRows" resultType="com.lianzhi.attendance.attendance.entity.DailyStatRow">
+        SELECT
+            e.id                    AS employeeId,
+            e.name                  AS employeeName,
+            e.dept_id               AS deptId,
+            MIN(CASE WHEN r.checkin_type IN ('ON_DUTY', 'FIELD') THEN r.checkin_time END) AS firstCheckin,
+            MAX(CASE WHEN r.checkin_type = 'OFF_DUTY' THEN r.checkin_time END)            AS lastCheckout,
+            COUNT(r.id)                                                                    AS recordCount,
+            SUM(CASE WHEN r.source = 'SAMPLE' THEN 1 ELSE 0 END)                           AS sampleCount
+        FROM hr_employee e
+        LEFT JOIN att_record r
+               ON r.employee_id = e.id
+              AND r.checkin_time &gt;= #{from}
+              AND r.checkin_time &lt; #{to}
+        WHERE e.status = 1
+        GROUP BY e.id, e.name, e.dept_id
+        ORDER BY e.id
+    </select>
+
+    <!--
+      幂等写入：uk_employee_date 冲突时刷新除主键外的全部字段。
+      注意 stat_date 不参与 UPDATE（它是唯一键的一部分，刷新没有意义）。
+    -->
+    <insert id="upsertStat">
+        INSERT INTO att_daily_stat
+            (employee_id, stat_date, first_checkin, last_checkout, work_minutes, checkin_count,
+             status, source, rebuilt_at)
+        VALUES
+            (#{employeeId}, #{statDate}, #{firstCheckin}, #{lastCheckout}, #{workMinutes}, #{checkinCount},
+             #{status}, #{source}, #{rebuiltAt})
+        ON DUPLICATE KEY UPDATE
+            first_checkin = VALUES(first_checkin),
+            last_checkout = VALUES(last_checkout),
+            work_minutes  = VALUES(work_minutes),
+            checkin_count = VALUES(checkin_count),
+            status        = VALUES(status),
+            source        = VALUES(source),
+            rebuilt_at    = VALUES(rebuilt_at)
+    </insert>
+
+    <delete id="deleteInactiveEmployeeStat">
+        DELETE FROM att_daily_stat
+        WHERE stat_date = #{statDate}
+          AND employee_id NOT IN (SELECT id FROM hr_employee WHERE status = 1)
+    </delete>
+
+    <select id="countStatDays" resultType="int">
+        SELECT COUNT(DISTINCT stat_date) FROM att_daily_stat
+    </select>
+
+    <insert id="insertJobLog">
+        INSERT INTO job_exec_log (job_name, start_time, end_time, success, affected_rows, message)
+        VALUES (#{jobName}, #{startTime}, #{endTime}, #{success}, #{affectedRows}, #{message})
+    </insert>
+</mapper>

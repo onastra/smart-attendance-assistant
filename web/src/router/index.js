@@ -71,6 +71,12 @@ const routes = [
         meta: { title: '我的考勤', icon: 'Clock', group: '考勤' }
       },
       {
+        path: 'statistics/dashboard',
+        name: 'statistics-dashboard',
+        component: () => import('@/views/statistics/Dashboard.vue'),
+        meta: { title: '数据看板', icon: 'DataLine', group: '统计', permission: 'statistics:view' }
+      },
+      {
         path: 'system/users',
         name: 'users',
         component: () => import('@/views/system/UserManage.vue'),
