@@ -16,6 +16,7 @@
 | `docs/api-design.md` | 统一响应/分页/错误码与全模块接口清单 |
 | `docs/development-plan.md` | 阶段 0–8 实施计划与依赖关系 |
 | `docs/test-plan.md` | 测试用例清单与执行记录规则 |
+| `docs/setup-guide.md` | **启动与运行指南（VSCode 版）**，含依赖清单、排错表 |
 | `docs/test-report.md` | **测试报告**：192 项回归结果、守护点、发现并修复的缺陷清单 |
 | `docs/acceptance.md` | **验收清单 + 十分钟演示脚本**（含 CPT90 三条链路的操作步骤与讲解词） |
 | `docs/user-manual.md` | 用户手册：管理员 / 部门主管 / 员工三视角操作说明 |
