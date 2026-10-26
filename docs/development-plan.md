@@ -9,10 +9,10 @@
 | 阶段 | 名称 | 目标 | 状态 |
 |---|---|---|---|
 | 0 | 项目审计与实施计划 | 已产出架构/需求矩阵/数据库/接口/测试/进度文档 | **已完成** |
-| 1 | 项目骨架与开发环境 | Maven 多模块 + Vue3 工程成型，`mvn compile` 与 `npm run build` 通过 | **基本完成**（DB 连通验证待 MySQL 口令） |
+| 1 | 项目骨架与开发环境 | Maven 多模块 + Vue3 工程成型，`mvn compile` 与 `npm run build` 通过 | **仅差数据库初始化**（等 MySQL 口令） |
 | 2 | 基础业务与权限 | 认证鉴权、角色权限、员工/组织/场所管理 | 未开始 |
 | 3 | 核心考勤闭环 | 二维码、H5 打卡、打卡记录、个人与管理员查询 | 未开始 |
-| 4 | 统计、审批与可视化 | 统计汇总、Trend、ECharts 看板、请假/加班审批 | 未开始 |
+| 4 | 统计与可视化 | 统计汇总、Trend、ECharts 看板（审批模块已按 Q-1 暂缓） | 未开始 |
 | 5 | AI 知识库与高级能力 | 文档解析、切分、检索、问答与来源引用；人脸适配层 | 未开始 |
 | 6 | 基础设施与移动端扩展 | Redis（待安装）、Nacos（已配置未启用）、定时任务、存储与场景规则 | 未开始 |
 | 7 | 测试、构建与验收 | 单元测试/接口测试、构建、持久性验证、部署物整理 | 未开始 |
@@ -25,11 +25,12 @@
 **产出**：`docs/architecture.md`、`docs/requirements-matrix.md`、`docs/database-design.md`、`docs/api-design.md`、`docs/test-plan.md`、`docs/progress.md`、`README.md`。
 
 **关键结论**
-- 原始方案「提到」的技术 ≠ 「必须实现」的功能；原始文档**未给出逐项必做清单**，因此按"必做 44 / 待确认 8 / 扩展 7 / 受阻 2"划分（见需求矩阵）。
+- 原始方案「提到」的技术 ≠ 「必须实现」的功能；原始文档**未给出逐项必做清单**，因此按优先级划分：**必做 38 / 暂缓 6 / 待确认 8 / 扩展 7 / 受阻 2**（共 61 条，见需求矩阵）。
+- **2026-10-26 决议（Q-1）**：模块 E《请假/加班审批》7 条需求整体暂缓，理由是原始方案仅在项目介绍处提及、核心功能与课程计划均未单列；数据库表保留作为结构预留。若后续导师要求或主线完成，在阶段 4 尾部补做即可，无需改库。
 - 技术冲突已裁定：Element Plus（Vue3）、模块化单体、Nacos/Feign 已配置未启用、AI 与人脸识别走"真实检索 + 标注的模拟适配层"。
 - 环境结论：JDK 17 ✅、Maven 3.9.6 ✅、Node 22.22.2 ✅、MySQL 5.7.19 运行中 ✅、**Redis 未安装 ⚠️**、**Docker daemon 未启动 ⚠️**、**无虹软 SDK 授权 ⚠️**。
 
-**待你/老师确认**（见 `docs/architecture.md` 第 7 节 Q-1~Q-6）：请假/加班是否必做、Redis 是否必须、模拟人脸识别可否交付、Docker/CI/K8s 是否要真演示、提交清单与答辩形式。
+**待你/老师确认**（见 `docs/architecture.md` 第 7.2 节 Q-2~Q-6）：Redis 是否必须、模拟人脸识别可否交付、Docker/CI/K8s 是否要真演示、提交清单与答辩形式。（Q-1 请假/加班已于 2026-10-26 决议暂缓）
 
 ---
 
@@ -64,8 +65,10 @@
 | 接口文档 | `GET /swagger-ui/index.html`、`/v3/api-docs` | ✅ 均 200 |
 | 前端依赖 | `npm install` | ✅ added 86 packages |
 | 前端构建 | `npm run build` | ✅ built in 8.06s，产物在 `web/dist/` |
-| 前后端联调 | 浏览器打开看板调用 `/api/system/health` | ⏳ 待做（第 4 项，需启动 dev server 后人工确认，DB 连通后一并验证） |
-| Git 初始化 | `git init` + `.gitignore` | ✅ `.gitignore` 已就绪；**尚未执行 `git init` 与首次提交**，等你确认仓库地址与是否要把原始 docx 一并纳入版本管理 |
+| 前后端联调 | dev server 代理转发 `GET /api/system/health` | ✅ **2026-10-26 实测通过**：`curl http://localhost:5173/` → 200；`curl http://localhost:5173/api/system/health` → 经 Vite proxy 转发到 8080 后端并**返回真实 JSON**（含真实报错 `Access denied for user 'root'`），证明整条链路通而非页面伪造 |
+| Git 初始化 | `git init` + `.gitignore` + 首次提交 | ✅ **已完成**：提交 `685f9b1`（64 文件）；`core.autocrlf=input`、`core.quotepath=false`；`git status` 干净，无 `target/`、`node_modules/`、`dist/`、`.tmp_extract/` 误入；3 份原始 docx 已归档 `docs/reference/` 并纳入版本管理 |
+| 原始资料归档 | 3 份 docx 集中管理 | ✅ 已移入 `docs/reference/`（只读存档），附 `docs/reference/README.md` 说明三者优先级与图片提取结论 |
+| 端口口径统一 | 后端 8080 / 前端 5173 | ✅ 已统一。新增 `scripts/start-backend.cmd`（清空 `SERVER__PORT`/`SERVER_PORT`/`PORT` 后显式传端口）；`vite.config.js` 代理目标支持 `LZ_API_TARGET` 覆盖 |
 
 **过程中发现并修复的真实问题**
 1. `characterEncoding=utf8mb4` 导致 `UnsupportedEncodingException`（MySQL Connector/J 要求 Java 字符集名）→ 改为 `UTF-8`，同步修正 README 与示例配置。
@@ -99,12 +102,14 @@
 
 ---
 
-## 阶段 4：统计、审批与可视化
+## 阶段 4：统计与可视化（原"统计、审批与可视化"）
+
+> **Q-1 已决议（2026-10-26）**：原第 4 项"请假/加班审批"**移出本阶段**，见 `docs/architecture.md` 第 7.1 节。本阶段只做统计与可视化。
 
 1. `att_daily_stat` 汇总 + Spring Task 每日重算 + 手动重算接口（幂等）。
 2. 统计接口：summary / trend / department / place-heat，全部来自 SQL 聚合，响应带 `dataSource`。
 3. ECharts 看板：折线趋势、柱状对比、饼图构成、空数据空态。
-4. 请假/加班：提交 → 待办 → 审批/驳回（驳回必填备注）→ 状态机防重复审批 → 与统计联动（规则待确认则先不涉及汇总口径）。
+4. ~~请假/加班：提交 → 待办 → 审批/驳回 → 状态机防重复审批 → 与统计联动~~ **⏸ 已暂缓（Q-1 决议）**。补做时的入口：`biz_application` / `biz_application_approval` 表已建；实现链路为 提交 → 待办列表 → 审批/驳回（驳回必填备注）→ 状态机防重复审批 Guard → 统计联动（联动口径需先与导师确认）。
 
 ---
 
@@ -155,4 +160,4 @@
                                  └▶ 阶段6 ──▶ 阶段7 ──▶ 阶段8
 ```
 
-低风险并行：阶段 5 的知识库模块与阶段 4 的审批模块可并行推进（互不阻塞）。
+低风险并行：阶段 5 的知识库模块与阶段 4 的统计/看板模块可并行推进（互不阻塞）。

@@ -7,7 +7,7 @@
 ## 1. 当前阶段
 
 **阶段 0：项目审计与实施计划 —— 已完成 ✅**
-**阶段 1：项目骨架与开发环境 —— 骨架已成型（差 2 项收尾）**
+**阶段 1：项目骨架与开发环境 —— 骨架已成型（仅差数据库初始化）**
 
 ### 阶段 1 已完成项（2026-10-26 实测）
 
@@ -23,11 +23,18 @@
 | 1.8 | `.gitignore` | 已写入（含 `application-local.yml`、`data/`、`.tmp_extract/`、node_modules、target） |
 | 1.9 | `docs/sql/schema.sql`（23 张表）+ `docs/sql/data.sql`（虚构员工演示数据，含真实 BCrypt 口令摘要） | 脚本已就绪，**尚未执行**（缺 MySQL 口令） |
 
+| 1.10 | Git 版本管理：`git init` + `core.autocrlf=input` + `core.quotepath=false`，首次提交 `685f9b1`（64 个文件） | ✅ `git log` 有提交；`git status` 干净，无 target/、node_modules/、dist/、`.tmp_extract/` 误入 |
+| 1.11 | 原始资料归档：3 份 docx 移入 `docs/reference/` 只读存档并纳入版本管理，附 `docs/reference/README.md` 说明优先级 | ✅ 已归档（含 3.3MB 原始方案，可追溯原文） |
+| 1.12 | Q-1 决议落地：模块 E《请假/加班审批》7 条需求转"暂缓"，已同步到需求矩阵/架构/计划三处 | ✅ 文档口径一致（必做 38 / 暂缓 6 / 待确认 8 / 扩展 7 / 受阻 2） |
+
+| 1.13 | 端口口径统一：新增 `scripts/start-backend.cmd`（清除 `SERVER__PORT`/`SERVER_PORT`/`PORT` 环境变量后显式传 `--server.port`，默认 8080）；`vite.config.js` 代理目标支持 `LZ_API_TARGET` 覆盖 | ✅ 后端已按 8080 成功启动，`/swagger-ui/index.html`、`/v3/api-docs` 均 200 |
+| 1.14 | 前后端联调验证：`curl http://localhost:5173/` → 200；`curl http://localhost:5173/api/system/health` → 经 Vite proxy 转发到 8080 后端并返回**真实 JSON** | ✅ 链路通。返回体 `database.connected=false`（真实报错 `Access denied for user 'root'@'localhost'`），**未做假绿** |
+
 ### 阶段 1 未完成项
 
-- **未做**：`git init` 与首次提交（等你确认是否把 3 份原始 docx 一并纳入版本管理）。
-- **未做**：前后端联调人工确认（前端 dev server 打开看板 → 调后端 health），依赖后端运行 + 浏览器操作。
-- **阻塞**：数据库初始化与集成测试（BK-1）。
+- **阻塞（唯一）**：数据库初始化与集成测试（BK-1）—— 负责人已确认"直接提供 root 口令"，**口令尚未送达**。
+  - 收到口令后 5 分钟内可完成：写 `application-local.yml`（gitignore 保护）→ 执行 `docs/sql/schema.sql` + `data.sql` → 重启 → 验证 `database.connected=true` → 阶段 1 正式关闭。
+  - 静态预检已做：23 张表全部 `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`；无窗口函数/CTE/CHECK 等 5.7 不支持语法；仅 1 处 `FULLTEXT ... WITH PARSER ngram`（MySQL 5.7.6+ 支持，本机 5.7.19 ✅）；无超长 varchar 索引（不会触发 767 bytes 索引长度限制）。
 
 ### 阶段 1 发现并修复的真实问题
 
@@ -39,7 +46,7 @@
 
 已产出：
 - `docs/architecture.md`：技术选型对照、架构图、模块边界、AI/人脸适配层设计、待确认事项 Q-1~Q-6
-- `docs/requirements-matrix.md`：61 条需求（必做 44 / 待确认 8 / 扩展 7 / 受阻 2）
+- `docs/requirements-matrix.md`：61 条需求（**必做 38 / 暂缓 6 / 待确认 8 / 扩展 7 / 受阻 2**；2026-10-26 Q-1 决议后 E 模块 6 条转暂缓）
 - `docs/database-design.md`：21 张表的字段-索引-关系设计
 - `docs/api-design.md`：统一响应/分页/错误码/接口清单
 - `docs/development-plan.md`：阶段 0–8 计划与依赖关系
@@ -53,7 +60,7 @@
 | JDK | 17.0.13（JAVA_HOME=E:\jdk-17） | ✅ | 满足 Spring Boot 3 要求 |
 | Maven | 3.9.6 | ✅ | 本地仓库已有 Spring Boot 3.3.5 等依赖 |
 | Node.js / npm | 22.22.2 / 10.9.7 | ✅ | Vite 5 兼容 |
-| Git | 2.55.0 | ✅ | 尚未 `git init` |
+| Git | 2.55.0 | ✅ | 已 `git init`，首个提交 `685f9b1`（64 文件）；`autocrlf=input`、`quotepath=false` |
 | MySQL | 5.7.19，端口 3306 已监听，服务 Running | ⚠️ 部分 | **root 口令未提供**，尚未连通验证；不支持窗口函数 |
 | Redis | 未安装 | ❌ | 相关能力标记为待接入；应用默认降级不依赖 Redis |
 | Docker | CLI 29.1.3，**daemon 未启动** | ❌ | 容器化/CI 演示受阻 |
@@ -71,7 +78,7 @@
 | B 办公场所 | 5 | 0 | 未实现 |
 | C 二维码与 H5 打卡 | 12 | 0 | 未实现（最高优先级） |
 | D 统计看板 | 9 | 0 | 未实现 |
-| E 请假/加班审批 | 7 | 0 | 未实现（是否必做待确认 Q-1） |
+| E 请假/加班审批 | 7 | 0 | ⏸ **暂缓**（Q-1 于 2026-10-26 决议不做）；`biz_application`/`biz_application_approval` 表已作为结构预留，业务代码不实现 |
 | F AI 知识库 | 11 | 0 | 未实现（先做真实检索） |
 | G 人脸识别 | 7 | 0 | 5 条为替代方案待实现；2 条**受阻**（缺授权/设备） |
 | H Redis/Nacos/Task | 6 | 0 | Nacos 为**已配置未启用**；Redis 待安装 |
@@ -82,7 +89,7 @@
 
 | 编号 | 阻塞项 | 影响 | 需要的支持 |
 |---|---|---|---|
-| BK-1 | MySQL 口令未提供 | 无法执行 schema.sql、无法跑集成测试与启动验证 | 请提供 root 口令或新建 `lianzhi` 账号及口令（推荐后者） |
+| BK-1 | MySQL 口令未提供 | 无法执行 schema.sql、无法跑集成测试与启动验证 | **负责人已明确将直接提供 root 口令，尚未送达。** 收到后写入 `.gitignore` 保护的 `application-local.yml`，不进版本库 |
 | BK-2 | Redis 未安装 | REQ-H-01/02/03 无法在本地验证 | 安装 Redis for Windows 或授权我用其他方式；**不阻塞核心链路**（已开关化） |
 | BK-3 | Docker daemon 未启动 | 容器化演示受阻 | 启动 Docker Desktop 或确认不做该演示 |
 | BK-4 | 虹软 SDK 授权缺失 | 真实人脸识别/活体检测无法完成 | 向老师确认是否接受"标注的模拟适配层"（Q-3） |
@@ -90,10 +97,11 @@
 
 ## 5. 下一步（阶段 1 收尾 → 阶段 2）
 
-1. **【需要你提供】MySQL 口令**（或新建一个 `lianzhi` 账号并授予 `lianzhi` 库权限），收到后执行 `docs/sql/schema.sql` 与 `data.sql`，完成 BK-1。
-2. 确认是否 `git init`：我建议把 3 份原始 docx 排除出版本管理或单独放 `docs/reference/`（只读），避免误改。
-3. 启动前端 dev server 做一次人工联调，补齐阶段 1 最后一项验收证据。
-4. 随后进入阶段 2：用户/角色/权限 + 员工 + 组织 + 办公场所的完整 CRUD 与鉴权落地。
+1. **【等待中】MySQL root 口令**：负责人已确认"直接提供 root 口令"，**口令尚未收到**。收到后立即执行 `docs/sql/schema.sql` + `data.sql`、重启并验证 `database.connected=true`，解除 BK-1。
+2. ✅ Git 初始化与原始资料归档 —— 已完成（等待项已消除）。
+3. ✅ Q-1 决议 —— 已完成，模块 E 转暂缓。
+4. 启动前端 dev server 做一次联调，补齐阶段 1 最后一项验收证据。
+5. 随后进入**阶段 2**：用户/角色/权限 + 员工 + 组织 + 办公场所的完整 CRUD 与鉴权落地。**阶段 2 的接口测试与持久性验证依赖 BK-1 解除**。
 
 ---
 
@@ -103,3 +111,4 @@
 |---|---|---|
 | 2026-10-26 | 0 | 完成三份原始资料精读（含原始方案 9 张内嵌图片）；产出阶段 0 全部文档；记录环境与阻塞项 |
 | 2026-10-26 | 1 | 落地后端 Maven 多模块骨架（构建通过、健康检查与 OpenAPI 可用）与前端 Vue3+Element Plus 骨架（构建通过）；编写 23 张表的初始化脚本与演示数据；修复 5 个真实问题（详见上节） |
+| 2026-10-26 | 1 | `git init` 并完成首次提交 `685f9b1`（64 文件）；3 份原始 docx 归档至 `docs/reference/` 只读存档并附 `README.md`；同步 Q-1 决议（模块 E 请假/加班审批转暂缓）至需求矩阵、架构文档、开发计划三处 |

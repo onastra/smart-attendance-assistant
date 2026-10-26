@@ -11,10 +11,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // 开发期通过代理访问后端，避免浏览器跨域；生产环境由 Nginx 或同源部署处理
+    // 开发期通过代理访问后端，避免浏览器跨域；生产环境由 Nginx 或同源部署处理。
+    // 后端默认端口为 8080（见 server/lz-app/src/main/resources/application.yml 与 scripts/start-backend.cmd）。
+    // 若后端改用其他端口，用环境变量覆盖：LZ_API_TARGET=http://localhost:8088
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.LZ_API_TARGET || 'http://localhost:8080',
         changeOrigin: true
       }
     }
