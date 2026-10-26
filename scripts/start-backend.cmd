@@ -31,10 +31,22 @@ if not exist "%JAR%" (
   exit /b 1
 )
 
+set "LOCAL_CFG=%~dp0..\server\lz-app\src\main\resources\application-local.yml"
+
+REM --- 自动激活 local profile（私密配置存在时）--------------
+if exist "%LOCAL_CFG%" (
+  set "PROFILE_ARG=--spring.profiles.active=local"
+  echo [INFO ] Found %LOCAL_CFG% - activating 'local' profile.
+) else (
+  set "PROFILE_ARG="
+  echo [WARN ] application-local.yml not found - using defaults.
+  echo         Copy application-local.yml.example and fill in your DB password.
+)
+
 echo [INFO ] Starting backend on port %APP_PORT% ...
 echo [INFO ] Jar: %JAR%
 echo.
 
-java -jar "%JAR%" --server.port=%APP_PORT%
+java -jar "%JAR%" --server.port=%APP_PORT% %PROFILE_ARG%
 
 endlocal

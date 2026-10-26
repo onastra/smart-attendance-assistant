@@ -9,8 +9,8 @@
 | 阶段 | 名称 | 目标 | 状态 |
 |---|---|---|---|
 | 0 | 项目审计与实施计划 | 已产出架构/需求矩阵/数据库/接口/测试/进度文档 | **已完成** |
-| 1 | 项目骨架与开发环境 | Maven 多模块 + Vue3 工程成型，`mvn compile` 与 `npm run build` 通过 | **仅差数据库初始化**（等 MySQL 口令） |
-| 2 | 基础业务与权限 | 认证鉴权、角色权限、员工/组织/场所管理 | 未开始 |
+| 1 | 项目骨架与开发环境 | Maven 多模块 + Vue3 工程成型，`mvn compile` 与 `npm run build` 通过 | **✅ 已完成**（2026-10-26，含数据库初始化） |
+| 2 | 基础业务与权限 | 认证鉴权、角色权限、员工/组织/场所管理 | **进行中**（2026-10-26 启动） |
 | 3 | 核心考勤闭环 | 二维码、H5 打卡、打卡记录、个人与管理员查询 | 未开始 |
 | 4 | 统计与可视化 | 统计汇总、Trend、ECharts 看板（审批模块已按 Q-1 暂缓） | 未开始 |
 | 5 | AI 知识库与高级能力 | 文档解析、切分、检索、问答与来源引用；人脸适配层 | 未开始 |
@@ -68,6 +68,7 @@
 | 前后端联调 | dev server 代理转发 `GET /api/system/health` | ✅ **2026-10-26 实测通过**：`curl http://localhost:5173/` → 200；`curl http://localhost:5173/api/system/health` → 经 Vite proxy 转发到 8080 后端并**返回真实 JSON**（含真实报错 `Access denied for user 'root'`），证明整条链路通而非页面伪造 |
 | Git 初始化 | `git init` + `.gitignore` + 首次提交 | ✅ **已完成**：提交 `685f9b1`（64 文件）；`core.autocrlf=input`、`core.quotepath=false`；`git status` 干净，无 `target/`、`node_modules/`、`dist/`、`.tmp_extract/` 误入；3 份原始 docx 已归档 `docs/reference/` 并纳入版本管理 |
 | 原始资料归档 | 3 份 docx 集中管理 | ✅ 已移入 `docs/reference/`（只读存档），附 `docs/reference/README.md` 说明三者优先级与图片提取结论 |
+| 数据库初始化 | 建库 + `schema.sql` + `data.sql` + 重启验证 | ✅ **2026-10-26 完成**：`CREATE DATABASE lianzhi` → 23 张表 → 演示数据零错误导入 → `application-local.yml`（gitignore 保护 + 强 JWT 密钥）→ 重新打包并带 `local` profile 重启 → **`GET /api/system/health` 返回 `database.connected: true`** |
 | 端口口径统一 | 后端 8080 / 前端 5173 | ✅ 已统一。新增 `scripts/start-backend.cmd`（清空 `SERVER__PORT`/`SERVER_PORT`/`PORT` 后显式传端口）；`vite.config.js` 代理目标支持 `LZ_API_TARGET` 覆盖 |
 
 **过程中发现并修复的真实问题**

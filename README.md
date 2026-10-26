@@ -36,16 +36,34 @@
 
 ## 3. 数据库初始化
 
+> **本机（Windows + MySQL 5.7.19）实测路径**：客户端不在 PATH 的默认解析路径内，需用绝对路径：
+> `D:/gjcmysql/mysql-5.7.19-winx64/bin/mysql.exe`
+
 ```bash
-# 创建数据库（口令按提示输入，或改用环境变量注入）
-mysql -h127.0.0.1 -P3306 -uroot -p -e "CREATE DATABASE IF NOT EXISTS lianzhi DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_general_ci;"
+MYSQL="D:/gjcmysql/mysql-5.7.19-winx64/bin/mysql.exe"
 
-# 建表
-mysql -h127.0.0.1 -P3306 -uroot -p lianzhi < docs/sql/schema.sql
+# 建库（原库列表确认无 lianzhi，不会覆盖既有数据库）
+"$MYSQL" -h127.0.0.1 -P3306 -uroot -p -e "CREATE DATABASE IF NOT EXISTS lianzhi DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
 
-# 演示数据（虚构员工，不含真实个人信息）
-mysql -h127.0.0.1 -P3306 -uroot -p lianzhi < docs/sql/data.sql
+# 建表（23 张，幂等可重复执行；再次执行会清空业务数据）
+"$MYSQL" -h127.0.0.1 -P3306 -uroot -p --default-character-set=utf8mb4 lianzhi < docs/sql/schema.sql
+
+# 演示数据（虚构员工，BCrypt 真实摘要，不含真实个人信息）
+"$MYSQL" -h127.0.0.1 -P3306 -uroot -p --default-character-set=utf8mb4 lianzhi < docs/sql/data.sql
 ```
+
+**已完成（2026-10-26）**：23 张表 + 演示数据均已导入，零错误。数据量：
+`sys_user` 5 / `sys_role` 3 / `sys_permission` 25 / `org_company` 2 / `org_department` 3 / `hr_employee` 5 / `biz_place` 3。
+
+**演示账号**：
+
+| 账号 | 口令 | 角色 |
+|---|---|---|
+| `admin` | `Admin@123` | 系统管理员 |
+| `manager01` | `Admin@123` | 部门主管 |
+| `emp01` ~ `emp03` | `Emp@123` | 普通员工 |
+
+**口令写入位置**：`server/lz-app/src/main/resources/application-local.yml`（已被 `.gitignore` 忽略，可用 `git check-ignore -v` 验证），**绝不入库**。
 
 ## 4. 后端启动
 
@@ -133,16 +151,20 @@ curl -s http://localhost:5173/api/system/health
 | 项 | 状态 |
 |---|---|
 | 阶段 0 项目审计与实施计划 | ✅ 完成（7 份文档） |
-| 阶段 1 项目骨架与开发环境 | 🟡 骨架成型，差 1 项 |
-| Git 版本管理 | ✅ 已 `git init`，首次提交 `685f9b1`（64 文件） |
+| **阶段 1 项目骨架与开发环境** | ✅ **已完成关闭**（2026-10-26 11:27） |
+| Git 版本管理 | ✅ 已 `git init`，提交 `685f9b1` → `c2e2b77` |
 | 原始资料归档 | ✅ 3 份 docx 已移入 `docs/reference/` 只读存档 |
 | 后端 `mvn package` | ✅ BUILD SUCCESS |
 | 前端 `npm run build` | ✅ built in 8.06s |
+| **数据库初始化** | ✅ **BK-1 已解除**：23 表 + 演示数据导入完成，`database.connected=true` |
 | `/api/system/health`、`/swagger-ui/index.html` | ✅ 均 200 |
-| **数据库初始化** | 🔴 **阻塞 BK-1**：MySQL 口令已确认提供、**尚未送达** |
+| 前后端联调 | ✅ 5173 → proxy → 8080 返回真实 JSON |
 
-**阶段 1 剩余唯一缺口**：MySQL 口令 → 执行 `docs/sql/schema.sql` + `data.sql` → 验证 `database.connected=true` → 启动 dev server 完成前后端联调。
+**阶段 1 的 5 项验收标准全部通过，无遗留未完成项。**
 
-收到口令后即刻进入**阶段 2（认证鉴权 + 员工/组织/办公场所 CRUD）**。
+当前进行方向 → **阶段 2：认证鉴权 + 员工/组织/办公场所 CRUD**。
+完成标志：管理员登录 → 建公司/部门 → 建场所（含手动坐标）→ 建员工并绑定场所，全流程数据落库且重启后仍在。
 
 详见 `docs/progress.md`。
+
+> ⚠️ **当前后台进程**：后端 8080、前端 dev server 5173 正在运行，可直接访问验证。
