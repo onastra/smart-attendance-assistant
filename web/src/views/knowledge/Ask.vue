@@ -6,7 +6,9 @@
       </template>
     </el-alert>
     <el-alert v-else-if="llm" type="success" :closable="false" class="mode-alert">
-      <template #title>生成增强已启用：{{ llm.model }}</template>
+      <template #title>
+        生成增强已启用：{{ llm.model }}（有检索命中时整理措辞；无命中仍明确告知，不编造）
+      </template>
     </el-alert>
 
     <el-card shadow="never">
@@ -46,9 +48,18 @@
           <el-tag size="small" :type="answer.mode === 'llm-augmented' ? 'primary' : 'info'">
             {{ answer.mode === 'llm-augmented' ? '生成增强' : '检索模式' }}
           </el-tag>
+          <span v-if="answer.model" class="meta-text">模型 {{ answer.model }}</span>
           <span v-if="answer.topScore" class="meta-text">最高相关度 {{ answer.topScore.toFixed(4) }}</span>
           <span class="meta-text">耗时 {{ answer.latencyMs }} ms</span>
         </div>
+
+        <el-alert
+          v-if="answer.llmNotice"
+          type="info"
+          :closable="false"
+          :title="answer.llmNotice"
+          class="answer-notice"
+        />
 
         <div class="answer-body" :class="{ muted: !answer.grounded }">{{ answer.answer }}</div>
 
@@ -133,9 +144,17 @@ onMounted(async () => {
 .answer-area {
   margin-top: 8px;
 }
+.answer-notice {
+  margin-bottom: 8px;
+}
+.answer-notice :deep(.el-alert__title) {
+  font-size: 13px;
+  white-space: normal;
+}
 .answer-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 8px;
 }

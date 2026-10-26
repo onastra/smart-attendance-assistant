@@ -106,6 +106,8 @@ scripts\start-backend.cmd
 
 > 本地私密配置：复制 `server/lz-app/src/main/resources/application-local.yml.example` 为 `application-local.yml`
 > 填写数据库口令（该文件已被 `.gitignore` 忽略，绝不入库）。
+> 可选：按模板配置 `lz.llm.*`（硅基流动 SiliconFlow + `Qwen/Qwen2.5-7B-Instruct`）启用知识库生成增强；
+> 无 Key 时保持 retrieval-only。步骤与自检见 `docs/setup-guide.md` §3.5。**切勿把真实 API Key 写入仓库。**
 
 ## 5. 前端启动
 

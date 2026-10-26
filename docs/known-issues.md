@@ -11,7 +11,7 @@
 | 编号 | 能力 | 当前状态 | 缺什么 | 影响范围 |
 |---|---|---|---|---|
 | BK-1 | 真实人脸识别 | 走模拟适配层（`mock=true`，日志带 `[MOCK]`） | 虹软 ArcSoft SDK 商业授权与产品密钥 | 模块 G 共 7 条需求，其中 2 条（真实 SDK、活体检测）**未实现** |
-| BK-2 | 生成式 AI 回答 | `retrieval-only`（只给原文依据，未命中明说） | 可用的大模型 API Key | 模块 F 的答案呈现方式；检索、引用、权限过滤均正常 |
+| BK-2 | 生成式 AI 回答 | 默认 `retrieval-only`；本机配置硅基流动等 OpenAI 兼容 Key 后可走 `llm-augmented`（见 `setup-guide.md` §3.5） | 可用的大模型 API Key（推荐 SiliconFlow + `Qwen/Qwen2.5-7B-Instruct`） | 无 Key 时只返原文依据；有 Key 时仍遵守「无命中不编造」；检索/引用/权限过滤均正常 |
 | BK-3 | 地图选址与路径图层 | 坐标手动录入；接口返回 `enabled=false, provider=none` | 高德/百度地图服务 Key | 围栏校验仍可用（基于 Haversine 球面距离），只是没有可视化地图 |
 | BK-4 | 微信小程序 | **评估后决定不做** | 企业主体 AppID、已备案 HTTPS 域名 | 移动端以 H5 交付；评估详见 `docs/uniapp-evaluation.md` |
 | BK-5 | Nacos / 微服务治理 | 已配置未启用（`lz.nacos.enabled=false`） | 无阻塞，是架构决策而非缺陷 | 见 3.1 |
