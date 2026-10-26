@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.place.mapper.PlaceMapper">
+
+    <sql id="PlaceColumns">
+        p.id, p.place_name, p.company_id, p.province, p.city, p.address,
+        p.lng, p.lat, p.place_code, p.cover_radius_m, p.status, p.remark,
+        p.created_at, p.updated_at
+    </sql>
+
+    <select id="selectById" resultType="com.lianzhi.attendance.place.entity.Place">
+        SELECT
+        <include refid="PlaceColumns"/>,
+        c.company_name AS companyName,
+        (SELECT COUNT(*) FROM hr_employee_place ep
+         WHERE ep.place_id = p.id AND ep.status = 1) AS boundEmployeeCount
+        FROM biz_place p
+        LEFT JOIN org_company c ON c.id = p.company_id
+        WHERE p.id = #{id}
+    </select>
+
+    <select id="selectByQuery" resultType="com.lianzhi.attendance.place.entity.Place">
+        SELECT
+        <include refid="PlaceColumns"/>,
+        c.company_name AS companyName,
+        (SELECT COUNT(*) FROM hr_employee_place ep
+         WHERE ep.place_id = p.id AND ep.status = 1) AS boundEmployeeCount
+        FROM biz_place p
+        LEFT JOIN org_company c ON c.id = p.company_id
+        <where>
+            <if test="placeName != null and placeName != ''">
+                AND p.place_name LIKE CONCAT('%', #{placeName}, '%')
+            </if>
+            <if test="companyId != null">AND p.company_id = #{companyId}</if>
+            <if test="status != null">AND p.status = #{status}</if>
+        </where>
+        ORDER BY p.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByQuery" resultType="long">
+        SELECT COUNT(*) FROM biz_place p
+        <where>
+            <if test="placeName != null and placeName != ''">
+                AND p.place_name LIKE CONCAT('%', #{placeName}, '%')
+            </if>
+            <if test="companyId != null">AND p.company_id = #{companyId}</if>
+            <if test="status != null">AND p.status = #{status}</if>
+        </where>
+    </select>
+
+    <select id="countByPlaceCode" resultType="long">
+        SELECT COUNT(*) FROM biz_place
+        WHERE place_code = #{placeCode}
+        <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if>
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lianzhi.attendance.place.entity.Place">
+        INSERT INTO biz_place
+        (place_name, company_id, province, city, address, lng, lat,
+         place_code, cover_radius_m, status, remark)
+        VALUES
+        (#{placeName}, #{companyId}, #{province}, #{city}, #{address}, #{lng}, #{lat},
+         #{placeCode}, #{coverRadiusM}, #{status}, #{remark})
+    </insert>
+
+    <update id="updateById" parameterType="com.lianzhi.attendance.place.entity.Place">
+        UPDATE biz_place
+        <set>
+            <if test="placeName != null">place_name = #{placeName},</if>
+            <if test="companyId != null">company_id = #{companyId},</if>
+            <if test="province != null">province = #{province},</if>
+            <if test="city != null">city = #{city},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="lng != null">lng = #{lng},</if>
+            <if test="lat != null">lat = #{lat},</if>
+            <if test="coverRadiusM != null">cover_radius_m = #{coverRadiusM},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectEmployeesByPlaceId" resultType="com.lianzhi.attendance.place.entity.PlaceEmployee">
+        SELECT e.id AS employeeId, e.emp_no AS empNo, e.name AS employeeName,
+               d.dept_name AS deptName, ep.bind_time AS bindTime, ep.status AS status
+        FROM hr_employee_place ep
+        INNER JOIN hr_employee e ON e.id = ep.employee_id
+        LEFT JOIN org_department d ON d.id = e.dept_id
+        WHERE ep.place_id = #{placeId} AND ep.status = 1
+        ORDER BY ep.id DESC
+    </select>
+
+    <select id="countEmployeeById" resultType="long">
+        SELECT COUNT(*) FROM hr_employee WHERE id = #{employeeId}
+    </select>
+
+    <select id="countBinding" resultType="long">
+        SELECT COUNT(*) FROM hr_employee_place
+        WHERE employee_id = #{employeeId} AND place_id = #{placeId} AND status = 1
+    </select>
+
+    <select id="countActiveBindingsByPlaceId" resultType="long">
+        SELECT COUNT(*) FROM hr_employee_place WHERE place_id = #{placeId} AND status = 1
+    </select>
+
+    <insert id="insertBinding">
+        INSERT INTO hr_employee_place (employee_id, place_id, status)
+        VALUES (#{employeeId}, #{placeId}, 1)
+    </insert>
+
+    <!-- 解绑时保留历史行（置 0），不做物理删除，便于追溯"某人曾隶属于某场所" -->
+    <update id="disableBinding">
+        UPDATE hr_employee_place
+        SET status = 0
+        WHERE employee_id = #{employeeId} AND place_id = #{placeId} AND status = 1
+    </update>
+
+    <update id="disableAllBindings">
+        UPDATE hr_employee_place SET status = 0 WHERE place_id = #{placeId} AND status = 1
+    </update>
+</mapper>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.system.mapper.SysRoleMapper">
+
+    <sql id="Columns">id, role_code, role_name, description, status</sql>
+
+    <select id="selectById" resultType="com.lianzhi.attendance.system.entity.SysRole">
+        SELECT
+        <include refid="Columns"/>
+        FROM sys_role WHERE id = #{id}
+    </select>
+
+    <select id="selectByQuery" resultType="com.lianzhi.attendance.system.entity.SysRole">
+        SELECT
+        <include refid="Columns"/>
+        FROM sys_role
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (role_code LIKE CONCAT('%', #{keyword}, '%')
+                OR role_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+        ORDER BY id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByQuery" resultType="long">
+        SELECT COUNT(*) FROM sys_role
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (role_code LIKE CONCAT('%', #{keyword}, '%')
+                OR role_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+    </select>
+
+    <select id="countByRoleCode" resultType="long">
+        SELECT COUNT(*) FROM sys_role
+        WHERE role_code = #{roleCode}
+        <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if>
+    </select>
+
+    <select id="selectAllRoles" resultType="com.lianzhi.attendance.system.entity.SysRole">
+        SELECT
+        <include refid="Columns"/>
+        FROM sys_role
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectRolesByUserId" resultType="com.lianzhi.attendance.system.entity.SysRole">
+        SELECT r.id, r.role_code, r.role_name, r.description, r.status
+        FROM sys_role r
+        INNER JOIN sys_user_role ur ON ur.role_id = r.id
+        WHERE ur.user_id = #{userId}
+    </select>
+
+    <select id="selectAllPermissions" resultType="com.lianzhi.attendance.system.entity.SysPermission">
+        SELECT id, perm_code, perm_name, module
+        FROM sys_permission
+        ORDER BY module, perm_code
+    </select>
+
+    <select id="countUsersByRoleId" resultType="long">
+        SELECT COUNT(*) FROM sys_user_role WHERE role_id = #{roleId}
+    </select>
+
+    <select id="selectPermissionIdsByRoleId" resultType="long">
+        SELECT permission_id FROM sys_role_permission WHERE role_id = #{roleId}
+    </select>
+
+    <delete id="deletePermissionsByRoleId">
+        DELETE FROM sys_role_permission WHERE role_id = #{roleId}
+    </delete>
+
+    <insert id="insertRolePermissions">
+        INSERT IGNORE INTO sys_role_permission (role_id, permission_id)
+        VALUES
+        <foreach collection="permissionIds" item="pid" separator=",">
+            (#{roleId}, #{pid})
+        </foreach>
+    </insert>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lianzhi.attendance.system.entity.SysRole">
+        INSERT INTO sys_role (role_code, role_name, description, status)
+        VALUES (#{roleCode}, #{roleName}, #{description}, #{status})
+    </insert>
+
+    <update id="updateById" parameterType="com.lianzhi.attendance.system.entity.SysRole">
+        UPDATE sys_role
+        <set>
+            <if test="roleName != null">role_name = #{roleName},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!--
+      权限校验热路径：每个带 @RequirePermission 的请求都会走到这里。
+      三表联查一次性取回权限码集合，避免在 Java 里做 N+1 查询。
+    -->
+    <select id="selectPermCodesByUserId" resultType="string">
+        SELECT DISTINCT p.perm_code
+        FROM sys_user_role ur
+        INNER JOIN sys_role r ON r.id = ur.role_id AND r.status = 1
+        INNER JOIN sys_role_permission rp ON rp.role_id = r.id
+        INNER JOIN sys_permission p ON p.id = rp.permission_id
+        WHERE ur.user_id = #{userId}
+    </select>
+</mapper>

@@ -29,4 +29,14 @@ public class PageQuery {
     public int limit() {
         return pageSize;
     }
+
+    // MyBatis XML 中的 #{offset} / #{limit} 走 getter 取值，这里提供同义访问器，
+    // 避免在每个 Mapper 方法上重复声明 @Param 分页参数。
+    public int getOffset() {
+        return offset();
+    }
+
+    public int getLimit() {
+        return limit();
+    }
 }

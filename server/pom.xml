@@ -47,6 +47,10 @@
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.6.0</springdoc.version>
         <hutool.skip>true</hutool.skip>
+        <!-- 密码散列。仅取 crypto 子项目，避免引入 Spring Security 全家桶；
+             该 artifact 不在 Spring Boot 的依赖管理清单内，必须显式锁版本，
+             取值与 Spring Boot 3.3.5 对应的 Spring Security 大版本保持一致。 -->
+        <spring-security-crypto.version>6.3.4</spring-security-crypto.version>
 
         <!-- 微服务相关：仅登记版本，不引入任何子模块依赖（"已配置未启用"） -->
         <spring-cloud.version>2023.0.3</spring-cloud.version>
@@ -134,6 +138,13 @@
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-jackson</artifactId>
                 <version>${jjwt.version}</version>
+            </dependency>
+
+            <!-- 密码散列（BCrypt）。只取 crypto 子项目，不引入 Spring Security 过滤器链。 -->
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-crypto</artifactId>
+                <version>${spring-security-crypto.version}</version>
             </dependency>
 
             <!-- OpenAPI -->

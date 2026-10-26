@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.system.mapper.CompanyMapper">
+
+    <select id="selectById" resultType="com.lianzhi.attendance.system.entity.Company">
+        SELECT id, company_name, company_code, parent_id, status, remark,
+               created_by, created_at, updated_at
+        FROM org_company WHERE id = #{id}
+    </select>
+
+    <select id="selectAll" resultType="com.lianzhi.attendance.system.entity.Company">
+        SELECT id, company_name, company_code, parent_id, status, remark,
+               created_by, created_at, updated_at
+        FROM org_company ORDER BY parent_id ASC, id ASC
+    </select>
+
+    <select id="countByCode" resultType="long">
+        SELECT COUNT(*) FROM org_company
+        WHERE company_code = #{companyCode}
+        <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if>
+    </select>
+
+    <select id="countChildrenByParentId" resultType="long">
+        SELECT COUNT(*) FROM org_company WHERE parent_id = #{parentId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lianzhi.attendance.system.entity.Company">
+        INSERT INTO org_company (company_name, company_code, parent_id, status, remark, created_by)
+        VALUES (#{companyName}, #{companyCode}, #{parentId}, #{status}, #{remark}, #{createdBy})
+    </insert>
+
+    <update id="updateById" parameterType="com.lianzhi.attendance.system.entity.Company">
+        UPDATE org_company
+        <set>
+            <if test="companyName != null">company_name = #{companyName},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+</mapper>

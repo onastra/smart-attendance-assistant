@@ -13,23 +13,23 @@
 
 | 编号 | 需求名称 | 依据 | 优先级 | 前端 | 后端接口 | 数据表 | 权限要求 | 测试用例 | 实现状态 | 验收方式 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| REQ-A-01 | 登录、登出、获取当前用户 | P6/11/15（H5 登陆页面、移动端查看考勤）、IDX-A1 | 必做 | login.vue | POST /api/auth/login、POST /api/auth/logout、GET /api/auth/profile | sys_user | 无需登录（除 profile） | TC-A-01 正确登录返回 token；TC-A-02 错误口令 401；TC-A-03 停用账号拒绝登录 | 未实现 | Postman + 前端实操 |
-| REQ-A-02 | 角色与权限管理（管理员/部门主管/普通员工可配置） | ANA（原始文档未逐条列出，属工程必要）、IDX-A2 | 必做 | role.vue | GET/POST/PUT /api/roles、GET /api/permissions | sys_role、sys_role_permission、sys_permission | 需 `system:role:*` | TC-A-04 越权访问返回 403（后端校验，非前端隐藏） | 未实现 | 接口测试 + 越权用例 |
-| REQ-A-03 | 员工信息新增/查询/编辑/停用 | P11（员工采集/员工信息采集）、P10（员工信息上传） | 必做 | employee.vue | GET/POST/PUT /api/employees、PUT /api/employees/{id}/status | hr_employee | 管理员/主管；普通员工仅本人 | TC-A-05 重复工号拒绝；TC-A-06 停用后不可打卡 | 未实现 | 接口 + 页面演示 |
-| REQ-A-04 | 公司/部门/岗位组织管理 | P11（各公司以及子公司办公场所登记）→ 组织为工程必要；IDX-A4 | 必做（公司层）/ 待确认（岗位层） | org.vue | GET/POST/PUT /api/companies、/api/departments、/api/positions | org_company、org_department、org_position | 管理员 | TC-A-07 删除含子部门的部门被拒绝 | 未实现 | 接口测试 |
-| REQ-A-05 | 员工与部门、办公场所绑定 | P11（员工信息采集、办公地点绑定） | 必做 | employee-bind.vue | POST /api/employees/{id}/bind-place | hr_employee_place | 管理员/主管 | TC-A-08 绑定后打卡归属正确场所 | 未实现 | 端到端链路 |
-| REQ-A-06 | 数据校验、重复检查与操作反馈 | ANA（隐含于"规范代码/项目质量"）、IDX-A6 | 必做 | 全局表单校验 | 全局异常处理器 | — | — | TC-A-09 非法邮箱/手机号返回明确字段错误 | 未实现 | 接口测试 |
-| REQ-A-07 | 受保护接口的后端鉴权 | IDX-A7（明确要求） | 必做 | — | AuthInterceptor + @RequirePermission | — | — | TC-A-10 无 token 401、无权限 403 | 未实现 | 自动化测试 |
+| REQ-A-01 | 登录、登出、获取当前用户 | P6/11/15（H5 登陆页面、移动端查看考勤）、IDX-A1 | 必做 | login.vue | POST /api/auth/login、POST /api/auth/logout、GET /api/auth/profile | sys_user | 无需登录（除 profile） | TC-A-01 正确登录返回 token；TC-A-02 错误口令 401；TC-A-03 停用账号拒绝登录 | ✅ 已实现（阶段2） | Postman + 前端实操 |
+| REQ-A-02 | 角色与权限管理（管理员/部门主管/普通员工可配置） | ANA（原始文档未逐条列出，属工程必要）、IDX-A2 | 必做 | role.vue | GET/POST/PUT /api/roles、GET /api/permissions | sys_role、sys_role_permission、sys_permission | 需 `system:role:*` | TC-A-04 越权访问返回 403（后端校验，非前端隐藏） | ✅ 已实现（阶段2） | 接口测试 + 越权用例 |
+| REQ-A-03 | 员工信息新增/查询/编辑/停用 | P11（员工采集/员工信息采集）、P10（员工信息上传） | 必做 | employee.vue | GET/POST/PUT /api/employees、PUT /api/employees/{id}/status | hr_employee | 管理员/主管；普通员工仅本人 | TC-A-05 重复工号拒绝；TC-A-06 停用后不可打卡 | ✅ 已实现（阶段2） | 接口 + 页面演示 |
+| REQ-A-04 | 公司/部门/岗位组织管理 | P11（各公司以及子公司办公场所登记）→ 组织为工程必要；IDX-A4 | 必做（公司层）/ 待确认（岗位层） | org.vue | GET/POST/PUT /api/companies、/api/departments、/api/positions | org_company、org_department、org_position | 管理员 | TC-A-07 删除含子部门的部门被拒绝 | ✅ 已实现（阶段2） | 接口测试 |
+| REQ-A-05 | 员工与部门、办公场所绑定 | P11（员工信息采集、办公地点绑定） | 必做 | employee-bind.vue | POST /api/employees/{id}/bind-place | hr_employee_place | 管理员/主管 | TC-A-08 绑定后打卡归属正确场所 | ✅ 已实现（阶段2） | 端到端链路 |
+| REQ-A-06 | 数据校验、重复检查与操作反馈 | ANA（隐含于"规范代码/项目质量"）、IDX-A6 | 必做 | 全局表单校验 | 全局异常处理器 | — | — | TC-A-09 非法邮箱/手机号返回明确字段错误 | ✅ 已实现（阶段2） | 接口测试 |
+| REQ-A-07 | 受保护接口的后端鉴权 | IDX-A7（明确要求） | 必做 | — | AuthInterceptor + @RequirePermission | — | — | TC-A-10 无 token 401、无权限 403 | ✅ 已实现（阶段2） | 自动化测试 |
 
 ## 模块 B：办公场所管理
 
 | 编号 | 需求名称 | 依据 | 优先级 | 前端 | 后端接口 | 数据表 | 权限 | 测试用例 | 实现状态 | 验收方式 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| REQ-B-01 | 办公场所新增/查询/编辑/停用 | P11（办公场所：登记） | 必做 | place.vue | GET/POST/PUT /api/places、PUT /api/places/{id}/status | biz_place | 管理员 | TC-B-01 同名场所校验；TC-B-02 停用后不可作为打卡场所 | 未实现 | 接口 + 页面 |
-| REQ-B-02 | 公司及子公司办公场所登记 | P11（各公司以及子公司等办公场所登记） | 必做 | place.vue | 同上（company_id 关联） | biz_place.company_id | 管理员 | TC-B-03 子公司场所可独立维护 | 未实现 | 页面演示 |
-| REQ-B-03 | 公司 ID 码 / 业务识别码生成 | P9（第 9 天：办公室登记 公司 ID 码生成） | 必做 | place.vue | POST /api/places/{id}/code | biz_place.place_code | 管理员 | TC-B-04 生成的码全局唯一且可续期/吊销 | 未实现 | 接口测试 |
-| REQ-B-04 | 经纬度与第三方地图坐标采集 | P11（坐标采集：第三方地图坐标采集）、P9 | 必做 | place-map.vue（含手动录入） | PUT /api/places/{id}/location、GET /api/map/adapter/status | biz_place(lng,lat) | 管理员 | TC-B-05 无 API Key 时状态显式返回 `mapProvider=none`；TC-B-06 手动坐标可保存并生效 | 未实现 | 接口 + 界面标注 |
-| REQ-B-05 | 场所重复/无效坐标/关联数据校验 | IDX-B7 | 必做 | — | PlaceValidator | — | 管理员 | TC-B-07 经纬度越界被拒绝 | 未实现 | 接口测试 |
+| REQ-B-01 | 办公场所新增/查询/编辑/停用 | P11（办公场所：登记） | 必做 | place.vue | GET/POST/PUT /api/places、PUT /api/places/{id}/status | biz_place | 管理员 | TC-B-01 同名场所校验；TC-B-02 停用后不可作为打卡场所 | ✅ 已实现（阶段2） | 接口 + 页面 |
+| REQ-B-02 | 公司及子公司办公场所登记 | P11（各公司以及子公司等办公场所登记） | 必做 | place.vue | 同上（company_id 关联） | biz_place.company_id | 管理员 | TC-B-03 子公司场所可独立维护 | ✅ 已实现（阶段2） | 页面演示 |
+| REQ-B-03 | 公司 ID 码 / 业务识别码生成 | P9（第 9 天：办公室登记 公司 ID 码生成） | 必做 | place.vue | POST /api/places/{id}/code | biz_place.place_code | 管理员 | TC-B-04 生成的码全局唯一且可续期/吊销 | ✅ 已实现（阶段2） | 接口测试 |
+| REQ-B-04 | 经纬度与第三方地图坐标采集 | P11（坐标采集：第三方地图坐标采集）、P9 | 必做 | place-map.vue（含手动录入） | PUT /api/places/{id}/location、GET /api/map/adapter/status | biz_place(lng,lat) | 管理员 | TC-B-05 无 API Key 时状态显式返回 `mapProvider=none`；TC-B-06 手动坐标可保存并生效 | ✅ 已实现（阶段2） | 接口 + 界面标注 |
+| REQ-B-05 | 场所重复/无效坐标/关联数据校验 | IDX-B7 | 必做 | — | PlaceValidator | — | 管理员 | TC-B-07 经纬度越界被拒绝 | ✅ 已实现（阶段2） | 接口测试 |
 
 ## 模块 C：二维码与 H5 考勤打卡（最高优先级核心链路）
 

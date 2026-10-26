@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.system.mapper.SysUserMapper">
+
+    <sql id="Columns">
+        id, username, password_hash, nickname, employee_id, status,
+        last_login_at, last_login_ip, created_at, updated_at
+    </sql>
+
+    <select id="selectById" resultType="com.lianzhi.attendance.system.entity.SysUser">
+        SELECT
+        <include refid="Columns"/>
+        FROM sys_user WHERE id = #{id}
+    </select>
+
+    <select id="selectByUsername" resultType="com.lianzhi.attendance.system.entity.SysUser">
+        SELECT
+        <include refid="Columns"/>
+        FROM sys_user WHERE username = #{username} LIMIT 1
+    </select>
+
+    <select id="selectByQuery" resultType="com.lianzhi.attendance.system.entity.SysUser">
+        SELECT
+        <include refid="Columns"/>
+        FROM sys_user
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (username LIKE CONCAT('%', #{keyword}, '%')
+                OR nickname LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">AND status = #{status}</if>
+            <if test="roleId != null">
+                AND id IN (SELECT user_id FROM sys_user_role WHERE role_id = #{roleId})
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByQuery" resultType="long">
+        SELECT COUNT(*) FROM sys_user
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (username LIKE CONCAT('%', #{keyword}, '%')
+                OR nickname LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">AND status = #{status}</if>
+            <if test="roleId != null">
+                AND id IN (SELECT user_id FROM sys_user_role WHERE role_id = #{roleId})
+            </if>
+        </where>
+    </select>
+
+    <select id="countByUsername" resultType="long">
+        SELECT COUNT(*) FROM sys_user
+        WHERE username = #{username}
+        <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if>
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lianzhi.attendance.system.entity.SysUser">
+        INSERT INTO sys_user (username, password_hash, nickname, employee_id, status)
+        VALUES (#{username}, #{passwordHash}, #{nickname}, #{employeeId}, #{status})
+    </insert>
+
+    <update id="updateById" parameterType="com.lianzhi.attendance.system.entity.SysUser">
+        UPDATE sys_user
+        <set>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="passwordHash != null">password_hash = #{passwordHash},</if>
+            <if test="employeeId != null">employee_id = #{employeeId},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateLoginInfo">
+        UPDATE sys_user
+        SET last_login_at = NOW(), last_login_ip = #{ip}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteUserRoles">
+        DELETE FROM sys_user_role WHERE user_id = #{userId}
+    </delete>
+
+    <insert id="insertUserRoles">
+        INSERT IGNORE INTO sys_user_role (user_id, role_id)
+        VALUES
+        <foreach collection="roleIds" item="rid" separator=",">
+            (#{userId}, #{rid})
+        </foreach>
+    </insert>
+</mapper>

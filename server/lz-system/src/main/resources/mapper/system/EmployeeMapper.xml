@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.system.mapper.EmployeeMapper">
+
+    <sql id="Columns">
+        e.id, e.emp_no, e.name, e.gender, e.phone, e.email,
+        e.company_id, e.dept_id, e.position_id, e.hire_date, e.status,
+        e.created_at, e.updated_at
+    </sql>
+
+    <!-- 展示用的冗余字段由 LEFT JOIN 补齐，避免因外键缺失导致整条记录查不出来 -->
+    <sql id="JoinColumns">
+        c.company_name AS companyName,
+        d.dept_name    AS deptName,
+        p.position_name AS positionName
+    </sql>
+
+    <sql id="JoinClause">
+        LEFT JOIN org_company c ON c.id = e.company_id
+        LEFT JOIN org_department d ON d.id = e.dept_id
+        LEFT JOIN org_position p ON p.id = e.position_id
+    </sql>
+
+    <select id="selectById" resultType="com.lianzhi.attendance.system.entity.Employee">
+        SELECT
+        <include refid="Columns"/>,
+        <include refid="JoinColumns"/>
+        FROM hr_employee e
+        <include refid="JoinClause"/>
+        WHERE e.id = #{id}
+    </select>
+
+    <select id="selectByQuery" resultType="com.lianzhi.attendance.system.entity.Employee">
+        SELECT
+        <include refid="Columns"/>,
+        <include refid="JoinColumns"/>
+        FROM hr_employee e
+        <include refid="JoinClause"/>
+        <where>
+            <if test="name != null and name != ''">AND e.name LIKE CONCAT('%', #{name}, '%')</if>
+            <if test="empNo != null and empNo != ''">AND e.emp_no = #{empNo}</if>
+            <if test="deptId != null">AND e.dept_id = #{deptId}</if>
+            <if test="companyId != null">AND e.company_id = #{companyId}</if>
+            <if test="status != null">AND e.status = #{status}</if>
+        </where>
+        ORDER BY e.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByQuery" resultType="long">
+        SELECT COUNT(*) FROM hr_employee e
+        <where>
+            <if test="name != null and name != ''">AND e.name LIKE CONCAT('%', #{name}, '%')</if>
+            <if test="empNo != null and empNo != ''">AND e.emp_no = #{empNo}</if>
+            <if test="deptId != null">AND e.dept_id = #{deptId}</if>
+            <if test="companyId != null">AND e.company_id = #{companyId}</if>
+            <if test="status != null">AND e.status = #{status}</if>
+        </where>
+    </select>
+
+    <select id="countByEmpNo" resultType="long">
+        SELECT COUNT(*) FROM hr_employee
+        WHERE emp_no = #{empNo}
+        <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if>
+    </select>
+
+    <select id="countActiveByDeptId" resultType="long">
+        SELECT COUNT(*) FROM hr_employee WHERE dept_id = #{deptId} AND status = 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lianzhi.attendance.system.entity.Employee">
+        INSERT INTO hr_employee
+        (emp_no, name, gender, phone, email, company_id, dept_id, position_id, hire_date, status)
+        VALUES
+        (#{empNo}, #{name}, #{gender}, #{phone}, #{email},
+        #{companyId}, #{deptId}, #{positionId}, #{hireDate}, #{status})
+    </insert>
+
+    <update id="updateById" parameterType="com.lianzhi.attendance.system.entity.Employee">
+        UPDATE hr_employee
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="companyId != null">company_id = #{companyId},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="positionId != null">position_id = #{positionId},</if>
+            <if test="hireDate != null">hire_date = #{hireDate},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+</mapper>

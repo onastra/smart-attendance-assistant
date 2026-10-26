@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.system.mapper.PositionMapper">
+
+    <sql id="Columns">id, company_id, position_name, status, created_at, updated_at</sql>
+
+    <select id="selectById" resultType="com.lianzhi.attendance.system.entity.Position">
+        SELECT p.id, p.company_id, p.position_name, p.status, p.created_at, p.updated_at,
+               c.company_name AS companyName
+        FROM org_position p
+        LEFT JOIN org_company c ON c.id = p.company_id
+        WHERE p.id = #{id}
+    </select>
+
+    <select id="selectByCompanyId" resultType="com.lianzhi.attendance.system.entity.Position">
+        SELECT p.id, p.company_id, p.position_name, p.status, p.created_at, p.updated_at,
+               c.company_name AS companyName
+        FROM org_position p
+        LEFT JOIN org_company c ON c.id = p.company_id
+        WHERE p.status = 1
+        <if test="companyId != null">
+            AND p.company_id = #{companyId}
+        </if>
+        ORDER BY p.id ASC
+    </select>
+
+    <select id="countReferencedByEmployee" resultType="long">
+        SELECT COUNT(*) FROM hr_employee WHERE position_id = #{positionId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lianzhi.attendance.system.entity.Position">
+        INSERT INTO org_position (company_id, position_name, status)
+        VALUES (#{companyId}, #{positionName}, #{status})
+    </insert>
+
+    <update id="updateById" parameterType="com.lianzhi.attendance.system.entity.Position">
+        UPDATE org_position
+        <set>
+            <if test="positionName != null">position_name = #{positionName},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+</mapper>
