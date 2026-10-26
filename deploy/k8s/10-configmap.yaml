@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lianzhi-config
+  namespace: lianzhi
+data:
+  # 非敏感配置。敏感项一律放 Secret，不在这里出现。
+  LZ_DB_URL: "jdbc:mysql://mysql:3306/lianzhi?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
+  LZ_DB_USERNAME: "root"
+  LZ_REDIS_HOST: "redis"
+  LZ_REDIS_PORT: "6379"
+  LZ_CACHE_ENABLED: "true"
+  LZ_FACE_PROVIDER: "noop"
+  LZ_MAP_PROVIDER: "none"
+  LZ_LLM_ENABLED: "false"
+  LZ_NACOS_ENABLED: "false"
+  LZ_FEIGN_ENABLED: "false"
+  LZ_LOG_LEVEL: "info"
+  TZ: "Asia/Shanghai"

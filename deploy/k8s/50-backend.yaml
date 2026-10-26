@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: lianzhi
+spec:
+  # 服务名固定为 backend：Nginx 里的 proxy_pass http://backend:8080 依赖这个名字，
+  # 与 compose 保持一致，同一份前端镜像才能两处通用。
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: lianzhi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: lianzhi/backend:1.0.0
+          # 本地构建的镜像没有推到仓库，必须允许用本地已有镜像
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: lianzhi-config
+            - secretRef:
+                name: lianzhi-secret
+          resources:
+            requests:
+              cpu: 300m
+              memory: 640Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            # 真实打一次健康检查：它内部会真实探测数据库与 Redis
+            httpGet:
+              path: /api/system/health
+              port: 8080
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              path: /api/system/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6

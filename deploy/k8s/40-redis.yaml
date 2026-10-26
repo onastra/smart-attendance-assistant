@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: lianzhi
+spec:
+  type: ClusterIP
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: lianzhi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          # 缓存用途：不做持久化兜底，内存满时按 LRU 淘汰，不写盘
+          #
+          # 用 sh -c 而不是 args 里的 $(REDIS_PASSWORD)：
+          # 实测直接写 $(REDIS_PASSWORD) 时 K8s 没有把它展开成实际口令，
+          # 结果 redis 拿到的口令与探针用的不一致，readiness 一直 WRONGPASS。
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - exec redis-server --requirepass "$REDIS_PASSWORD" --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly no
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lianzhi-secret
+                  key: LZ_REDIS_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            exec:
+              # 用 shell 变量 $REDIS_PASSWORD 而不是 $(REDIS_PASSWORD)：
+              # kubelet 会先尝试展开 $(VAR)，展开结果为空字符串，
+              # 探针就一直 WRONGPASS（实测踩到），用 $VAR 交给容器内的 sh 展开。
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3

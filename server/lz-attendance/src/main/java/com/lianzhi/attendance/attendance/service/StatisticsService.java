@@ -9,11 +9,15 @@ import com.lianzhi.attendance.attendance.query.StatisticsQuery;
 import com.lianzhi.attendance.common.exception.BusinessException;
 import com.lianzhi.attendance.common.result.ResultCode;
 import com.lianzhi.attendance.framework.auth.AuthUser;
+import com.lianzhi.attendance.framework.cache.CacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +40,7 @@ import java.util.Map;
 public class StatisticsService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     /** 未传日期范围时的默认窗口 */
     private static final int DEFAULT_RANGE_DAYS = 14;
 
@@ -45,9 +50,36 @@ public class StatisticsService {
 
     private final StatisticsMapper statisticsMapper;
     private final DataScopeResolver dataScopeResolver;
+    private final CacheService cacheService;
+
+    /** 概览缓存秒数：当天数据会随打卡变化，因此刻意取短 TTL */
+    @Value("${lz.cache.ttl.statistics-summary-seconds:60}")
+    private long summaryTtlSeconds;
 
     public StatSummary summary(StatisticsQuery query, AuthUser user) {
         normalize(query, user);
+
+        // 缓存键必须包含数据范围（部门/员工/日期）：
+        // 否则部门主管可能拿到管理员视角缓存下来的全量数字，等同于越权。
+        String cacheKey = "statistics:summary:" + query.getDateFrom() + ":" + query.getDateTo()
+                + ":dept=" + query.getDeptId() + ":emp=" + query.getEmployeeId();
+
+        StatSummary hit = cacheService.get(cacheKey, StatSummary.class);
+        if (hit != null) {
+            // 命中：如实标记 cached=true，generatedAt 保留首次生成时间
+            hit.setCached(true);
+            return hit;
+        }
+
+        StatSummary summary = loadSummary(query);
+        summary.setCached(false);
+        summary.setGeneratedAt(LocalDateTime.now().format(TIMESTAMP_FORMATTER));
+        cacheService.put(cacheKey, summary, Duration.ofSeconds(summaryTtlSeconds));
+        return summary;
+    }
+
+    /** 真实计算一次概览（缓存未命中或缓存关闭时走这里）。 */
+    private StatSummary loadSummary(StatisticsQuery query) {
         StatSummary summary = statisticsMapper.selectSummary(query);
         if (summary == null) {
             // 范围内没有汇总数据：返回全零而不是 null，前端空态才好处理

@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+  workflow_dispatch:
+
+# 流水线口径：构建失败就算失败，不允许 -DskipTests 绕过测试。
+#
+# 本地可用 act 实跑（与云端同一份 YAML）。本机已验证通过的调用方式：
+#   export DOCKER_HOST=tcp://127.0.0.1:2375
+#   act -j backend  -P ubuntu-latest=node:22-bookworm --container-architecture linux/amd64 \
+#       --container-options "-v D:/apache-maven-3.9.6-bin/apache-maven-3.9.6:/opt/maven \
+#                            -v D:/apache-maven-3.9.6-bin/apache-maven-3.9.6/mvn_resp:/opt/mvn_resp"
+#   act -j frontend -P ubuntu-latest=node:22-bookworm --container-architecture linux/amd64
+jobs:
+  backend:
+    name: 后端 - 构建与测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+
+      # GitHub 官方 runner 预装了 Maven；本地 act 用的镜像没有。
+      # 优先用挂载进来的宿主 Maven（自带阿里云镜像与已缓存依赖，快很多），
+      # 没有挂载时再下载官方发行包。整段只在 act 下执行，云端不受影响。
+      - name: 准备 Maven（仅本地 act 需要）
+        if: env.ACT == 'true'
+        run: |
+          if [ -x /opt/maven/bin/mvn ]; then
+            echo "使用挂载的 Maven: $(/opt/maven/bin/mvn -v | head -1)"
+            echo "/opt/maven/bin" >> "$GITHUB_PATH"
+          fi
+          # 宿主 Maven 的全局 settings.xml 把 localRepository 指向 Windows 路径，
+          # 容器里不存在，会表现为 "package lombok does not exist"。
+          # 这里用挂载进来的仓库目录写一份用户级 settings.xml 覆盖它。
+          if [ -d /opt/mvn_resp ]; then
+            mkdir -p /root/.m2
+            # 不用 heredoc：结束符在 YAML 块标量里必须顶格，顶格又会截断块标量
+            {
+              echo '<settings>'
+              echo '  <localRepository>/opt/mvn_resp</localRepository>'
+              echo '  <mirrors>'
+              echo '    <mirror>'
+              echo '      <id>alimaven</id>'
+              echo '      <mirrorOf>central</mirrorOf>'
+              echo '      <url>https://maven.aliyun.com/repository/public</url>'
+              echo '    </mirror>'
+              echo '  </mirrors>'
+              echo '</settings>'
+            } > /root/.m2/settings.xml
+            echo "已写入容器仓库配置: /opt/mvn_resp"
+          fi
+          if [ ! -x /opt/maven/bin/mvn ]; then
+            curl -sSL -o /tmp/maven.tar.gz \
+              https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz
+            tar -xzf /tmp/maven.tar.gz -C /opt
+            echo "/opt/apache-maven-3.9.6/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: 打包（含单元测试）
+        working-directory: server
+        run: mvn -B -ntp package
+
+      # act 本地运行时没有 ACTIONS_RUNTIME_TOKEN，上传产物必然失败。
+      # 这是 act 的环境限制而不是流水线问题，因此本地跳过、云端照常执行，
+      # 避免"本地跑 CI 永远红"这种假失败。
+      - name: 上传可执行 JAR
+        if: env.ACT != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lz-app-jar
+          path: server/lz-app/target/lz-app.jar
+          if-no-files-found: error
+
+  frontend:
+    name: 前端 - 依赖安装与构建
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: 依赖安装
+        working-directory: web
+        run: |
+          # 国内网络下 npm 官方源经常超时，这里切到镜像源；
+          # 在 GitHub 官方 runner 上如果官方源可用，可以去掉这一行。
+          npm config set registry https://registry.npmmirror.com
+          npm ci
+
+      - name: 构建
+        working-directory: web
+        run: npm run build
+
+      - name: 上传构建产物
+        if: env.ACT != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+          if-no-files-found: error
+
+  images:
+    name: 镜像构建（不推送）
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      # 依赖前面上传的产物；act 本地没有 ACTIONS_RUNTIME_TOKEN，也就没有产物可下载，
+      # 所以这些步骤在本地跳过（job 级 if 不能用 env 上下文，只能逐步判断）。
+      - name: 检出代码
+        if: env.ACT != 'true'
+        uses: actions/checkout@v4
+
+      - name: 下载 JAR 产物
+        if: env.ACT != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: lz-app-jar
+          path: server/lz-app/target
+
+      - name: 构建后端镜像
+        if: env.ACT != 'true'
+        run: docker build -f deploy/backend.Dockerfile -t lianzhi/backend:ci .
+
+      - name: 构建前端镜像
+        if: env.ACT != 'true'
+        run: docker build -f deploy/frontend.Dockerfile -t lianzhi/frontend:ci .

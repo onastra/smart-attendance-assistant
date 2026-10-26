@@ -50,4 +50,15 @@ public class StatSummary {
 
     /** 数据来源的可读说明，前端直接展示 */
     private String dataSourceNote;
+
+    /**
+     * 本次结果是否来自缓存。
+     *
+     * <p>必须如实返回：看板数字若来自 60 秒内的缓存，使用者有权知道，
+     * 否则刚打完卡发现看板没变会误以为数据丢了。</p>
+     */
+    private boolean cached;
+
+    /** 结果生成时间（缓存命中时为写入缓存的时间），格式 yyyy-MM-dd HH:mm:ss */
+    private String generatedAt;
 }

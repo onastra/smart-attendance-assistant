@@ -1,5 +1,7 @@
 package com.lianzhi.attendance.app.web;
 
+import com.lianzhi.attendance.framework.cache.CacheService;
+import com.lianzhi.attendance.framework.cache.CacheStats;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ import java.util.Map;
 public class HealthController {
 
     private final ObjectProvider<DataSource> dataSourceProvider;
+    private final ObjectProvider<CacheService> cacheServiceProvider;
 
     @Value("${lz.cache.enabled:false}")
     private boolean cacheEnabled;
@@ -53,6 +56,7 @@ public class HealthController {
         body.put("status", "UP");
         body.put("serverTime", LocalDateTime.now().toString());
         body.put("database", probeDatabase());
+        body.put("cache", probeCache());
         body.put("dependencies", Map.of(
                 "redis", Map.of("enabled", cacheEnabled, "note", "关闭时应用不依赖 Redis，缓存逻辑降级"),
                 "nacos", Map.of("enabled", nacosEnabled, "note", "已配置未启用（模块化单体，无需服务注册）"),
@@ -63,6 +67,35 @@ public class HealthController {
                         "note", "noop 表示模拟实现，界面与响应均标注 mock=true")
         ));
         return ResponseEntity.ok(body);
+    }
+
+    /**
+     * 缓存状态：真实 PING 一次 Redis，并给出本进程内的命中统计。
+     *
+     * <p>命中率必须能看到，否则"接了缓存"和"缓存真在工作"混为一谈——
+     * 长期 hit=0 说明键没命中或压根没走缓存路径。</p>
+     */
+    private Map<String, Object> probeCache() {
+        CacheService cacheService = cacheServiceProvider.getIfAvailable();
+        if (cacheService == null) {
+            return Map.of("enabled", cacheEnabled, "mode", "unavailable", "note", "未装配 CacheService 实现");
+        }
+        boolean reachable = cacheEnabled && cacheService.available();
+        CacheStats stats = cacheService.stats();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("enabled", cacheEnabled);
+        body.put("mode", cacheService.mode());
+        body.put("reachable", reachable);
+        body.put("hit", stats.getHit());
+        body.put("miss", stats.getMiss());
+        body.put("write", stats.getWrite());
+        body.put("error", stats.getError());
+        body.put("fallback", stats.getFallback());
+        body.put("hitRate", stats.hitRate());
+        body.put("note", reachable
+                ? "Redis 可用，缓存生效"
+                : (cacheEnabled ? "开关已开但 Redis 不可达，已降级直查（不影响结果正确性）" : "缓存开关关闭"));
+        return body;
     }
 
     /** 真实执行一次数据库连接，而不是只声明配置了数据源。 */

@@ -3,6 +3,7 @@ package com.lianzhi.attendance.place.service;
 import com.lianzhi.attendance.common.exception.BusinessException;
 import com.lianzhi.attendance.common.page.PageResult;
 import com.lianzhi.attendance.common.result.ResultCode;
+import com.lianzhi.attendance.framework.cache.CacheService;
 import com.lianzhi.attendance.place.entity.Place;
 import com.lianzhi.attendance.place.entity.PlaceEmployee;
 import com.lianzhi.attendance.place.mapper.PlaceMapper;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,11 @@ public class PlaceService {
     private static final String CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
     private final PlaceMapper placeMapper;
+    private final CacheService cacheService;
+
+    /** 场所详情缓存秒数；写操作会主动失效，TTL 只是兜底 */
+    @Value("${lz.cache.ttl.place-detail-seconds:600}")
+    private long placeTtlSeconds;
 
     /** 地图服务厂商；未配置时为 none，此时坐标只能手动录入 */
     @Value("${lz.map.provider:none}")
@@ -47,10 +54,16 @@ public class PlaceService {
     }
 
     public Place detail(Long id) {
+        String cacheKey = "place:detail:" + id;
+        Place cached = cacheService.get(cacheKey, Place.class);
+        if (cached != null) {
+            return cached;
+        }
         Place place = placeMapper.selectById(id);
         if (place == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "场所不存在");
         }
+        cacheService.put(cacheKey, place, Duration.ofSeconds(placeTtlSeconds));
         return place;
     }
 
@@ -74,6 +87,7 @@ public class PlaceService {
         // place_code 一经生成不允许改动，否则已分发出去的旧二维码无法定位场所
         place.setPlaceCode(null);
         placeMapper.updateById(place);
+        cacheService.evict("place:detail:" + place.getId());
         log.info("[PLACE] 编辑场所 id={}", place.getId());
     }
 
@@ -87,6 +101,7 @@ public class PlaceService {
         patch.setId(id);
         patch.setStatus(status);
         placeMapper.updateById(patch);
+        cacheService.evict("place:detail:" + id);
         log.info("[PLACE] 变更场所状态 id={} status={}", id, status);
     }
 
@@ -133,6 +148,7 @@ public class PlaceService {
         patch.setId(id);
         patch.setPlaceCode(newCode);
         placeMapper.updateById(patch);
+        cacheService.evict("place:detail:" + id);
         log.info("[PLACE] 重新生成场所码 id={} newCode={}", id, newCode);
         return newCode;
     }

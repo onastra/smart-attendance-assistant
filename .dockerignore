@@ -1,0 +1,20 @@
+# 构建上下文裁剪：默认排除一切，再按需放行。
+# 后端镜像只需要可执行 JAR，前端镜像只需要 web 源码（node_modules 会在容器里 npm ci）。
+*
+!server/lz-app/target/lz-app.jar
+!web
+!web/**
+!deploy
+!deploy/**
+
+# 明确排除开发环境里的重目录与无关产物
+web/node_modules
+web/dist
+**/node_modules
+**/.git
+**/target
+!server/lz-app/target
+!server/lz-app/target/lz-app.jar
+docs/samples
+data
+**/*.log

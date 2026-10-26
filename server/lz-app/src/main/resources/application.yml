@@ -34,6 +34,26 @@ spring:
       stat-view-servlet:
         enabled: false
 
+  data:
+    redis:
+      # 连接参数全部走环境变量，便于容器/K8s 注入。
+      # 注意：只有 lz.cache.enabled=true 时才会真正建立连接；
+      # 关闭开关时这些配置被忽略，应用不依赖 Redis 也能启动。
+      host: ${LZ_REDIS_HOST:127.0.0.1}
+      port: ${LZ_REDIS_PORT:6379}
+      password: ${LZ_REDIS_PASSWORD:}
+      database: ${LZ_REDIS_DB:0}
+      # 超时刻意设短：缓存不可用时应快速降级直查，而不是让每个请求都等几秒
+      connect-timeout: ${LZ_REDIS_CONNECT_TIMEOUT:2s}
+      timeout: ${LZ_REDIS_TIMEOUT:2s}
+      lettuce:
+        pool:
+          enabled: ${LZ_REDIS_POOL_ENABLED:true}
+          max-active: 16
+          max-idle: 8
+          min-idle: 1
+          max-wait: 2s
+
   servlet:
     multipart:
       max-file-size: 20MB
@@ -75,6 +95,13 @@ lz:
   cache:
     # Redis 未安装时保持 false；代码侧会降级并记录 WARN，不伪造缓存命中
     enabled: ${LZ_CACHE_ENABLED:false}
+    # 键前缀：带版本号，便于一次性失效旧结构而不误删新数据
+    key-prefix: ${LZ_CACHE_KEY_PREFIX:lz:cache:v1:}
+    ttl:
+      # 场所详情：变更频率低，10 分钟；写操作会主动失效
+      place-detail-seconds: ${LZ_CACHE_TTL_PLACE:600}
+      # 统计看板汇总：当天数据会随打卡变化，短 TTL + 响应里标注 cached，避免"看起来没更新"
+      statistics-summary-seconds: ${LZ_CACHE_TTL_SUMMARY:60}
 
   nacos:
     # 微服务治理：已配置未启用。启用需本地 Nacos Server 2.x，详见 docs/architecture.md

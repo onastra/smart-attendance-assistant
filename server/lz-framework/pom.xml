@@ -72,6 +72,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        <!--
+            连接池：spring-boot-starter-data-redis 不传递 commons-pool2，
+            而 application.yml 里开启了 lettuce.pool，缺了它启动会直接
+            NoClassDefFoundError: GenericObjectPoolConfig（实测踩到过）。
+            版本由 spring-boot-dependencies 统一管理。
+        -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
 
         <!-- 接口文档 -->
         <dependency>

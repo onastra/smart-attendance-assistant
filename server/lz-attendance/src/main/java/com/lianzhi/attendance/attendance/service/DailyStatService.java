@@ -5,6 +5,7 @@ import com.lianzhi.attendance.attendance.dto.RebuildResult;
 import com.lianzhi.attendance.attendance.entity.AttDailyStat;
 import com.lianzhi.attendance.attendance.entity.DailyStatRow;
 import com.lianzhi.attendance.attendance.mapper.AttStatMapper;
+import com.lianzhi.attendance.framework.cache.CacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class DailyStatService {
 
     private final AttStatMapper statMapper;
     private final AttendanceProperties properties;
+    private final CacheService cacheService;
 
     /**
      * 重算一整天。
@@ -89,6 +91,10 @@ public class DailyStatService {
         result.setSampleRows(sampleRows);
         result.setAbsentRows(absentRows);
         result.setCostMillis(System.currentTimeMillis() - start);
+        // 日汇总变了，统计看板的缓存必须立刻失效：
+        // 否则管理员点了"重算"，看板在 TTL 内仍显示旧数字，
+        // 会被当成"重算没生效"，比没有缓存更容易误导。
+        cacheService.evictByPrefix("statistics:");
         return result;
     }
 

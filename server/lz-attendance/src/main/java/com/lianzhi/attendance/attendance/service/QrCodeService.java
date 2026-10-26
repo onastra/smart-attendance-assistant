@@ -158,6 +158,22 @@ public class QrCodeService {
         }
     }
 
+    /**
+     * 批量标记过期：把"状态还是 VALID 但已超过 expire_time 的码"统一置为 EXPIRED。
+     *
+     * <p>只改状态、不物理删除：二维码会被打卡记录引用，删掉后历史打卡就查不到码的来源；
+     * 过期判定以 expire_time 为准，重复执行不会重复计数（已 EXPIRED 的行不会再被命中）。</p>
+     *
+     * @return 本次被置为过期的行数
+     */
+    public int expireOutdated() {
+        int rows = qrcodeMapper.markExpired(LocalDateTime.now());
+        if (rows > 0) {
+            log.info("[QR] 过期二维码清理：本次置为 EXPIRED {} 条", rows);
+        }
+        return rows;
+    }
+
     /** 手动失效：管理员发现二维码外泄时可立即作废 */
     @Transactional
     public void invalidate(Long id, Long operatorId, String clientIp) {

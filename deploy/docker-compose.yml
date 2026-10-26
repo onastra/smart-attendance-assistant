@@ -1,0 +1,125 @@
+# =============================================================
+#  联智考勤 —— 一键本地栈（MySQL + Redis + 后端 + 前端）
+# -------------------------------------------------------------
+#  用法：
+#    cd deploy && docker compose up -d --build
+#    docker compose ps            # 全部 healthy 后再访问
+#    docker compose logs -f backend
+#    docker compose down -v       # 连数据卷一起清掉（下次会重新初始化）
+#
+#  端口刻意避开本机已占用端口：
+#    本机 MySQL 3306 / Redis 6379 / 后端 8080 / 前端 5173 仍在跑，
+#    容器分别映射到 13306 / 16379 / 18080 / 18081，两套可以并存。
+# =============================================================
+name: lianzhi
+
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: lz-mysql
+    command:
+      # ngram_token_size=2 是只读变量，只能在启动时指定：
+      # 它决定中文全文检索按 2 字切词，与知识库检索（模块 F）的口径一致
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --ngram_token_size=2
+      - --default-time-zone=+08:00
+      - --max_connections=200
+    environment:
+      MYSQL_ROOT_PASSWORD: lianzhi_demo
+      MYSQL_DATABASE: lianzhi
+      MYSQL_ROOT_HOST: '%'
+      TZ: Asia/Shanghai
+    ports:
+      - "13306:3306"
+    volumes:
+      # 初始化脚本 + SQL 源文件（只读挂载，不在容器里留副本）
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
+      - ../docs/sql:/seed:ro
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-plianzhi_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: lz-redis
+    command:
+      - redis-server
+      - --requirepass
+      - lianzhi_demo_redis
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - allkeys-lru
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a lianzhi_demo_redis --no-auth-warning ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+    image: lianzhi/backend:1.0.0
+    container_name: lz-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # 数据库：JDBC 参数与本机保持一致，仅主机改为服务名 mysql
+      LZ_DB_URL: jdbc:mysql://mysql:3306/lianzhi?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      LZ_DB_USERNAME: root
+      LZ_DB_PASSWORD: lianzhi_demo
+      # 缓存：容器内 Redis 自带口令
+      LZ_REDIS_HOST: redis
+      LZ_REDIS_PORT: "6379"
+      LZ_REDIS_PASSWORD: lianzhi_demo_redis
+      LZ_CACHE_ENABLED: "true"
+      # 密钥：演示环境固定值，正式部署必须换成环境变量注入的强密钥
+      LZ_JWT_SECRET: demo-only-jwt-secret-please-override-in-production-32b
+      LZ_QR_SIGN_SECRET: demo-only-qr-sign-secret-please-override
+      # 允许的前端来源：容器化前端走 18081
+      LZ_WEB_ORIGINS: http://localhost:18081,http://127.0.0.1:18081
+      LZ_LOG_LEVEL: info
+      TZ: Asia/Shanghai
+    ports:
+      - "18080:8080"
+    healthcheck:
+      # 真实打一次健康检查接口：它内部会真实探测数据库与 Redis，比端口连通更有意义
+      test: ["CMD-SHELL",
+             "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080; printf \"GET /api/system/health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n\" >&3; grep -q \"application\" <&3'"]
+      interval: 10s
+      timeout: 8s
+      retries: 30
+      start_period: 40s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/frontend.Dockerfile
+    image: lianzhi/frontend:1.0.0
+    container_name: lz-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "18081:80"
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  redis-data:
