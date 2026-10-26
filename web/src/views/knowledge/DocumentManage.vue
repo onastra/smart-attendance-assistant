@@ -71,9 +71,19 @@
         <el-table-column prop="chunkCount" label="切片数" width="80" />
         <el-table-column prop="createdByName" label="上传人" width="90" />
         <el-table-column prop="createdAt" label="上传时间" width="150" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="rebuild(row)">重建</el-button>
+            <el-button
+              link
+              type="primary"
+              size="small"
+              :disabled="!row.fileId"
+              :title="row.fileId ? '下载原文（走鉴权接口）' : '该文档没有留存原文件'"
+              @click="download(row)"
+            >
+              下载原文
+            </el-button>
             <el-button link type="primary" size="small" @click="openVisibility(row)">可见范围</el-button>
             <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
           </template>
@@ -123,6 +133,7 @@
 import { onMounted, ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { fetchDocuments, uploadDocument, deleteDocument, rebuildDocument, updateVisibility } from '@/api/kb'
+import { downloadFile } from '@/api/file'
 import { listDepartments } from '@/api/org'
 
 const rows = ref([])
@@ -201,6 +212,32 @@ async function rebuild(row) {
     ElMessage.success(`重建完成，切片数 ${data.document.chunkCount}`)
     await load()
   } catch { /* 失败原因已由 request 拦截器提示 */ }
+}
+
+/**
+ * 下载原文。
+ *
+ * 走的是鉴权接口：后端按可见范围判定，不是"知道 id 就能下"。
+ * 文件名用文档标题重建，不依赖响应头里的 Content-Disposition——
+ * 跨域部署时该响应头默认不暴露给 JS，靠它取名字会在生产环境失效。
+ */
+async function download(row) {
+  try {
+    const blob = await downloadFile(row.fileId)
+    const ext = (row.fileType || '').toLowerCase()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = ext ? `${row.title}.${ext}` : row.title
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    if (err && err.message) {
+      ElMessage.error(err.message)
+    }
+  }
 }
 
 async function remove(row) {

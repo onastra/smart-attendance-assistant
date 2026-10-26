@@ -37,6 +37,10 @@
         </dependency>
         <dependency>
             <groupId>com.lianzhi.attendance</groupId>
+            <artifactId>lz-file</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lianzhi.attendance</groupId>
             <artifactId>lz-knowledge</artifactId>
         </dependency>
         <dependency>

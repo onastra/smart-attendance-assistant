@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.lianzhi.attendance</groupId>
+        <artifactId>lianzhi-server</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>lz-file</artifactId>
+    <name>lz-file</name>
+    <description>阶段 6：sys_file 本地受控存储与鉴权下载（不暴露真实路径，按可见范围鉴权）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.lianzhi.attendance</groupId>
+            <artifactId>lz-framework</artifactId>
+        </dependency>
+    </dependencies>
+</project>

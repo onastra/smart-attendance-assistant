@@ -97,6 +97,10 @@ services:
       TZ: Asia/Shanghai
     ports:
       - "18080:8080"
+    volumes:
+      # 上传文件的落地目录必须持久化：容器重建后若目录没了，
+      # sys_file 记录还在而磁盘上文件已消失，下载会报"文件已丢失"。
+      - app-files:/app/data/files
     healthcheck:
       # 真实打一次健康检查接口：它内部会真实探测数据库与 Redis，比端口连通更有意义
       test: ["CMD-SHELL",
@@ -123,3 +127,4 @@ services:
 volumes:
   mysql-data:
   redis-data:
+  app-files:

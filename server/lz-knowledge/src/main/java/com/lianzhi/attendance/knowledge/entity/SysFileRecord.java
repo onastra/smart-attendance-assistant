@@ -22,5 +22,12 @@ public class SysFileRecord {
     private String mime;
     private Long uploaderId;
     private String visibility;
+    /**
+     * visibility=DEPT 时生效的部门。
+     *
+     * <p>阶段 6 之前文件可见范围只有 PUBLIC/PRIVATE 两档，且上传时硬编码为 PRIVATE，
+     * 导致"本部门可见"的文档其原文件谁都下载不到。这里与文档可见范围对齐。</p>
+     */
+    private Long ownerDeptId;
     private LocalDateTime createdAt;
 }

@@ -40,11 +40,18 @@
         <!-- 摄像头不可用（非 HTTPS / 无权限 / PC 无摄像头）时给出明确说明，而不是静默失败 -->
         <div v-if="showScanner" class="scanner-box">
           <div id="qr-reader" class="qr-reader"/>
-          <el-button size="small" class="block-btn" @click="stopScanner">关闭摄像头</el-button>
+          <el-button size="large" class="block-btn" @click="stopScanner">关闭摄像头</el-button>
         </div>
         <div v-else class="scanner-actions">
-          <el-button type="primary" class="block-btn" @click="startScanner">打开摄像头扫码</el-button>
+          <el-button type="primary" size="large" class="block-btn" @click="startScanner">打开摄像头扫码</el-button>
           <div v-if="cameraError" class="tip warn">{{ cameraError }}</div>
+        </div>
+        <!-- 定位失败后允许重试：手机上一次拒绝授权，不重新点就永远拿不到坐标 -->
+        <div v-if="!locationReady" class="retry-row">
+          <el-button link type="primary" size="small" :loading="locating" @click="retryLocation">
+            重新获取定位
+          </el-button>
+          <span class="tip">{{ locationText }}</span>
         </div>
 
         <el-divider content-position="center">或</el-divider>
@@ -131,6 +138,7 @@ let scanner = null
 
 const locationReady = ref(false)
 const locationText = ref('未获取定位')
+const locating = ref(false)
 /** 定位成功后保存坐标，供提交打卡时上报 */
 const currentCoords = { lng: null, lat: null }
 
@@ -185,21 +193,33 @@ function requestLocation() {
       resolve()
       return
     }
+    locating.value = true
     navigator.geolocation.getCurrentPosition(
       (position) => {
         currentCoords.lng = position.coords.longitude
         currentCoords.lat = position.coords.latitude
         locationReady.value = true
         locationText.value = `已定位（${position.coords.longitude.toFixed(5)}, ${position.coords.latitude.toFixed(5)}）`
+        locating.value = false
         resolve()
       },
       () => {
         locationText.value = '未授权定位，将跳过围栏校验'
+        locating.value = false
         resolve()
       },
       { timeout: 8000, maximumAge: 60000 }
     )
   })
+}
+
+async function retryLocation() {
+  if (locating.value) return
+  locationText.value = '正在获取定位…'
+  await requestLocation()
+  if (locationReady.value) {
+    ElMessage.success('定位成功，提交打卡时将参与围栏校验')
+  }
 }
 
 async function startScanner() {
@@ -211,9 +231,12 @@ async function startScanner() {
   showScanner.value = true
   try {
     scanner = new Html5Qrcode('qr-reader')
+    // 取景框按视口自适应：写死 240px 时，窄屏（360px 以下）会被裁切，
+    // 用户看到的取景框不完整，会以为"扫不出来"其实是取景框出界了。
+    const box = Math.max(160, Math.min(240, Math.floor(window.innerWidth * 0.72)))
     await scanner.start(
       { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 240, height: 240 } },
+      { fps: 10, qrbox: { width: box, height: box } },
       (decodedText) => {
         content.value = decodedText
         stopScanner()
@@ -295,7 +318,9 @@ if (userStore.isLogin) {
 .h5-checkin {
   max-width: 480px;
   margin: 0 auto;
-  padding: 12px;
+  /* 安全区：顶部避开刘海，底部避开 Home 指示条（配合 viewport-fit=cover 生效） */
+  padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+           calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -303,6 +328,24 @@ if (userStore.isLogin) {
 
 .panel {
   border-radius: 12px;
+}
+
+/* 触控目标：手机上小于 44px 的按钮很难点准 */
+.h5-checkin :deep(.el-button) {
+  min-height: 44px;
+}
+
+/* 输入控件字号 >= 16px：否则 iOS 聚焦时会强制放大整个页面 */
+.h5-checkin :deep(.el-input__inner),
+.h5-checkin :deep(.el-textarea__inner) {
+  font-size: 16px;
+}
+
+.retry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .panel-header {
@@ -402,5 +445,35 @@ if (userStore.isLogin) {
 .recent-time {
   font-size: 12px;
   color: #909399;
+}
+
+/* 窄屏（360px 及以下）：压缩留白，保证首屏能看到"提交打卡" */
+@media (max-width: 360px) {
+  .h5-checkin {
+    gap: 8px;
+    padding: calc(8px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom)) 8px;
+  }
+  .result-line {
+    font-size: 13px;
+  }
+}
+
+/* 横屏：高度紧张时取消最大宽度限制，压缩纵向间距 */
+@media (orientation: landscape) and (max-height: 480px) {
+  .h5-checkin {
+    max-width: none;
+    gap: 8px;
+  }
+  .qr-reader {
+    max-width: 60vw;
+    margin: 0 auto;
+  }
+}
+
+/* 宽屏（平板/桌面预览）：不让内容被拉成一条，保持手机形态居中 */
+@media (min-width: 768px) {
+  .h5-checkin {
+    padding-top: calc(24px + env(safe-area-inset-top));
+  }
 }
 </style>

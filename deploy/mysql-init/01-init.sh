@@ -39,14 +39,17 @@ mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /seed/patch-phase3-att
 echo "[init] 5/7 增量 patch-phase4-statistics.sql ..."
 mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /seed/patch-phase4-statistics.sql
 
-echo "[init] 6/7 增量 patch-phase5-knowledge.sql ..."
+echo "[init] 6/8 增量 patch-phase5-knowledge.sql ..."
 mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /seed/patch-phase5-knowledge.sql
+
+echo "[init] 7/8 增量 patch-phase6-file.sql ..."
+mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /seed/patch-phase6-file.sql
 
 # 14 天演示打卡流水：默认导入（看板趋势需要数据），设 SKIP_SAMPLE=yes 可跳过
 if [ "${SKIP_SAMPLE:-no}" = "yes" ]; then
-    echo "[init] 7/7 跳过 14 天演示打卡（SKIP_SAMPLE=yes）"
+    echo "[init] 8/8 跳过 14 天演示打卡（SKIP_SAMPLE=yes）"
 else
-    echo "[init] 7/7 导入 14 天演示打卡 sample-attendance-14d.sql ..."
+    echo "[init] 8/8 导入 14 天演示打卡 sample-attendance-14d.sql ..."
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /seed/sample-attendance-14d.sql
     # 日汇总不在 SQL 里算：重算逻辑在应用侧（幂等 upsert），
     # 部署后调用一次 POST /api/statistics/rebuild 即可，避免两处实现口径漂移。

@@ -2,7 +2,13 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <!--
+    viewport-fit=cover：不加这一项，env(safe-area-inset-*) 在 iOS 上恒为 0，
+    刘海屏和底部小黑条会盖住内容（H5 打卡页首当其冲）。
+    同时不再写 user-scalable=no：禁用缩放属于用限制功能来掩盖"字号过小"的设计问题，
+    无障碍上也不可取；真正的做法是让输入控件字号 >= 16px，避免 iOS 聚焦时自动放大。
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>联智·企业级 AI Agent 智能考勤与业务助手</title>
 </head>
 <body>

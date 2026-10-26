@@ -4,13 +4,13 @@
 <mapper namespace="com.lianzhi.attendance.knowledge.mapper.KbFileMapper">
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sys_file (original_name, storage_path, size, mime, uploader_id, visibility)
-        VALUES (#{originalName}, #{storagePath}, #{size}, #{mime}, #{uploaderId}, #{visibility})
+        INSERT INTO sys_file (original_name, storage_path, size, mime, uploader_id, visibility, owner_dept_id)
+        VALUES (#{originalName}, #{storagePath}, #{size}, #{mime}, #{uploaderId}, #{visibility}, #{ownerDeptId})
     </insert>
 
     <select id="selectById" resultType="com.lianzhi.attendance.knowledge.entity.SysFileRecord">
         SELECT id, original_name AS originalName, storage_path AS storagePath, size, mime,
-               uploader_id AS uploaderId, visibility, created_at AS createdAt
+               uploader_id AS uploaderId, visibility, owner_dept_id AS ownerDeptId, created_at AS createdAt
         FROM sys_file WHERE id = #{id}
     </select>
 

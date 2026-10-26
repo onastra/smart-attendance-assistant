@@ -93,6 +93,12 @@ public class KnowledgeService {
                     "该文档内容已存在（文档 ID " + duplicates.get(0).getId() + "），请勿重复上传");
         }
 
+        // 先定文档的可见范围，再让原文件跟它保持一致：
+        // 阶段 6 之前文件可见范围被硬编码成 PRIVATE，结果是"本部门可见"的文档
+        // 其原文件连本部门的人都下载不到，检索却能看到内容——口径自相矛盾。
+        String docVisibility = normalizeVisibility(visibility);
+        Long docOwnerDeptId = KbDocument.VISIBILITY_DEPT.equals(docVisibility) ? ownerDeptId : null;
+
         KnowledgeFileStore.StoredFile stored = fileStore.save(bytes, originalName);
         SysFileRecord fileRecord = new SysFileRecord();
         fileRecord.setOriginalName(originalName);
@@ -100,7 +106,8 @@ public class KnowledgeService {
         fileRecord.setSize((long) bytes.length);
         fileRecord.setMime(file.getContentType());
         fileRecord.setUploaderId(user == null ? null : user.getUserId());
-        fileRecord.setVisibility("PRIVATE");
+        fileRecord.setVisibility(docVisibility);
+        fileRecord.setOwnerDeptId(docOwnerDeptId);
         fileMapper.insert(fileRecord);
 
         KbDocument document = new KbDocument();
@@ -109,9 +116,8 @@ public class KnowledgeService {
         document.setFileSize((long) bytes.length);
         document.setFileId(fileRecord.getId());
         document.setContentHash(hash);
-        document.setVisibility(normalizeVisibility(visibility));
-        document.setOwnerDeptId(
-                KbDocument.VISIBILITY_DEPT.equals(document.getVisibility()) ? ownerDeptId : null);
+        document.setVisibility(docVisibility);
+        document.setOwnerDeptId(docOwnerDeptId);
         document.setStatus(KbDocument.STATUS_PARSING);
         document.setChunkCount(0);
         document.setCreatedBy(user == null ? null : user.getUserId());

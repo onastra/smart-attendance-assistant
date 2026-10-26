@@ -100,7 +100,6 @@
 import { onMounted, ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { login } from '@/api/auth'
 import { login as loginApi } from '@/api/auth'
 import { fetchFaceStatus, enrollFace, verifyFace } from '@/api/face'
 
@@ -118,10 +117,17 @@ const enrollInput = ref(null)
 const verifyInput = ref(null)
 
 async function handleLogin() {
+  if (!loginForm.username || !loginForm.password) {
+    ElMessage.warning('请输入用户名和密码')
+    return
+  }
   loginLoading.value = true
   try {
-    const data = await loginApi(loginForm.username, loginForm.password)
+    // login() 收的是整个表单对象；之前这里传的是两个字符串，
+    // 后端拿到的 body 是一个裸字符串，登录必然失败且看不出原因。
+    const data = await loginApi({ username: loginForm.username, password: loginForm.password })
     userStore.setLogin(data)
+    ElMessage.success(`欢迎，${data.nickname || data.username}`)
     await loadStatus()
   } catch { /* 登录失败提示已在拦截器处理 */ } finally {
     loginLoading.value = false
@@ -188,13 +194,25 @@ onMounted(() => {
 .h5-face {
   max-width: 480px;
   margin: 0 auto;
-  padding: 12px;
+  /* 安全区：顶部避开刘海/状态栏，底部避开 Home 指示条。
+     配合 index.html 的 viewport-fit=cover 才生效。 */
+  padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+           calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 .panel {
   border-radius: 8px;
+}
+/* 移动端触控目标：低于 44px 手指点不准，Element Plus 的 small 按钮在手机上偏小 */
+.h5-face :deep(.el-button) {
+  min-height: 44px;
+}
+/* 输入控件字号 >= 16px：iOS 在字号小于 16px 时聚焦会自动放大整个页面 */
+.h5-face :deep(.el-input__inner),
+.h5-face :deep(.el-textarea__inner) {
+  font-size: 16px;
 }
 .panel-header {
   display: flex;
@@ -254,5 +272,27 @@ onMounted(() => {
 .tip.block {
   margin-top: 6px;
   line-height: 1.7;
+}
+
+/* 窄屏（iPhone SE 等 320~360px）：压缩间距，避免内容被挤出视口 */
+@media (max-width: 360px) {
+  .h5-face {
+    gap: 8px;
+    padding: calc(8px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom)) 8px;
+  }
+  .result-line {
+    font-size: 12px;
+  }
+}
+
+/* 横屏：手机横过来时高度很紧，压掉纵向留白，让首屏能看到录入按钮 */
+@media (orientation: landscape) and (max-height: 480px) {
+  .h5-face {
+    max-width: none;
+    gap: 8px;
+  }
+  .mock-banner {
+    padding: 4px 8px;
+  }
 }
 </style>

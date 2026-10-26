@@ -18,6 +18,13 @@ public class DocumentView {
     private String title;
     private String fileType;
     private Long fileSize;
+    /**
+     * 关联的 sys_file 主键。
+     *
+     * <p>阶段 6 之前列表视图没有带这个字段，前端拿不到 fileId，
+     * "下载原文"就无从下手——文档列表里能看到文档却下不了原文件。</p>
+     */
+    private Long fileId;
     private String visibility;
     private Long ownerDeptId;
     private String ownerDeptName;
@@ -35,6 +42,7 @@ public class DocumentView {
         view.setTitle(doc.getTitle());
         view.setFileType(doc.getFileType());
         view.setFileSize(doc.getFileSize());
+        view.setFileId(doc.getFileId());
         view.setVisibility(doc.getVisibility());
         view.setOwnerDeptId(doc.getOwnerDeptId());
         view.setOwnerDeptName(doc.getOwnerDeptName());

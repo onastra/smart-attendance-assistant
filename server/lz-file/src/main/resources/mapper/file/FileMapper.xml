@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.file.mapper.FileMapper">
+
+    <sql id="Base_Column_List">
+        id, original_name, storage_path, size, mime, uploader_id, visibility, owner_dept_id, created_at
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_file (original_name, storage_path, size, mime, uploader_id, visibility, owner_dept_id)
+        VALUES (#{originalName}, #{storagePath}, #{size}, #{mime}, #{uploaderId}, #{visibility}, #{ownerDeptId})
+    </insert>
+
+    <select id="selectById" resultType="com.lianzhi.attendance.file.entity.SysFile">
+        SELECT f.id, f.original_name, f.storage_path, f.size, f.mime,
+               f.uploader_id, f.visibility, f.owner_dept_id, f.created_at,
+               u.username AS uploader_name
+        FROM sys_file f
+        LEFT JOIN sys_user u ON u.id = f.uploader_id
+        WHERE f.id = #{id}
+    </select>
+
+    <select id="selectByUploader" resultType="com.lianzhi.attendance.file.entity.SysFile">
+        SELECT f.id, f.original_name, f.storage_path, f.size, f.mime,
+               f.uploader_id, f.visibility, f.owner_dept_id, f.created_at,
+               u.username AS uploader_name
+        FROM sys_file f
+        LEFT JOIN sys_user u ON u.id = f.uploader_id
+        WHERE f.uploader_id = #{uploaderId}
+        ORDER BY f.id DESC
+    </select>
+
+    <select id="selectAll" resultType="com.lianzhi.attendance.file.entity.SysFile">
+        SELECT f.id, f.original_name, f.storage_path, f.size, f.mime,
+               f.uploader_id, f.visibility, f.owner_dept_id, f.created_at,
+               u.username AS uploader_name
+        FROM sys_file f
+        LEFT JOIN sys_user u ON u.id = f.uploader_id
+        ORDER BY f.id DESC
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM sys_file WHERE id = #{id}
+    </delete>
+</mapper>

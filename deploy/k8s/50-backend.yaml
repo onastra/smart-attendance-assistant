@@ -40,6 +40,11 @@ spec:
                 name: lianzhi-config
             - secretRef:
                 name: lianzhi-secret
+          volumeMounts:
+            # 与 compose 同理：不挂卷的话 Pod 重建后上传的文件就没了，
+            # 但 sys_file 记录还在，下载时只能报"文件已丢失"。
+            - name: app-files
+              mountPath: /app/data/files
           resources:
             requests:
               cpu: 300m
@@ -64,3 +69,19 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 6
+      volumes:
+        - name: app-files
+          persistentVolumeClaim:
+            claimName: app-files-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-files-pvc
+  namespace: lianzhi
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

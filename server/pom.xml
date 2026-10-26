@@ -26,6 +26,7 @@
         <module>lz-place</module>
         <module>lz-attendance</module>
         <module>lz-approval</module>
+        <module>lz-file</module>
         <module>lz-knowledge</module>
         <module>lz-face</module>
         <module>lz-job</module>
@@ -92,6 +93,11 @@
             <dependency>
                 <groupId>com.lianzhi.attendance</groupId>
                 <artifactId>lz-approval</artifactId>
+                <version>${lz.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lianzhi.attendance</groupId>
+                <artifactId>lz-file</artifactId>
                 <version>${lz.version}</version>
             </dependency>
             <dependency>
