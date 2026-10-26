@@ -1,0 +1,109 @@
+server:
+  port: ${LZ_SERVER_PORT:8080}
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  application:
+    name: lianzhi-attendance
+
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 注意：MySQL Connector/J 的 characterEncoding 必须是 Java 认识的字符集名（UTF-8），
+    # 写成 utf8mb4 会直接抛 UnsupportedEncodingException
+    url: ${LZ_DB_URL:jdbc:mysql://127.0.0.1:3306/lianzhi?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${LZ_DB_USERNAME:root}
+    password: ${LZ_DB_PASSWORD:}
+    druid:
+      # 初始连接数设为 0：数据库暂不可用时应用仍可启动，
+      # 由 /api/system/health 真实探测连通性，便于快速定位配置问题
+      initial-size: 0
+      min-idle: 0
+      max-active: 20
+      # 健康检查需要快速失败：等待过久会让调用方误以为服务不可用
+      max-wait: 5000
+      # 连接出错后快速失败，避免每次请求都排队等待超时
+      fail-fast: true
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      filters: stat,wall
+      stat-view-servlet:
+        enabled: false
+
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+  jackson:
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+mybatis:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    jdbc-type-for-null: 'null'
+    call-setters-on-nulls: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.lianzhi.attendance: ${LZ_LOG_LEVEL:info}
+
+lz:
+  web:
+    allowed-origins: ${LZ_WEB_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+
+  security:
+    jwt:
+      # 正式环境必须通过环境变量 LZ_JWT_SECRET 注入强密钥，禁止使用默认值
+      secret: ${LZ_JWT_SECRET:please-change-me-32-bytes-minimum-lianzhi}
+      expire-seconds: ${LZ_JWT_EXPIRE_SECONDS:7200}
+
+  # ===== 以下能力均为"可切换的外部依赖"，默认关闭，关闭时应用必须仍能启动 =====
+  cache:
+    # Redis 未安装时保持 false；代码侧会降级并记录 WARN，不伪造缓存命中
+    enabled: ${LZ_CACHE_ENABLED:false}
+
+  nacos:
+    # 微服务治理：已配置未启用。启用需本地 Nacos Server 2.x，详见 docs/architecture.md
+    enabled: ${LZ_NACOS_ENABLED:false}
+    server-addr: ${LZ_NACOS_ADDR:127.0.0.1:8848}
+
+  feign:
+    # 服务间 HTTP 调用：单体架构内不需要，保持关闭
+    enabled: ${LZ_FEIGN_ENABLED:false}
+
+  face:
+    # noop = 明确标注的模拟实现；arcsoft = 真实 SDK（需授权，当前不可得）
+    provider: ${LZ_FACE_PROVIDER:noop}
+    # 最小化生物特征存储：默认不保存原始人脸图片
+    store-image: ${LZ_FACE_STORE_IMAGE:false}
+
+  llm:
+    # 知识库生成增强：未配置 Key 时走 retrieval-only 模式，明确提示而非伪造答案
+    enabled: ${LZ_LLM_ENABLED:false}
+    api-key: ${LZ_LLM_API_KEY:}
+    base-url: ${LZ_LLM_BASE_URL:}
+    model: ${LZ_LLM_MODEL:}
+
+  map:
+    # 地图坐标采集：未配置 Key 时使用手动坐标录入
+    provider: ${LZ_MAP_PROVIDER:none}
+    api-key: ${LZ_MAP_API_KEY:}
+
+  storage:
+    # 本地受控存储；云端存储待确认后再接入
+    provider: ${LZ_STORAGE_PROVIDER:local}
+    local-path: ${LZ_STORAGE_PATH:./data/files}

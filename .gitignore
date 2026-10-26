@@ -1,0 +1,43 @@
+# ===== Java / Maven =====
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.log
+
+# ===== Node / 前端 =====
+node_modules/
+dist/
+.vite/
+*.local
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+out/
+
+# ===== 本地私密配置（禁止入库）=====
+application-local.yml
+application-local.properties
+.env
+.env.local
+*.pem
+*.key
+credentials.json
+
+# ===== 运行时数据 / 上传文件 / 备份 =====
+data/
+uploads/
+backups/
+*.bak
+*.sql.gz
+
+# ===== 提取的中间产物（原始资料解析结果）=====
+.tmp_extract/
+
+# ===== 操作系统 =====
+.DS_Store
+Thumbs.db
+desktop.ini

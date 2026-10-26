@@ -1,0 +1,25 @@
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+}
+
+.page-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.page-tip {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+/* H5 页面容器：移动端优先，不使用后台缩放 */
+.h5-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+}

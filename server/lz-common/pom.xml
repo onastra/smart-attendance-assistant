@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.lianzhi.attendance</groupId>
+        <artifactId>lianzhi-server</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>lz-common</artifactId>
+    <name>lz-common</name>
+    <description>公共层：统一响应、错误码、异常、分页对象、通用工具（不含任何业务语义）</description>
+
+    <dependencies>
+        <!-- 仅依赖 Jackson 注解用于统一响应的序列化控制，不引入 Web 容器 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+        <!-- 分页入参用到 @Min/@Max 约束；运行期由 Web 容器的校验器实现提供 -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

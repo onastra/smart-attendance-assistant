@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 以 Spring Boot 官方父 POM 作为依赖版本基准 -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.lianzhi.attendance</groupId>
+    <artifactId>lianzhi-server</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>lianzhi-server</name>
+    <description>联智·企业级 AI Agent 智能考勤与业务助手 - 后端（模块化单体）</description>
+
+    <modules>
+        <module>lz-common</module>
+        <module>lz-framework</module>
+        <module>lz-system</module>
+        <module>lz-place</module>
+        <module>lz-attendance</module>
+        <module>lz-approval</module>
+        <module>lz-knowledge</module>
+        <module>lz-face</module>
+        <module>lz-job</module>
+        <module>lz-app</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- 内部模块统一版本 -->
+        <lz.version>1.0.0-SNAPSHOT</lz.version>
+
+        <!-- 第三方依赖版本（与本机环境实测兼容） -->
+        <mybatis.starter.version>3.0.3</mybatis.starter.version>
+        <druid.starter.version>1.2.23</druid.starter.version>
+        <mysql.connector.version>8.3.0</mysql.connector.version>
+        <jjwt.version>0.12.6</jjwt.version>
+        <springdoc.version>2.6.0</springdoc.version>
+        <hutool.skip>true</hutool.skip>
+
+        <!-- 微服务相关：仅登记版本，不引入任何子模块依赖（"已配置未启用"） -->
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+        <spring-cloud-alibaba.version>2023.0.1.3</spring-cloud-alibaba.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- 内部模块 -->
+            <dependency>
+                <groupId>com.lianzhi.attendance</groupId>
+                <artifactId>lz-common</artifactId>
+                <version>${lz.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lianzhi.attendance</groupId>
+                <artifactId>lz-framework</artifactId>
+                <version>${lz.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lianzhi.attendance</groupId>
+                <artifactId>lz-system</artifactId>
+                <version>${lz.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lianzhi.attendance</groupId>
+                <artifactId>lz-place</artifactId>
+                <version>${lz.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lianzhi.attendance</groupId>
+                <artifactId>lz-attendance</artifactId>
+                <version>${lz.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lianzhi.attendance</groupId>
+                <artifactId>lz-approval</artifactId>
+                <version>${lz.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lianzhi.attendance</groupId>
+                <artifactId>lz-knowledge</artifactId>
+                <version>${lz.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lianzhi.attendance</groupId>
+                <artifactId>lz-face</artifactId>
+                <version>${lz.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lianzhi.attendance</groupId>
+                <artifactId>lz-job</artifactId>
+                <version>${lz.version}</version>
+            </dependency>
+
+            <!-- 持久层 -->
+            <dependency>
+                <groupId>org.mybatis.spring.boot</groupId>
+                <artifactId>mybatis-spring-boot-starter</artifactId>
+                <version>${mybatis.starter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-3-starter</artifactId>
+                <version>${druid.starter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mysql</groupId>
+                <artifactId>mysql-connector-j</artifactId>
+                <version>${mysql.connector.version}</version>
+            </dependency>
+
+            <!-- 安全：JWT -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+
+            <!-- OpenAPI -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+            <!-- ===== 微服务：已配置未启用（仅版本登记，任何模块都不得直接引用） ===== -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- 所有模块共用的基础依赖 -->
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <mainClass>com.lianzhi.attendance.Application</mainClass>
+                        <layers>
+                            <enabled>false</enabled>
+                        </layers>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>
