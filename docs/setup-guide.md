@@ -126,9 +126,46 @@ lz:
   security:
     jwt:
       secret: ...          # ← 生产环境务必换成自己的随机串
+  # 可选：知识库生成增强（硅基流动示例，见 §3.5；无 Key 可整段省略）
+  # llm:
+  #   enabled: true
+  #   api-key: sk-your-siliconflow-api-key-here
+  #   base-url: https://api.siliconflow.cn/v1
+  #   model: Qwen/Qwen2.5-7B-Instruct
 ```
 
 > **Git Bash 里执行 `cp` 时若提示文件已存在**，说明之前生成过，直接跳过即可。
+> 模板文件 `application-local.yml.example` 已含硅基流动占位示例；**切勿把真实 API Key 提交进仓库**。
+
+### 3.5 启用知识库生成增强（硅基流动 SiliconFlow，可选）
+
+默认无 Key 时问答为 **retrieval-only**（只返回有权阅读的原文片段；无命中明确告知，不编造）。
+本机已有硅基流动 Key 时，可启用 OpenAI 兼容的生成增强：
+
+| 配置项 | 环境变量 | 推荐值（占位） |
+|---|---|---|
+| `lz.llm.enabled` | `LZ_LLM_ENABLED` | `true` |
+| `lz.llm.api-key` | `LZ_LLM_API_KEY` | `sk-...`（控制台创建，**勿入库**） |
+| `lz.llm.base-url` | `LZ_LLM_BASE_URL` | `https://api.siliconflow.cn/v1`（不要带 `/chat/completions`） |
+| `lz.llm.model` | `LZ_LLM_MODEL` | `Qwen/Qwen2.5-7B-Instruct` |
+
+写入 `application-local.yml` 的 `lz.llm` 段，或导出同名环境变量后**重启后端**。
+
+自检：
+
+1. `GET /api/system/health` → `dependencies.llm.enabled` 应为 `true`
+2. 登录后台「系统与依赖状态」页确认大模型开关
+3. `GET /api/kb/llm-status`（需 `kb:ask`）→ `available=true`，`model` 为配置的型号
+4. 「智能问答」顶栏应显示「生成增强已启用」；有检索命中时答案 `mode=llm-augmented`；**无命中仍返回「未找到足够依据」，不会让模型编造**
+
+等价环境变量示例（Git Bash，值请换成你本机 Key，勿贴进 PR/日志）：
+
+```bash
+export LZ_LLM_ENABLED=true
+export LZ_LLM_API_KEY='sk-your-siliconflow-api-key-here'
+export LZ_LLM_BASE_URL='https://api.siliconflow.cn/v1'
+export LZ_LLM_MODEL='Qwen/Qwen2.5-7B-Instruct'
+```
 
 ### 3.3 初始化数据库
 

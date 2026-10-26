@@ -119,7 +119,7 @@
 | `DocParser` | Apache PDFBox(PDF) / Apache POI(Word、Excel、PPT) / 纯文本 | 真实解析，失败时明确报错 |
 | `Retriever` | **MySQL 5.7 InnoDB FULLTEXT + ngram 解析器**（中文分词，`ngram_token_size=2`），辅以 LIKE 兜底 | **真实可用**，返回带分数的片段 |
 | `EmbeddingClient` | 接口 + `NoopEmbeddingClient`（默认） | 默认关闭；启用需配置 `LZ_LLM_API_KEY` |
-| `LlmClient` | 接口 + `NoopLlmClient`（默认），OpenAI 兼容协议实现待启用 | 无 Key → 返回检索摘要并在响应中标 `generatedBy: "retrieval-only"` |
+| `LlmClient` | 接口 + `NoopLlmClient`（默认）+ `OpenAiCompatibleLlmClient`（`lz.llm.enabled=true`） | 无 Key → `retrieval-only`；有 Key（如硅基流动 `https://api.siliconflow.cn/v1`）→ 命中后可 `llm-augmented`；无命中仍不编造 |
 | 答案约束 | 检索命中数 < 阈值 → 直接返回"知识库中没有找到足够依据"，**不允许模型自由生成** | 满足模块 F 第 6 条 |
 
 ### 3.4 人脸识别适配层（模块 G）

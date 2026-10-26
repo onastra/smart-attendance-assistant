@@ -21,9 +21,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * OpenAI 兼容聊天接口实现。
+ * OpenAI 兼容聊天接口实现（{@code POST {base-url}/chat/completions}，Bearer Token）。
  *
- * <p>只有 {@code lz.llm.enabled=true} 时才装配；装配后若缺 api-key / base-url，
+ * <p>已与硅基流动（SiliconFlow）等 OpenAI 兼容厂商对齐：配置
+ * {@code base-url=https://api.siliconflow.cn/v1}、{@code model=Qwen/Qwen2.5-7B-Instruct} 即可。
+ * 只有 {@code lz.llm.enabled=true} 时才装配；装配后若缺 api-key / base-url / model，
  * 也只是标记不可用并记 WARN，<strong>不允许让应用起不来</strong>（需求 TC-F-08）。</p>
  *
  * <p>提示词里强制"只依据给定片段回答"，这是"不编造"（需求 IDX-F6）在工程上的第二道闸：
@@ -121,7 +123,7 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
 
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(baseUrl.replaceAll("/+$", "") + "/chat/completions"))
+                    .uri(URI.create(resolveChatCompletionsUrl(baseUrl)))
                     .timeout(Duration.ofSeconds(30))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + apiKey)
@@ -142,6 +144,19 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
             throw new BusinessException(ResultCode.DEPENDENCY_NOT_CONFIGURED,
                     "调用大模型失败：" + e.getMessage());
         }
+    }
+
+    /**
+     * 将配置中的 Base URL 解析为 chat completions 完整地址。
+     *
+     * <p>兼容硅基流动等 OpenAI 兼容厂商：配置 {@code https://api.siliconflow.cn/v1}
+     * 时得到 {@code .../v1/chat/completions}；末尾多余斜杠会被去掉。</p>
+     */
+    static String resolveChatCompletionsUrl(String configuredBaseUrl) {
+        if (configuredBaseUrl == null || configuredBaseUrl.isBlank()) {
+            throw new IllegalArgumentException("base-url 不能为空");
+        }
+        return configuredBaseUrl.replaceAll("/+$", "") + "/chat/completions";
     }
 
     private static String truncate(String text) {

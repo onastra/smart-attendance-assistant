@@ -1,5 +1,7 @@
 # 本地私密配置模板：复制为 application-local.yml 后填写，该文件已被 .gitignore 忽略
 # 使用方式：启动时加 --spring.profiles.active=local，或直接设置同名环境变量（推荐）
+#
+# ⚠️ 切勿把真实 API Key / 数据库口令提交进 Git。本文件只含占位符。
 
 spring:
   datasource:
@@ -12,3 +14,16 @@ lz:
     jwt:
       # 至少 32 字节；可用 openssl rand -base64 32 生成
       secret: your_jwt_secret_at_least_32_bytes_long
+
+  # ===== 知识库生成增强（可选）=====
+  # 走 OpenAI 兼容协议 /v1/chat/completions；推荐硅基流动（SiliconFlow）。
+  # 未启用或缺项时自动降级为 retrieval-only（只返检索原文，不编造）。
+  # 等价环境变量：LZ_LLM_ENABLED / LZ_LLM_API_KEY / LZ_LLM_BASE_URL / LZ_LLM_MODEL
+  llm:
+    enabled: true
+    # 在硅基流动控制台创建 API Key，粘贴到下方；切勿提交真实 Key
+    api-key: sk-your-siliconflow-api-key-here
+    # Base URL 不要带 /chat/completions；客户端会自动拼接
+    base-url: https://api.siliconflow.cn/v1
+    # 推荐免费/低成本对话模型；可按控制台型号列表替换
+    model: Qwen/Qwen2.5-7B-Instruct
