@@ -1,4 +1,4 @@
-// 全局样式：统一配色、卡片、徽标
+/* 全局样式：统一配色、卡片、徽标 */
 page {
   background: #F5F7FB;
   font-size: 28rpx;
