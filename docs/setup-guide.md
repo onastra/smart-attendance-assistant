@@ -138,6 +138,14 @@ lz:
 
 > **Git Bash 里执行 `cp` 时若提示文件已存在**，说明之前生成过，直接跳过即可。
 
+> ⚠️ **改完配置要重新打包，只重启不管用（2026-10-27 实测踩过）**
+> 本文件在 `src/main/resources` 下，会被 `mvn package` 打进 jar。你改了本地文件后
+> 直接 `java -jar` 重启，跑的仍是 **jar 里的旧副本**。验证方法：
+> `unzip -p server/lz-app/target/lz-app.jar BOOT-INF/classes/application-local.yml | grep map:`
+> 正确做法：改完先 `mvn -B package -DskipTests`，再重启；
+> 或者不想重打包时，把同一份文件放到 `server/config/application-local.yml`
+> （Spring Boot 默认会读 `file:./config/`，且外部配置优先级高于 classpath 内的同名文件）。
+
 ### 3.3 初始化数据库
 
 ```bash
