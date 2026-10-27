@@ -1,0 +1,25 @@
+<view class="page">
+  <view class="filter-bar">
+    <picker range="{{filterLabels}}" value="{{filterIndex}}" bindchange="onFilterChange">
+      <view class="filter-picker">结果：{{filterLabels[filterIndex]}} ▾</view>
+    </picker>
+    <view class="filter-total">共 {{total}} 条</view>
+  </view>
+
+  <view class="card" wx:if="{{items.length > 0}}">
+    <view class="record-item" wx:for="{{items}}" wx:key="id">
+      <view class="record-main">
+        <view class="record-line1">
+          <text class="record-type">{{item.typeText}}</text>
+          <text class="tag {{item.tagCls}}">{{item.resultText}}</text>
+        </view>
+        <view class="record-line2">{{item.timeText}} · {{item.placeName}}</view>
+      </view>
+      <view class="record-source">{{item.sourceText}}</view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{items.length === 0 && !loading}}">暂无考勤记录</view>
+  <view class="loading-more" wx:if="{{loading}}">加载中…</view>
+  <view class="loading-more" wx:if="{{!hasMore && items.length > 0}}">没有更多了</view>
+</view>

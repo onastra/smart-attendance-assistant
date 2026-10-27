@@ -1,0 +1,41 @@
+<view class="page">
+  <view class="greet card">
+    <view class="greet-name">你好，{{nickname}}</view>
+    <view class="greet-sub">{{roleText}} · {{username}}</view>
+    <view class="greet-last" wx:if="{{lastRecordText}}">最近打卡：{{lastRecordText}}</view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">考勤</view>
+    <view class="grid">
+      <view class="grid-item" bindtap="goCheckin">
+        <view class="grid-icon icon-blue">码</view>
+        <view class="grid-text">扫码打卡</view>
+      </view>
+      <view class="grid-item" bindtap="goRecords">
+        <view class="grid-icon icon-green">勤</view>
+        <view class="grid-text">我的考勤</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">请假 / 加班</view>
+    <view class="grid">
+      <view class="grid-item" bindtap="goApply">
+        <view class="grid-icon icon-orange">申</view>
+        <view class="grid-text">提交申请</view>
+      </view>
+      <view class="grid-item" bindtap="goApplications">
+        <view class="grid-icon icon-purple">单</view>
+        <view class="grid-text">我的申请</view>
+      </view>
+      <view class="grid-item" wx:if="{{canApprove}}" bindtap="goTodo">
+        <view class="grid-icon icon-red">批</view>
+        <view class="grid-text">待我审批</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="foot-note">后端未启动或地址不对时，接口会提示网络错误；真机预览请把 config.js 里的地址改成电脑局域网 IP。</view>
+</view>

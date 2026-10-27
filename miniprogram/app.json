@@ -1,0 +1,50 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/checkin/checkin",
+    "pages/records/records",
+    "pages/profile/profile",
+    "pages/login/login",
+    "pages/apply/apply",
+    "pages/applications/applications"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#2F6FED",
+    "navigationBarTitleText": "联智考勤",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F5F7FB",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#8A94A6",
+    "selectedColor": "#2F6FED",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/checkin/checkin",
+        "text": "打卡"
+      },
+      {
+        "pagePath": "pages/records/records",
+        "text": "考勤"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "打卡时用于校验你与办公场所的距离，拒绝后可手动打卡"
+    }
+  },
+  "requiredPrivateInfos": ["getLocation"],
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}

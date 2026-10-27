@@ -1,0 +1,36 @@
+.type-row {
+  margin-bottom: 24rpx;
+}
+
+.loc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 0 16rpx;
+}
+
+.loc-label {
+  font-size: 26rpx;
+  color: #5B6472;
+}
+
+.loc-text {
+  font-size: 22rpx;
+  color: #8A94A6;
+  margin-bottom: 12rpx;
+}
+
+.scan-btn {
+  margin-top: 8rpx;
+}
+
+.tip {
+  font-size: 24rpx;
+  color: #8A94A6;
+  line-height: 1.6;
+  margin-bottom: 16rpx;
+}
+
+.manual-btn {
+  margin-top: 20rpx;
+}

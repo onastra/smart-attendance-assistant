@@ -1,0 +1,32 @@
+<view class="page">
+  <view class="seg">
+    <view class="seg-item {{tab === 'mine' ? 'seg-active' : ''}}" bindtap="switchTab" data-tab="mine">我的申请</view>
+    <view class="seg-item {{tab === 'todo' ? 'seg-active' : ''}}" wx:if="{{canApprove}}" bindtap="switchTab" data-tab="todo">待我审批</view>
+  </view>
+
+  <view class="card" wx:if="{{items.length > 0}}">
+    <view class="app-item" wx:for="{{items}}" wx:key="id">
+      <view class="app-line1">
+        <text class="app-type {{item.isLeave ? 'type-leave' : 'type-overtime'}}">{{item.typeText}}</text>
+        <text class="tag {{item.statusCls}}">{{item.statusText}}</text>
+      </view>
+      <view class="app-line2">{{item.rangeText}} · {{item.durationHours}} 小时</view>
+      <view class="app-reason">{{item.reason}}</view>
+      <view class="app-meta" wx:if="{{item.approverName}}">审批人：{{item.approverName}}<text wx:if="{{item.approvalComment}}"> · 意见：{{item.approvalComment}}</text></view>
+      <view class="app-actions" wx:if="{{tab === 'mine' && item.status === 'SUBMITTED'}}">
+        <button class="btn-danger mini-btn" size="mini" bindtap="cancelApplication" data-id="{{item.id}}">撤回</button>
+      </view>
+      <view class="app-actions" wx:if="{{tab === 'todo' && item.status === 'SUBMITTED'}}">
+        <button class="btn-danger mini-btn" size="mini" bindtap="rejectApplication" data-id="{{item.id}}">驳回</button>
+        <button class="btn-primary mini-btn" size="mini" bindtap="approveApplication" data-id="{{item.id}}">通过</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{items.length === 0 && !loading}}">
+    <view>{{tab === 'mine' ? '还没有申请记录' : '没有待审批的申请'}}</view>
+    <button wx:if="{{tab === 'mine'}}" class="btn-plain empty-btn" bindtap="goApply">去提交申请</button>
+  </view>
+  <view class="loading-more" wx:if="{{loading}}">加载中…</view>
+  <view class="loading-more" wx:if="{{!hasMore && items.length > 0}}">没有更多了</view>
+</view>

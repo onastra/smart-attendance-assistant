@@ -1,0 +1,54 @@
+.user-card {
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  width: 108rpx;
+  height: 108rpx;
+  border-radius: 50%;
+  background: #2F6FED;
+  color: #ffffff;
+  font-size: 48rpx;
+  font-weight: 700;
+  line-height: 108rpx;
+  text-align: center;
+}
+
+.user-info {
+  margin-left: 24rpx;
+}
+
+.user-name {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.user-sub {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #8A94A6;
+}
+
+.warn-text {
+  color: #C62A2F;
+}
+
+.small-text {
+  font-size: 24rpx;
+  word-break: break-all;
+}
+
+.tip {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: #A5ADBB;
+  line-height: 1.6;
+}
+
+.logout-btn {
+  border: none;
+  background: #ffffff;
+  color: #E5484D;
+  font-size: 30rpx;
+}

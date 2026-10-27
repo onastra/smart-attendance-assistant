@@ -1,0 +1,139 @@
+// 全局样式：统一配色、卡片、徽标
+page {
+  background: #F5F7FB;
+  font-size: 28rpx;
+  color: #1F2937;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 20rpx;
+  margin: 20rpx 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 4rpx 16rpx rgba(31, 41, 55, 0.06);
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 20rpx;
+}
+
+.btn-primary {
+  background: #2F6FED;
+  color: #ffffff;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.btn-primary[disabled] {
+  background: #A9C2F7;
+  color: #ffffff;
+}
+
+.btn-plain {
+  background: #ffffff;
+  color: #2F6FED;
+  border: 2rpx solid #2F6FED;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+}
+
+.btn-danger {
+  background: #ffffff;
+  color: #E5484D;
+  border: 2rpx solid #E5484D;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+}
+
+/* 徽标 */
+.tag {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  line-height: 36rpx;
+}
+
+.tag-green { background: #E8F7EE; color: #17803D; }
+.tag-orange { background: #FDF1E3; color: #B25E09; }
+.tag-red { background: #FDECEC; color: #C62A2F; }
+.tag-gray { background: #EEF1F5; color: #5B6472; }
+.tag-blue { background: #E9F0FE; color: #2F6FED; }
+
+/* 列表项通用 */
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #F0F2F6;
+}
+
+.cell:last-child {
+  border-bottom: none;
+}
+
+.cell-label {
+  color: #5B6472;
+  font-size: 26rpx;
+}
+
+.cell-value {
+  color: #1F2937;
+  font-size: 28rpx;
+  text-align: right;
+  max-width: 460rpx;
+}
+
+/* 空状态 */
+.empty {
+  text-align: center;
+  color: #8A94A6;
+  font-size: 26rpx;
+  padding: 80rpx 0;
+}
+
+/* 表单 */
+.form-item {
+  margin-bottom: 28rpx;
+}
+
+.form-label {
+  font-size: 26rpx;
+  color: #5B6472;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.form-input {
+  background: #F5F7FB;
+  border-radius: 14rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+}
+
+.form-textarea {
+  background: #F5F7FB;
+  border-radius: 14rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 160rpx;
+}
+
+.picker-value {
+  background: #F5F7FB;
+  border-radius: 14rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: #1F2937;
+}
+
+.picker-placeholder {
+  color: #8A94A6;
+}
