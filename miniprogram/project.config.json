@@ -1,6 +1,6 @@
 {
   "compileType": "miniprogram",
-  "appid": "touristappid",
+  "appid": "wxc432e3c31de56506",
   "projectname": "lianzhi-attendance-miniprogram",
   "libVersion": "3.4.10",
   "setting": {
@@ -18,7 +18,23 @@
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
-    }
+    },
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false
   },
-  "condition": {}
+  "condition": {},
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {}
 }
