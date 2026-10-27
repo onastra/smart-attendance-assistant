@@ -30,6 +30,7 @@ const SUITES = [
     { file: 'verify-phase4.mjs', name: '阶段 4 统计与看板' },
     { file: 'verify-phase5.mjs', name: '阶段 5 知识库与人脸识别' },
     { file: 'verify-phase6-file.mjs', name: '阶段 6 文件受控存储与鉴权' },
+    { file: 'verify-phaseE.mjs', name: '阶段 E 审批中心（用户新增）' },
 ]
 
 const c = {

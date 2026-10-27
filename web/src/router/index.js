@@ -106,6 +106,18 @@ const routes = [
         name: 'kb-ask',
         component: () => import('@/views/knowledge/Ask.vue'),
         meta: { title: '智能问答', icon: 'ChatDotRound', group: '知识库', permission: 'kb:ask' }
+      },
+      {
+        path: 'applications/submit',
+        name: 'applications-submit',
+        component: () => import('@/views/approval/Submit.vue'),
+        meta: { title: '我的申请', icon: 'Promotion', group: '审批', permission: 'application:submit' }
+      },
+      {
+        path: 'applications/approve',
+        name: 'applications-approve',
+        component: () => import('@/views/approval/Approve.vue'),
+        meta: { title: '审批中心', icon: 'Stamp', group: '审批', permission: 'application:approve' }
       }
     ]
   },
@@ -159,6 +171,45 @@ router.beforeEach((to, from, next) => {
 
 router.afterEach((to) => {
   document.title = to.meta.title ? `${to.meta.title} - 联智考勤` : '联智考勤'
+})
+
+/**
+ * 路由级错误兜底：懒加载页面模块失败时不再"整页空白"。
+ *
+ * 典型场景：前端 dev 服务（或静态部署的旧版本）已下线/更新，
+ * 浏览器里还是缓存的旧页面，点击菜单时新页面的模块拉不下来，
+ * vue-router 会静默失败，router-view 渲染为空——用户看到的就是白屏。
+ * 这里识别这类失败，提示后自动整页刷新一次（带防循环标记），
+ * 刷新后若模块仍不可用则停在当前页并给出明确指引。
+ */
+router.onError((error, to) => {
+  const message = String(error?.message || error)
+  const isChunkLoadFailure =
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('Importing a module script failed') ||
+    message.includes('error loading dynamically imported module') ||
+    message.includes('Loading chunk') ||
+    message.includes('Loading CSS chunk')
+  if (!isChunkLoadFailure) {
+    console.error('[router]', error)
+    return
+  }
+  const RELOAD_FLAG = 'lz_chunk_reload'
+  if (!sessionStorage.getItem(RELOAD_FLAG)) {
+    // 第一次失败：尝试带目标路由整页刷新（服务恢复后即可正常进入）
+    sessionStorage.setItem(RELOAD_FLAG, to.fullPath)
+    ElMessage.warning('页面资源加载失败，正在重新加载…')
+    window.location.href = to.fullPath
+    return
+  }
+  // 刷新过还是失败：大概率是前端服务没启动，给出可操作的提示
+  sessionStorage.removeItem(RELOAD_FLAG)
+  ElMessage.error('页面资源加载失败：请确认前端服务正在运行（web 目录执行 npm run dev），然后刷新重试')
+})
+
+// 正常导航成功后清除防循环标记
+router.afterEach(() => {
+  sessionStorage.removeItem('lz_chunk_reload')
 })
 
 export default router

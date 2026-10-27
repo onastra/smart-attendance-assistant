@@ -1,6 +1,7 @@
 package com.lianzhi.attendance.knowledge.mapper;
 
 import com.lianzhi.attendance.knowledge.dto.ChunkHit;
+import com.lianzhi.attendance.knowledge.dto.VectorCandidate;
 import com.lianzhi.attendance.knowledge.entity.KbChunk;
 import org.apache.ibatis.annotations.Param;
 
@@ -47,4 +48,20 @@ public interface KbChunkMapper {
                                 @Param("userId") Long userId,
                                 @Param("documentId") Long documentId,
                                 @Param("limit") int limit);
+
+    /** 回写单条切片的向量（索引/重建时调用） */
+    int updateEmbedding(@Param("id") Long id,
+                        @Param("embedding") String embedding,
+                        @Param("model") String model);
+
+    /**
+     * 取向量召回候选集：已生成向量且可见的切片。
+     *
+     * <p>可见范围过滤同样写在 WHERE 里，与全文检索同口径。候选数由 limit 封顶，
+     * 相似度计算在 Java 内存完成。</p>
+     */
+    List<VectorCandidate> selectVectorCandidates(@Param("deptId") Long deptId,
+                                                 @Param("userId") Long userId,
+                                                 @Param("documentId") Long documentId,
+                                                 @Param("limit") int limit);
 }

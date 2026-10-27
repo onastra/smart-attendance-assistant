@@ -74,4 +74,29 @@
         LIMIT #{limit}
     </select>
 
+    <update id="updateEmbedding">
+        UPDATE kb_chunk
+        SET embedding = #{embedding}, embedding_model = #{model}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectVectorCandidates" resultType="com.lianzhi.attendance.knowledge.dto.VectorCandidate">
+        SELECT
+            c.id          AS chunkId,
+            c.document_id AS documentId,
+            doc.title     AS documentTitle,
+            c.section     AS section,
+            c.content     AS content,
+            c.embedding   AS embedding
+        FROM kb_chunk c
+        JOIN kb_document doc ON doc.id = c.document_id
+        WHERE c.embedding IS NOT NULL
+        <include refid="Visible_Document"/>
+        <if test="documentId != null">
+            AND c.document_id = #{documentId}
+        </if>
+        ORDER BY c.id
+        LIMIT #{limit}
+    </select>
+
 </mapper>

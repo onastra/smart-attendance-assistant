@@ -234,7 +234,7 @@ npm run dev
 预期输出：
 
 ```
-VITE v7.x  ready in 2.9 s
+VITE v5.4.21  ready in 749 ms
 ➜  Local:   http://localhost:5173/
 ```
 

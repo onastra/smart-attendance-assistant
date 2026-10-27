@@ -6,6 +6,8 @@ import com.lianzhi.attendance.common.result.ResultCode;
 import com.lianzhi.attendance.framework.auth.AuthUser;
 import com.lianzhi.attendance.knowledge.config.KnowledgeProperties;
 import com.lianzhi.attendance.knowledge.dto.DocumentView;
+import com.lianzhi.attendance.knowledge.embedding.EmbeddingClient;
+import com.lianzhi.attendance.knowledge.embedding.VectorCodec;
 import com.lianzhi.attendance.knowledge.entity.KbChunk;
 import com.lianzhi.attendance.knowledge.entity.KbDocument;
 import com.lianzhi.attendance.knowledge.entity.KbQaLog;
@@ -62,6 +64,7 @@ public class KnowledgeService {
     private final PdfDocumentParser pdfParser;
     private final OfficeDocumentParser officeParser;
     private final TextDocumentParser textParser;
+    private final List<EmbeddingClient> embeddingClients;
 
     /**
      * 上传并索引文档。
@@ -212,6 +215,7 @@ public class KnowledgeService {
             }
             chunkMapper.deleteByDocumentId(document.getId());
             chunkMapper.insertBatch(chunks);
+            embedChunks(document.getId());
             document.setChunkCount(chunks.size());
             document.setStatus(KbDocument.STATUS_READY);
             document.setParseMessage(null);
@@ -230,6 +234,46 @@ public class KnowledgeService {
         document.setParseMessage(truncate(message, 500));
         documentMapper.updateParseResult(document.getId(), KbDocument.STATUS_FAILED, 0,
                 document.getParseMessage());
+    }
+
+    /**
+     * 索引成功后为新切片生成向量。
+     *
+     * <p>失败只记 WARN 不把文档置为 FAILED：向量缺失只影响语义召回通道，
+     * 全文检索通道照常可用，文档对用户的真实状态就是"可检索"。</p>
+     */
+    private void embedChunks(Long documentId) {
+        EmbeddingClient client = pickEmbedding();
+        if (client == null) {
+            return;
+        }
+        try {
+            List<KbChunk> stored = chunkMapper.selectByDocumentId(documentId);
+            if (stored.isEmpty()) {
+                return;
+            }
+            List<float[]> vectors = client.embed(
+                    stored.stream().map(KbChunk::getContent).toList());
+            for (int i = 0; i < stored.size(); i++) {
+                chunkMapper.updateEmbedding(stored.get(i).getId(),
+                        VectorCodec.toJson(vectors.get(i)), client.name());
+            }
+            log.info("[KB] 文档 {} 的 {} 条切片已向量化（{}）", documentId, stored.size(), client.name());
+        } catch (Exception e) {
+            log.warn("[KB] 文档 {} 向量化失败，语义检索暂不含该文档：{}", documentId, e.getMessage());
+        }
+    }
+
+    private EmbeddingClient pickEmbedding() {
+        if (embeddingClients == null) {
+            return null;
+        }
+        for (EmbeddingClient client : embeddingClients) {
+            if (client.available()) {
+                return client;
+            }
+        }
+        return null;
     }
 
     private List<ParsedSection> parse(String fileType, byte[] bytes) {

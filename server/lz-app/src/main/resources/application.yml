@@ -132,6 +132,10 @@ lz:
     min-score: ${LZ_KB_MIN_SCORE:0.05}
     # 一次问答最多带回几条来源
     top-k: ${LZ_KB_TOP_K:5}
+    # 向量召回的余弦相似度下限；低于此值视为噪声
+    vector-min-score: ${LZ_KB_VECTOR_MIN_SCORE:0.35}
+    # 向量召回候选集上限
+    vector-candidate-limit: ${LZ_KB_VECTOR_CANDIDATE_LIMIT:1000}
     excerpt-length: ${LZ_KB_EXCERPT_LENGTH:120}
     allowed-extensions: ${LZ_KB_EXTENSIONS:pdf,docx,xlsx,pptx,doc,xls,ppt,txt,md}
 
@@ -141,6 +145,10 @@ lz:
     api-key: ${LZ_LLM_API_KEY:}
     base-url: ${LZ_LLM_BASE_URL:}
     model: ${LZ_LLM_MODEL:}
+    # 语义检索（向量嵌入）：复用上面的 api-key / base-url，模型独立配置
+    embedding:
+      enabled: ${LZ_LLM_EMBEDDING_ENABLED:false}
+      model: ${LZ_LLM_EMBEDDING_MODEL:BAAI/bge-large-zh-v1.5}
 
   # ===== 考勤业务口径（2026-10-26 确认：全局统一 + 配置化，暂不引入班次表）=====
   attendance:

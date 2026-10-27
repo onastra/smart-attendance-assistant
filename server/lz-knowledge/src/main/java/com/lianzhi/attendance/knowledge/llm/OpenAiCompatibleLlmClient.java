@@ -3,6 +3,7 @@ package com.lianzhi.attendance.knowledge.llm;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lianzhi.attendance.common.exception.BusinessException;
 import com.lianzhi.attendance.common.result.ResultCode;
+import com.lianzhi.attendance.knowledge.dto.ChatTurn;
 import com.lianzhi.attendance.knowledge.dto.ChunkHit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * OpenAI 兼容聊天接口实现。
@@ -37,8 +39,11 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
 
     private static final String SYSTEM_PROMPT =
             "你是企业知识库助手。只能使用用户提供的【资料片段】回答问题。"
-                    + "如果片段中没有足够依据，必须回答“资料中没有足够依据，无法回答”，不允许补充你自己的知识，也不允许推测。"
-                    + "回答时若引用了片段内容，用[1][2]标注对应的片段编号。";
+                    + "片段与问题相关时就应当作答——即使用户的问法与片段措辞不同（如口语化表达对应制度条款），"
+                    + "也要根据片段中的相关条款给出回答。"
+                    + "只有当所有片段都与问题无关时，才回答“资料中没有足够依据，无法回答”，不允许补充你自己的知识，也不允许推测。"
+                    + "回答时若引用了片段内容，用[1][2]标注对应的片段编号。"
+                    + "若提供了对话历史，可结合历史理解问题中的指代（如“它”“上次说的”），但答案的事实依据仍只能来自本轮资料片段。";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -98,31 +103,23 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
 
     @Override
     public String generate(String question, List<ChunkHit> sources) {
+        return generate(question, sources, List.of());
+    }
+
+    @Override
+    public String generate(String question, List<ChunkHit> sources, List<ChatTurn> history) {
         if (!available()) {
             throw new BusinessException(ResultCode.DEPENDENCY_NOT_CONFIGURED, unavailableReason);
         }
-        StringBuilder context = new StringBuilder();
-        int index = 1;
-        for (ChunkHit hit : sources) {
-            context.append('[').append(index++).append("] 来源：")
-                    .append(hit.getDocumentTitle()).append(" · ").append(hit.getSection()).append('\n')
-                    .append(hit.getContent()).append("\n\n");
-        }
-        String userContent = "【资料片段】\n" + context + "\n【问题】\n" + question;
-
         Map<String, Object> body = Map.of(
                 "model", model,
                 "temperature", 0.2,
-                "messages", List.of(
-                        Map.of("role", "system", "content", SYSTEM_PROMPT),
-                        Map.of("role", "user", "content", userContent)
-                )
+                "messages", buildMessages(question, sources, history)
         );
-
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(baseUrl.replaceAll("/+$", "") + "/chat/completions"))
-                    .timeout(Duration.ofSeconds(30))
+                    .uri(URI.create(chatCompletionsUri()))
+                    .timeout(Duration.ofSeconds(60))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + apiKey)
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
@@ -142,6 +139,103 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
             throw new BusinessException(ResultCode.DEPENDENCY_NOT_CONFIGURED,
                     "调用大模型失败：" + e.getMessage());
         }
+    }
+
+    @Override
+    public boolean supportsStreaming() {
+        return true;
+    }
+
+    /**
+     * 真流式：读取 SSE 数据行，逐段回调增量文本。
+     *
+     * <p>中途连接断开时把已收到的内容抛异常交给编排层——编排层会降级为
+     * 检索模式整段返回，宁可降级也不把半截答案当成完整答案。</p>
+     */
+    @Override
+    public void generateStream(String question, List<ChunkHit> sources,
+                               List<ChatTurn> history, Consumer<String> deltaConsumer) {
+        if (!available()) {
+            throw new BusinessException(ResultCode.DEPENDENCY_NOT_CONFIGURED, unavailableReason);
+        }
+        Map<String, Object> body = Map.of(
+                "model", model,
+                "temperature", 0.2,
+                "stream", true,
+                "messages", buildMessages(question, sources, history)
+        );
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(chatCompletionsUri()))
+                    .timeout(Duration.ofSeconds(120))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Accept", "text/event-stream")
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
+                    .build();
+            HttpResponse<java.io.InputStream> response =
+                    httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            if (response.statusCode() / 100 != 2) {
+                String errorBody = new String(response.body().readAllBytes(),
+                        java.nio.charset.StandardCharsets.UTF_8);
+                throw new BusinessException(ResultCode.DEPENDENCY_NOT_CONFIGURED,
+                        "大模型返回 " + response.statusCode() + "：" + truncate(errorBody));
+            }
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(response.body(), java.nio.charset.StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (!line.startsWith("data:")) {
+                        continue;
+                    }
+                    String data = line.substring("data:".length()).trim();
+                    if ("[DONE]".equals(data) || data.isEmpty()) {
+                        continue;
+                    }
+                    String delta = objectMapper.readTree(data)
+                            .path("choices").path(0).path("delta").path("content")
+                            .asText("");
+                    if (!delta.isEmpty()) {
+                        deltaConsumer.accept(delta);
+                    }
+                }
+            }
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException(ResultCode.DEPENDENCY_NOT_CONFIGURED,
+                    "流式调用大模型失败：" + e.getMessage());
+        }
+    }
+
+    /** system +（可选）历史 + 本轮问题 */
+    private List<Map<String, String>> buildMessages(String question, List<ChunkHit> sources,
+                                                    List<ChatTurn> history) {
+        StringBuilder context = new StringBuilder();
+        int index = 1;
+        for (ChunkHit hit : sources) {
+            context.append('[').append(index++).append("] 来源：")
+                    .append(hit.getDocumentTitle()).append(" · ").append(hit.getSection()).append('\n')
+                    .append(hit.getContent()).append("\n\n");
+        }
+        String userContent = "【资料片段】\n" + context + "\n【问题】\n" + question;
+
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", SYSTEM_PROMPT));
+        if (history != null) {
+            for (ChatTurn turn : history) {
+                if (turn == null || turn.getContent() == null || turn.getContent().isBlank()) {
+                    continue;
+                }
+                messages.add(Map.of("role", turn.getRole(), "content", turn.getContent()));
+            }
+        }
+        messages.add(Map.of("role", "user", "content", userContent));
+        return messages;
+    }
+
+    private String chatCompletionsUri() {
+        return baseUrl.replaceAll("/+$", "") + "/chat/completions";
     }
 
     private static String truncate(String text) {

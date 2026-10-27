@@ -8,7 +8,7 @@
             <el-icon><component :is="group.icon"/></el-icon>
             <span>{{ group.title }}</span>
           </template>
-          <el-menu-item v-for="item in group.children" :key="item.path" :index="item.path">
+          <el-menu-item v-for="item in group.children" :key="item.path" :index="item.fullPath">
             <el-icon><component :is="item.meta.icon"/></el-icon>
             <span>{{ item.meta.title }}</span>
           </el-menu-item>
@@ -51,6 +51,14 @@ const userStore = useUserStore()
  * <p>这里只是展示层控制——把按钮藏起来是为了不给用户看到点不动的入口，
  * 不是安全手段。用户直接改 localStorage 或直接调接口，
  * 仍会被后端拦截器挡下（实测返回 40301）。</p>
+ *
+ * <p>⚠️ 路径拼接的原因（2026-10-27 修复的 bug）：
+ * <code>router.getRoutes()</code> 返回的规范化记录里，<code>children</code>
+ * 是<b>原始配置对象</b>，其 path 是相对路径（如 <code>attendance/qrcodes</code>，无前导斜杠）。
+ * el-menu 的 router 模式会把 index 原样传给 <code>router.push()</code>，
+ * vue-router 对无斜杠路径按「当前路由」做相对解析——
+ * 从 /dashboard 点过去碰巧解析正确，但从 /kb/documents 点就成了 /kb/attendance/qrcodes，
+ * 白屏 + "No match found" 警告。这里统一补成绝对路径，同时修复菜单高亮失效问题。</p>
  */
 const menuGroups = computed(() => {
   const mainRoute = router.getRoutes().find((r) => r.path === '/')
@@ -58,6 +66,9 @@ const menuGroups = computed(() => {
   const visible = children.filter(
     (r) => !r.meta?.permission || userStore.hasPermission(r.meta.permission)
   )
+  // 原始 child.path 是相对路径，菜单跳转必须用绝对路径
+  const toFullPath = (child) =>
+    child.path.startsWith('/') ? child.path : mainRoute.path.replace(/\/$/, '') + '/' + child.path
 
   const groups = []
   visible.forEach((item) => {
@@ -67,7 +78,7 @@ const menuGroups = computed(() => {
       group = { title: groupTitle, icon: item.meta?.icon || 'Menu', children: [] }
       groups.push(group)
     }
-    group.children.push(item)
+    group.children.push({ ...item, fullPath: toFullPath(item) })
   })
   return groups
 })

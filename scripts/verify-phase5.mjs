@@ -186,15 +186,37 @@ async function main() {
   check('来源含文档名与位置',
     (askData?.sources || []).every((s) => s.documentTitle && s.section),
     askData?.sources?.[0] ? `${askData.sources[0].documentTitle} · ${askData.sources[0].section}` : '')
-  check('无 Key 时降级为检索模式 mode=retrieval-only',
-    askData?.mode === 'retrieval-only', `mode=${askData?.mode}`)
-  check('检索模式带明确提示文案', !!askData?.llmNotice, askData?.llmNotice?.slice(0, 30) + '…')
   check('答案基于检索依据 grounded=true', askData?.grounded === true)
 
+  // —— LLM 能力断言按环境分叉（2026-10-27 改）——
+  // 脚本不再预设「一定没配 Key」：本机已配置 SiliconFlow Key（真实生成模式），
+  // 无 Key 环境（retrieval-only）也仍需支持。两种环境下的正确行为分别断言。
   const llm = await call('GET', '/kb/llm-status', emp.token)
-  check('生成能力状态如实返回未配置',
-    llm.json?.code === 0 && llm.json?.data?.available === false
-    && llm.json?.data?.mode === 'retrieval-only', `available=${llm.json?.data?.available}`)
+  const llmData = llm.json?.data
+  const llmAvailable = llmData?.available === true
+  check('能力状态接口如实返回 available（布尔）',
+    llm.json?.code === 0 && typeof llmData?.available === 'boolean',
+    `available=${llmData?.available} mode=${llmData?.mode}`)
+  if (llmAvailable) {
+    check('已配置 Key 时能力状态 mode=llm-augmented',
+      llmData?.mode === 'llm-augmented' && !!llmData?.model, `mode=${llmData?.mode}`)
+    const askMode = askData?.mode
+    if (askMode === 'llm-augmented') {
+      check('生成模式答案非空且有模型名', typeof askData?.answer === 'string'
+        && askData.answer.length > 0 && !!askData?.model, `model=${askData?.model}`)
+    } else {
+      // 生成调用瞬时失败（限流/超时）时必须走设计好的降级路径，不能 5xx
+      check('生成失败时降级为检索模式并带明确提示',
+        askMode === 'retrieval-only' && !!askData?.llmNotice,
+        `mode=${askMode} notice=${askData?.llmNotice?.slice(0, 24)}…`)
+    }
+  } else {
+    check('未配置 Key 时 available=false 且 mode=retrieval-only',
+      llmData?.mode === 'retrieval-only', `mode=${llmData?.mode}`)
+    check('无 Key 时降级为检索模式 mode=retrieval-only',
+      askData?.mode === 'retrieval-only', `mode=${askData?.mode}`)
+    check('检索模式带明确提示文案', !!askData?.llmNotice, askData?.llmNotice?.slice(0, 30) + '…')
+  }
 
   // ---------- 5. 不编造 ----------
   console.log('\n[5] 检索不足时不编造')

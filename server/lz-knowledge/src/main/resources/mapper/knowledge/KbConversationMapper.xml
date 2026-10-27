@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.knowledge.mapper.KbConversationMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO kb_conversation (user_id, title)
+        VALUES (#{userId}, #{title})
+    </insert>
+
+    <select id="selectById" resultType="com.lianzhi.attendance.knowledge.entity.KbConversation">
+        SELECT id, user_id AS userId, title,
+               created_at AS createdAt, updated_at AS updatedAt
+        FROM kb_conversation
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByUser" resultType="com.lianzhi.attendance.knowledge.entity.KbConversation">
+        SELECT id, user_id AS userId, title,
+               created_at AS createdAt, updated_at AS updatedAt
+        FROM kb_conversation
+        WHERE user_id = #{userId}
+        ORDER BY updated_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <update id="touch">
+        UPDATE kb_conversation SET updated_at = NOW() WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM kb_conversation WHERE id = #{id}
+    </delete>
+
+</mapper>

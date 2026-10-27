@@ -11,7 +11,7 @@
 | 编号 | 能力 | 当前状态 | 缺什么 | 影响范围 |
 |---|---|---|---|---|
 | BK-1 | 真实人脸识别 | 走模拟适配层（`mock=true`，日志带 `[MOCK]`） | 虹软 ArcSoft SDK 商业授权与产品密钥 | 模块 G 共 7 条需求，其中 2 条（真实 SDK、活体检测）**未实现** |
-| BK-2 | 生成式 AI 回答 | `retrieval-only`（只给原文依据，未命中明说） | 可用的大模型 API Key | 模块 F 的答案呈现方式；检索、引用、权限过滤均正常 |
+| BK-2 | 生成式 AI 回答 | ~~`retrieval-only`~~ **已解决（2026-10-27）** | ~~可用的大模型 API Key~~ 已接入硅基流动（`lz.llm.*`） | 已启用 `llm-augmented` 生成增强 + bge 语义检索混合召回 + 多轮会话与 SSE 流式输出；小模型（7B）在高度口语化问法下可能偏保守，可升级更大模型改善 |
 | BK-3 | 地图选址与路径图层 | 坐标手动录入；接口返回 `enabled=false, provider=none` | 高德/百度地图服务 Key | 围栏校验仍可用（基于 Haversine 球面距离），只是没有可视化地图 |
 | BK-4 | 微信小程序 | **评估后决定不做** | 企业主体 AppID、已备案 HTTPS 域名 | 移动端以 H5 交付；评估详见 `docs/uniapp-evaluation.md` |
 | BK-5 | Nacos / 微服务治理 | 已配置未启用（`lz.nacos.enabled=false`） | 无阻塞，是架构决策而非缺陷 | 见 3.1 |
@@ -24,9 +24,9 @@
 
 | 编号 | 功能 | 决议 | 现状 |
 |---|---|---|---|
-| Q-1 | 模块 E：请假/加班审批（7 条需求） | 2026-10-26 决议**不做** | `biz_application`、`biz_application_approval` 两张表作为结构预留保留，业务代码不实现 |
+| ~~Q-1~~ | ~~模块 E：请假/加班审批（7 条需求）~~ | 2026-10-26 决议暂缓，**2026-10-27 阶段 E 已补齐实现** | `biz_application`、`biz_application_approval` 两张预留表已复用，业务代码已实现（`lz-approval` 模块），`scripts/verify-phaseE.mjs` 29 项断言全通过；仅 E-07 统计消费待接入 |
 
-需求口径以 `requirements-matrix.md` 为准：**必做 38 / 暂缓 6 / 待确认 8 / 扩展 7 / 受阻 2**。
+需求口径以 `requirements-matrix.md` 为准：**必做 38 / 待确认 8 / 扩展 7 / 受阻 2**；E 模块 6 条已于阶段 E 实现，不再计入暂缓。
 
 ---
 

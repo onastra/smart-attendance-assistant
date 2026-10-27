@@ -14,6 +14,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -75,6 +77,19 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException.class})
     public R<Void> handleBadRequest(Exception e) {
         return R.fail(ResultCode.PARAM_ERROR, "请求参数有误：" + e.getMessage());
+    }
+
+    /**
+     * 路径不存在：返回 40401 而不是落进 50001 兜底。
+     *
+     * <p>背景（2026-10-27 实测发现）：Spring Boot 3.2+ 对未匹配路径抛
+     * {@link NoResourceFoundException}，此前它被下面的 Exception 兜底吞掉，
+     * 访问不存在的接口得到 50001"系统内部错误"——既误导排障方向，
+     * 又会让前端把"调错地址"当成"服务挂了"。</p>
+     */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public R<Void> handleNotFound(Exception e) {
+        return R.fail(ResultCode.NOT_FOUND, "接口不存在：" + e.getMessage());
     }
 
     /** 兜底：未知异常按内部错误返回，并把 traceId 交给前端便于追查。 */

@@ -44,6 +44,17 @@ public class KnowledgeProperties {
     /** 一次问答最多带回几条来源 */
     private int topK = 5;
 
+    /**
+     * 向量召回的余弦相似度下限。
+     *
+     * <p>bge-large-zh 在同领域语料上的"沾边"分数大约从 0.35 起步，低于此值
+     * 基本是噪声。与 {@link #minScore} 并列：任一通道达标即可进入融合排序。</p>
+     */
+    private double vectorMinScore = 0.35D;
+
+    /** 向量召回的候选集上限（从库里取出后在 Java 内存算相似度） */
+    private int vectorCandidateLimit = 1000;
+
     /** 来源片段展示长度 */
     private int excerptLength = 120;
 

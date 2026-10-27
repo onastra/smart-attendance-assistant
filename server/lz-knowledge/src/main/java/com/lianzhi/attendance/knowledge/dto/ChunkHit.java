@@ -20,4 +20,12 @@ public class ChunkHit {
     private String content;
     private String excerpt;
     private Double score;
+
+    /**
+     * 命中通道：keyword（全文）/ vector（语义）/ both（两路都中）。
+     *
+     * <p>展示给前端是为了可核对：纯语义命中的片段不一定包含问题原词，
+     * 标出来用户才不会误以为系统"匹配错了词"。</p>
+     */
+    private String matchType;
 }

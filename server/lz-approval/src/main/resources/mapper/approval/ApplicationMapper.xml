@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.approval.mapper.ApplicationMapper">
+
+    <sql id="AppColumns">
+        a.id, a.application_no, a.employee_id, a.type, a.sub_type, a.start_time, a.end_time,
+        a.duration_hours, a.reason, a.attachment_file_id, a.status, a.current_approver_id,
+        a.submitted_at, a.finished_at, a.created_at
+    </sql>
+
+    <sql id="AppJoins">
+        LEFT JOIN hr_employee e ON e.id = a.employee_id
+    </sql>
+
+    <!-- 最近一次审批人/动作/意见：单级审批下即最终结论 -->
+    <sql id="AppApprovalDerived">
+        (SELECT u.nickname FROM biz_application_approval ap2
+         JOIN sys_user u ON u.id = ap2.approver_id
+         WHERE ap2.application_id = a.id ORDER BY ap2.id DESC LIMIT 1) AS approverName,
+        (SELECT ap2.action FROM biz_application_approval ap2
+         WHERE ap2.application_id = a.id ORDER BY ap2.id DESC LIMIT 1) AS lastAction,
+        (SELECT ap2.comment FROM biz_application_approval ap2
+         WHERE ap2.application_id = a.id ORDER BY ap2.id DESC LIMIT 1) AS lastComment
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lianzhi.attendance.approval.entity.BizApplication">
+        INSERT INTO biz_application
+        (application_no, employee_id, type, sub_type, start_time, end_time, duration_hours,
+         reason, attachment_file_id, status, current_approver_id, submitted_at)
+        VALUES
+        (#{applicationNo}, #{employeeId}, #{type}, #{subType}, #{startTime}, #{endTime}, #{durationHours},
+         #{reason}, #{attachmentFileId}, #{status}, #{currentApproverId}, #{submittedAt})
+    </insert>
+
+    <select id="selectById" resultType="com.lianzhi.attendance.approval.entity.BizApplication">
+        SELECT
+        <include refid="AppColumns"/>,
+        e.name AS employeeName,
+        <include refid="AppApprovalDerived"/>
+        FROM biz_application a
+        <include refid="AppJoins"/>
+        WHERE a.id = #{id}
+    </select>
+
+    <select id="selectByQuery" resultType="com.lianzhi.attendance.approval.entity.BizApplication">
+        SELECT
+        <include refid="AppColumns"/>,
+        e.name AS employeeName,
+        <include refid="AppApprovalDerived"/>
+        FROM biz_application a
+        <include refid="AppJoins"/>
+        <where>
+            <if test="employeeId != null">AND a.employee_id = #{employeeId}</if>
+            <if test="type != null and type != ''">AND a.type = #{type}</if>
+            <if test="status != null and status != ''">AND a.status = #{status}</if>
+        </where>
+        ORDER BY a.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByQuery" resultType="long">
+        SELECT COUNT(*) FROM biz_application a
+        <where>
+            <if test="employeeId != null">AND a.employee_id = #{employeeId}</if>
+            <if test="type != null and type != ''">AND a.type = #{type}</if>
+            <if test="status != null and status != ''">AND a.status = #{status}</if>
+        </where>
+    </select>
+
+    <update id="updateOnApprove">
+        UPDATE biz_application
+        SET status = #{status}, current_approver_id = #{approverId}, finished_at = #{finishedAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE biz_application SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <insert id="insertApproval" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lianzhi.attendance.approval.entity.BizApplicationApproval">
+        INSERT INTO biz_application_approval (application_id, approver_id, action, comment)
+        VALUES (#{applicationId}, #{approverId}, #{action}, #{comment})
+    </insert>
+
+    <select id="selectApprovals" resultType="com.lianzhi.attendance.approval.entity.BizApplicationApproval">
+        SELECT id, application_id, approver_id, action, comment, created_at
+        FROM biz_application_approval
+        WHERE application_id = #{applicationId}
+        ORDER BY id ASC
+    </select>
+
+    <!-- E-07 集成点：一段时间范围内已通过的申请 -->
+    <select id="selectApprovedInRange" resultType="com.lianzhi.attendance.approval.entity.BizApplication">
+        SELECT
+        <include refid="AppColumns"/>,
+        e.name AS employeeName,
+        NULL AS approverName, NULL AS lastAction, NULL AS lastComment
+        FROM biz_application a
+        <include refid="AppJoins"/>
+        WHERE a.status = 'APPROVED'
+          AND a.start_time &lt;= #{end}
+          AND a.end_time &gt;= #{start}
+        ORDER BY a.employee_id, a.start_time
+    </select>
+</mapper>

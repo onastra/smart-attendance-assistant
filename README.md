@@ -10,6 +10,7 @@
 
 | 文档 | 内容 |
 |---|---|
+| `docs/introduction.md` | **项目简介**：一页看懂这个项目是什么、能做什么、怎么跑起来 |
 | `docs/architecture.md` | 技术选型对照、目标架构、模块边界、AI/人脸适配层设计、待确认事项 |
 | `docs/requirements-matrix.md` | 61 条需求（编号 REQ-X-NN），含依据、优先级、实现状态 |
 | `docs/database-design.md` | 23 张表的字段、索引、约束与 ER 关系 |
@@ -17,7 +18,7 @@
 | `docs/development-plan.md` | 阶段 0–8 实施计划与依赖关系 |
 | `docs/test-plan.md` | 测试用例清单与执行记录规则 |
 | `docs/setup-guide.md` | **启动与运行指南（VSCode 版）**，含依赖清单、排错表 |
-| `docs/test-report.md` | **测试报告**：192 项回归结果、守护点、发现并修复的缺陷清单 |
+| `docs/test-report.md` | **测试报告**：全量回归结果、守护点、发现并修复的缺陷清单 |
 | `docs/acceptance.md` | **验收清单 + 十分钟演示脚本**（含三条演示链路的操作步骤与讲解词） |
 | `docs/user-manual.md` | 用户手册：管理员 / 部门主管 / 员工三视角操作说明 |
 | `docs/known-issues.md` | 已知问题与限制：受阻能力、暂缓功能、测试覆盖边界、演示数据说明 |
@@ -162,9 +163,9 @@ curl -s http://localhost:5173/api/system/health
 │   ├── lz-place/        办公场所、公司 ID 码、坐标适配
 │   ├── lz-attendance/   二维码签发、打卡校验、考勤记录、日汇总统计、定时任务
 │   ├── lz-file/         受控文件存储与鉴权下载（本地实现）
-│   ├── lz-knowledge/    文档解析、切片、ngram 全文检索、问答编排、LLM 适配层
+│   ├── lz-knowledge/    文档解析、切片、全文+向量混合检索、问答编排、LLM 适配层
 │   ├── lz-face/         人脸识别接口与明确标注的模拟实现
-│   ├── lz-approval/     请假、加班审批 ⏸ 暂缓（Q-1 决议，仅保留空模块占位）
+│   ├── lz-approval/     请假、加班审批 ✅ 已实现（阶段 E）
 │   ├── lz-job/          ⏸ 空模块占位（定时任务当前实现在 lz-attendance/task）
 │   └── lz-app/          启动模块（唯一可执行 JAR）
 ├── web/             前端 Vue3 + Element Plus（后台管理页 + 2 个 H5 移动端页）
@@ -179,7 +180,7 @@ curl -s http://localhost:5173/api/system/health
 3. 统计数据必须来自数据库聚合；演示数据必须带 `dataSource=SAMPLE` 标记。
 4. 不允许通过跳过测试、关闭校验、吞异常制造构建成功。
 5. 学校原始资料（`docs/reference/` 下三份 docx）**只读不改**，需求有歧义时以其为准。
-6. **Q-1 决议**：模块 E《请假/加班审批》7 条需求**暂缓实现**，优先保证核心考勤闭环。数据库表保留作为结构预留，不做半截实现混入验收。
+6. **Q-1 决议（2026-10-26 暂缓，2026-10-27 阶段 E 已补齐实现）**：模块 E《请假/加班审批》7 条需求原决议暂缓，后在阶段 E 实现（新增 `lz-approval` 模块，复用两张预留表、未改表结构）。仅 E-07 统计消费尚未接入，属"后端数据就绪、消费待接"，已在 `docs/known-issues.md` 如实标注。
 
 ## 9. 当前状态与质量门禁
 
@@ -190,10 +191,11 @@ curl -s http://localhost:5173/api/system/health
 | 2 | 认证鉴权 + 员工/组织/场所 CRUD | ✅ |
 | 3 | 二维码 + H5 扫码打卡闭环 | ✅ 30 项回归 |
 | 4 | 统计与看板（幂等重算 + 定时任务） | ✅ 32 项回归 |
-| 5 | AI 知识库（默认 retrieval-only）+ 人脸模拟适配层 | ✅ 46 项回归 |
+| 5 | AI 知识库（retrieval-only 起步，后升级 llm-augmented）+ 人脸模拟适配层 | ✅ 46 项回归 |
 | 6 | Redis 缓存、过期码清理、文件鉴权下载、H5 响应式、uni-app 评估、Docker/K8s/CI 实跑 | ✅ 20 项回归 |
-| 7 | 测试、构建与验收 | ✅ **192 项全通过** + 验收清单/演示脚本 |
+| 7 | 测试、构建与验收 | ✅ **221 项全通过** + 验收清单/演示脚本 |
 | 8 | 文档与答辩 | ✅ 测试报告、用户手册、已知问题、答辩题库（Markdown 版，正式排版待定） |
+| E | 模块 E 请假/加班审批补齐（解除 Q-1 暂缓） | ✅ 29 项回归（`verify-phaseE.mjs`），E-07 统计消费待接 |
 
 **质量门禁**：一条命令跑完全量回归
 
@@ -201,9 +203,15 @@ curl -s http://localhost:5173/api/system/health
 export LZ_MYSQL_BIN="$(command -v mysql)"   # Windows 未加入 PATH 时填绝对路径
 export LZ_MYSQL_PWD=<本机 MySQL 口令>
 npm run verify
-# Maven 单元测试 64 项 + 接口回归 128 项 = 192 项
+# Maven 单元测试 64 项 + 接口回归 157 项 = 221 项（含阶段 E 29 项）
 ```
 
 `npm run verify:api` 只跑接口回归，`npm run verify:unit` 只跑单元测试；接口回归要求后端已在 8080 运行。
 
 详见 `docs/progress.md`；验收与演示见 `docs/acceptance.md`。
+
+> 🎉 **阶段 9 · AI Agent 增强（2026-10-27 完成）**：接入硅基流动真实 LLM/Embedding 服务——
+> ① 新增 `EmbeddingClient`，`kb_chunk` 向量化，检索升级为**全文+语义混合召回（RRF 融合）**；
+> ② 新增 `kb_conversation`/`kb_message` 多轮会话（`/api/kb/ask` 支持上下文，`/api/kb/ask/stream` SSE 流式输出）；
+> ③ 前端 `Ask.vue` 重构为聊天式 UI（消息气泡、打字机效果、来源引用面板、历史会话）；
+> ④ `known-issues.md` 中 BK-2（生成式 AI 回答缺失）已标记解决。一页速览见 `docs/introduction.md`。

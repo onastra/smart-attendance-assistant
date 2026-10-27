@@ -36,4 +36,10 @@ public class AskResponse {
     private List<ChunkHit> sources;
     /** 无 Key 时的提示文案，前端据此展示缺失提示条 */
     private String llmNotice;
+
+    /** 本轮问答归属的会话 ID */
+    private Long conversationId;
+
+    /** 助手消息 ID（kb_message 主键） */
+    private Long messageId;
 }

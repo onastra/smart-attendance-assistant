@@ -6,9 +6,35 @@ spring:
     url: jdbc:mysql://127.0.0.1:3306/lianzhi?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: your_mysql_password
+  data:
+    redis:
+      # 本机 Redis（Windows 服务 redis-lianzhi，见 docs/deployment.md）。
+      # ⚠️ 2026-10-27 教训：本段此前不在模板里，有人照模板重建配置时把
+      # Redis/缓存段丢了，导致缓存静默降级为 Noop（health 里 cache.enabled=false）。
+      # 没装 Redis 就把下面整段连同 lz.cache 一起删掉，CacheService 会走 Noop 不报错。
+      host: 127.0.0.1
+      port: 6379
+      password: your_redis_password_here
 
 lz:
+  # Redis 缓存开关：true=RedisCacheService（命中走缓存），false/缺省=NoopCacheService（直查库）
+  # Redis 停机时自动降级直查（WARN 日志），接口不会失败
+  cache:
+    enabled: true
+
   security:
     jwt:
       # 至少 32 字节；可用 openssl rand -base64 32 生成
       secret: your_jwt_secret_at_least_32_bytes_long
+
+  # LLM 配置（如使用硅基流动 SiliconFlow，填入自己的 API Key）
+  # 注意：必须嵌套在 lz: 之下，配置前缀是 lz.llm.*
+  llm:
+    enabled: true
+    api-key: your_llm_api_key_here
+    base-url: https://api.siliconflow.cn/v1
+    model: Qwen/Qwen2.5-7B-Instruct
+    # 语义检索（向量嵌入），复用上面的 api-key / base-url
+    embedding:
+      enabled: true
+      model: BAAI/bge-large-zh-v1.5

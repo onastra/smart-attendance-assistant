@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.knowledge.mapper.KbMessageMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO kb_message (conversation_id, role, content, sources, mode)
+        VALUES (#{conversationId}, #{role}, #{content}, #{sources}, #{mode})
+    </insert>
+
+    <select id="selectByConversation" resultType="com.lianzhi.attendance.knowledge.entity.KbMessage">
+        SELECT id, conversation_id AS conversationId, role, content,
+               sources, mode, created_at AS createdAt
+        FROM kb_message
+        WHERE conversation_id = #{conversationId}
+        ORDER BY id
+    </select>
+
+    <!-- 子查询取最近 N 条后再翻成正序 -->
+    <select id="selectRecent" resultType="com.lianzhi.attendance.knowledge.entity.KbMessage">
+        SELECT id, conversation_id AS conversationId, role, content,
+               sources, mode, created_at AS createdAt
+        FROM (
+            SELECT * FROM kb_message
+            WHERE conversation_id = #{conversationId}
+            ORDER BY id DESC
+            LIMIT #{limit}
+        ) recent
+        ORDER BY id
+    </select>
+
+    <delete id="deleteByConversation">
+        DELETE FROM kb_message WHERE conversation_id = #{conversationId}
+    </delete>
+
+</mapper>

@@ -21,4 +21,7 @@ public class AskRequest {
 
     /** 可选：返回的最大来源条数 */
     private Integer topK;
+
+    /** 可选：会话 ID。为空时自动新建会话；非空时校验归属并携带历史上下文 */
+    private Long conversationId;
 }

@@ -84,7 +84,7 @@
 | Redis | 未安装 | ❌ | 相关能力标记为待接入；应用默认降级不依赖 Redis |
 | Docker | CLI 29.1.3，**daemon 未启动** | ❌ | 容器化/CI 演示受阻 |
 | 虹软 SDK / Face-Api 授权 | 无 | ❌ | 人脸识别走模拟适配层 |
-| 大模型 API Key | 无 | ❌ | 知识库走 `retrieval-only` 模式 |
+| 大模型 API Key | **有（硅基流动，2026-10-27）** | ✅ | 知识库 `llm-augmented` 生成增强 + bge 向量检索 |
 | 地图服务 Key | 无 | ❌ | 坐标支持手动录入，适配层显式上报未启用 |
 | Nacos | 未安装 | ➖ | 按用户决策为"已配置未启用" |
 | HR/ERP/OA | 无 | ➖ | 仅预留适配接口，不宣称对接 |
@@ -142,7 +142,7 @@
 | B 办公场所 | 5 | 5 | ✅ **已实现**（阶段 2）：场所 CRUD、场所码生成、手动坐标录入（地图能力如实标注未接入）、员工-场所绑定 |
 | C 二维码与 H5 打卡 | 12 | 12 | ✅ **已实现**（阶段 3）：HMAC-SHA256 签名二维码（动态码/长期码/一次性码）、ZXing PNG 输出、H5 扫码+手动输入兜底、打卡校验链与落库、本人/管理员查询与数据范围收敛 |
 | D 统计看板 | 9 | 9 | ✅ **已实现**（阶段 4）：`att_daily_stat` 幂等重算 + Spring Task 每日重算（写 `job_exec_log`）、summary/trend/department/place-heat 四个统计接口、ECharts 看板（统计卡/趋势/部门对比/出勤构成/场所时段）、响应带 `dataSource` 区分真实与演示数据 |
-| E 请假/加班审批 | 7 | 0 | ⏸ **暂缓**（Q-1 于 2026-10-26 决议不做）；`biz_application`/`biz_application_approval` 表已作为结构预留，业务代码不实现 |
+| E 请假/加班审批 | 7 | 7 | ✅ **已实现**（阶段 E）：新增 `lz-approval` 模块——申请提交 / 本人查询（员工隔离）/ 审批人待办 / 审批（通过·驳回+意见）/ 撤回 / 状态机防重复审批；权限码 `application:submit`/`approve`/`list` 经幂等补丁 `patch-phaseE-approval.sql` 注册（ADMIN 全有、MANAGER submit+approve、EMPLOYEE 仅 submit），`@RequirePermission` 后端强制；E-07 后端接入点 `listApprovedInRange` 已就绪（统计重算尚未消费，待接）。`scripts/verify-phaseE.mjs` 实测 **29 项断言全通过** |
 | F AI 知识库 | 11 | 11 | ✅ **已实现**（阶段 5）：PDFBox/POI 解析 9 种格式、ChunkSplitter 窗口+重叠、MySQL ngram 全文检索（可见范围在 SQL 层过滤）、`LlmClient` 可插拔 + `NoopLlmClient` 默认降级 `retrieval-only`、来源引用、问答日志脱敏 |
 | G 人脸识别 | 7 | 5 | ✅ **替代方案已实现**（阶段 5）：`FaceRecognitionService` 接口 + `NoopFaceRecognitionService`（`mock=true`、`[MOCK]` 日志）+ ArcSoft 条件装配占位 + `docs/face-sdk-integration.md`；另 2 条 **受阻**（真实 SDK 与活体，缺授权/设备） |
 | H Redis/Nacos/Task | 6 | 0 | Nacos 为**已配置未启用**；Redis 待安装 |
@@ -157,7 +157,7 @@
 | BK-2 | Redis 未安装 | REQ-H-01/02/03 无法在本地验证 | 安装 Redis for Windows 或授权我用其他方式；**不阻塞核心链路**（已开关化） |
 | BK-3 | Docker daemon 未启动 | 容器化演示受阻 | 启动 Docker Desktop 或确认不做该演示 |
 | BK-4 | 虹软 SDK 授权缺失 | 真实人脸识别/活体检测无法完成 | 向老师确认是否接受"标注的模拟适配层"（Q-3） |
-| BK-5 | 大模型 API Key 缺失 | 生成式回答不可用 | 不做伪造；默认 `retrieval-only` 模式 |
+| BK-5 | ~~大模型 API Key 缺失~~ | ~~生成式回答不可用~~ | **已解决（2026-10-27）**：接入硅基流动 Key，`llm-augmented` 上线；无 Key 降级路径保留并实测过 |
 
 ## 5. 下一步（阶段 1 收尾 → 阶段 2）
 
@@ -212,3 +212,4 @@
 每题给出可直接口述的回答要点）。
 同步修正 **README 第 8 节长期停留在阶段 1** 的文档漂移问题（改为阶段总表 + 回归门禁命令），
 并在文档导航补齐上述四份文档 |
+| 2026-10-27 | E | **阶段 E（模块 E 补做）完成**：用户拍板解除 Q-1 暂缓，"先从模块 E 请假/加班审批开始"。复用 `biz_application`/`biz_application_approval` 两张预留表（**未改表结构**），新增 `lz-approval` 模块：`ApplicationService`（提交校验 end>start、reason≥2 字、employeeId 非空；状态机 SUBMITTED→APPROVED/REJECTED/CANCELLED，终态不可重复审批；撤回仅本人+SUBMITTED）、`ApplicationController`（@RequirePermission 后端强制 `application:submit`/`approve`/`list`）、`ApplicationMapper.xml`（LEFT JOIN hr_employee 带出员工/审批人姓名，子查询带出 lastAction/lastComment）。前端 `web/src/views/approval/Submit.vue`（提交 + 我的申请）+ `Approve.vue`（待我审批 / 全部记录，驳回强制填意见）、`web/src/api/approval.js`、`router/index.js` 两条路由（权限过滤自动生成菜单）。幂等补丁 `docs/sql/patch-phaseE-approval.sql`：注册 3 个权限码、角色绑定、验证 SELECT。新增 `scripts/verify-phaseE.mjs`，**29 项断言全通过**（覆盖 REQ-E-01~07，含越权 40301、参数 40001、状态机 40901）。需如实说明：E-07 仅完成后端数据接入点，统计重算尚未调用它，属"后端就绪、消费待接" |
