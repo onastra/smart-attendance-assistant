@@ -5,8 +5,9 @@ metadata:
   namespace: lianzhi
 data:
   # 非敏感配置。敏感项一律放 Secret，不在这里出现。
-  LZ_DB_URL: "jdbc:mysql://mysql:3306/lianzhi?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
-  LZ_DB_USERNAME: "root"
+  # 集群内走 Service 名 postgres（见 30-postgres.yaml）。容器内 PG 未开 SSL，不加 sslmode。
+  LZ_DB_URL: "jdbc:postgresql://postgres:5432/lianzhi"
+  LZ_DB_USERNAME: "postgres"
   LZ_REDIS_HOST: "redis"
   LZ_REDIS_PORT: "6379"
   LZ_CACHE_ENABLED: "true"

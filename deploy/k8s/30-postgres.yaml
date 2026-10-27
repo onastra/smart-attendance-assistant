@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql
+  name: postgres
   namespace: lianzhi
 spec:
-  # 无头之外的普通 ClusterIP 即可：这里只有单实例，不做读写分离
+  # 普通 ClusterIP 即可：这里只有单实例，不做读写分离
   type: ClusterIP
   selector:
-    app: mysql
+    app: postgres
   ports:
-    - port: 3306
-      targetPort: 3306
+    - port: 5432
+      targetPort: 5432
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql
+  name: postgres
   namespace: lianzhi
 spec:
   replicas: 1
@@ -24,36 +24,38 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app: mysql
+      app: postgres
   template:
     metadata:
       labels:
-        app: mysql
+        app: postgres
     spec:
+      # 官方镜像里 postgres 用户的 uid/gid 是 999。PVC 由 root 创建时属组是 root，
+      # 不声明 fsGroup 的话 initdb 会因为数据目录不可写而失败。
+      securityContext:
+        fsGroup: 999
       containers:
-        - name: mysql
-          image: mysql:5.7
+        - name: postgres
+          image: postgres:16
           imagePullPolicy: IfNotPresent
-          args:
-            # ngram_token_size=2 是只读变量，只能在启动时指定：
-            # 它决定中文全文检索按 2 字切词，与知识库检索（模块 F）口径一致
-            - --character-set-server=utf8mb4
-            - --collation-server=utf8mb4_unicode_ci
-            - --ngram_token_size=2
-            - --default-time-zone=+08:00
           ports:
-            - containerPort: 3306
+            - containerPort: 5432
           env:
-            - name: MYSQL_ROOT_PASSWORD
+            - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
                   name: lianzhi-secret
-                  key: MYSQL_ROOT_PASSWORD
-            - name: MYSQL_DATABASE
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   name: lianzhi-secret
-                  key: MYSQL_DATABASE
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lianzhi-secret
+                  key: POSTGRES_PASSWORD
             - name: TZ
               value: Asia/Shanghai
           volumeMounts:
@@ -65,8 +67,8 @@ spec:
               subPath: 01-init.sh
             - name: seed-sql
               mountPath: /seed
-            - name: mysql-data
-              mountPath: /var/lib/mysql
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
           resources:
             requests:
               cpu: 250m
@@ -76,27 +78,34 @@ spec:
               memory: 1Gi
           readinessProbe:
             exec:
-              command: ["sh", "-c", 'mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD" | grep -q alive']
+              command: ["sh", "-c", 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
             initialDelaySeconds: 20
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 30
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
       volumes:
         - name: init-script
           configMap:
-            name: lianzhi-mysql-init
+            name: lianzhi-pg-init
             defaultMode: 0755
         - name: seed-sql
           configMap:
             name: lianzhi-sql
-        - name: mysql-data
+        - name: postgres-data
           persistentVolumeClaim:
-            claimName: mysql-data
+            claimName: postgres-data
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mysql-data
+  name: postgres-data
   namespace: lianzhi
 spec:
   accessModes: ["ReadWriteOnce"]

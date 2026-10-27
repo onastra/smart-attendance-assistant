@@ -26,13 +26,22 @@ set -e
 DB="${POSTGRES_DB:-lianzhi}"
 USER="${POSTGRES_USER:-postgres}"
 
+# 同一份脚本要同时服务两种挂载形态：
+#   Docker Compose —— bind mount 整个 docs/sql，保留 postgresql/ 子目录
+#   Kubernetes     —— ConfigMap 的 key 不允许含 "/"，只能平铺成 pg-schema.sql
+# 所以按顺序探测，谁存在用谁。
+SCHEMA=/seed/postgresql/schema.sql
+[ -f "$SCHEMA" ] || SCHEMA=/seed/pg-schema.sql
+DATA=/seed/postgresql/data.sql
+[ -f "$DATA" ] || DATA=/seed/pg-data.sql
+
 echo "[init] 开始导入 PostgreSQL 数据库（$DB）..."
 
-echo "[init] 1/3 建表结构（schema.sql）..."
-psql -v ON_ERROR_STOP=1 -U "$USER" -d "$DB" -f /seed/postgresql/schema.sql
+echo "[init] 1/3 建表结构（$(basename "$SCHEMA")）..."
+psql -v ON_ERROR_STOP=1 -U "$USER" -d "$DB" -f "$SCHEMA"
 
-echo "[init] 2/3 基础数据（data.sql）..."
-psql -v ON_ERROR_STOP=1 -U "$USER" -d "$DB" -f /seed/postgresql/data.sql
+echo "[init] 2/3 基础数据（$(basename "$DATA")）..."
+psql -v ON_ERROR_STOP=1 -U "$USER" -d "$DB" -f "$DATA"
 
 echo "[init] 3/3 演示打卡流水（sample-attendance-14d.sql）..."
 if [ -f /seed/sample-attendance-14d.sql ]; then

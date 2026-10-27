@@ -7,13 +7,14 @@
 
 ## 0. 三种形态与端口约定
 
-| 形态 | 前端 | 后端 | MySQL | Redis | 用途 |
-|------|------|------|-------|-------|------|
-| 本机直跑（默认） | 5173 | 8080 | 3306 | 6379 | 日常开发、答辩演示 |
-| Docker Compose | 18081 | 18080 | 13306 | 16379 | 一键起全套、验证容器化 |
-| Kubernetes | 30081（NodePort） | ClusterIP `backend:8080` | ClusterIP `mysql:3306` | ClusterIP `redis:6379` | 验证 K8s 清单可用 |
+| 形态 | 前端 | 后端 | PostgreSQL | Redis | 用途 |
+|------|------|------|------------|-------|------|
+| 本机直跑（默认） | 5173 | 8080 | 5432 | 6379 | 日常开发、答辩演示 |
+| Docker Compose | 18081 | 18080 | 15432 | 16379 | 一键起全套、验证容器化 |
+| Kubernetes | 30081（NodePort） | ClusterIP `backend:8080` | ClusterIP `postgres:5432` | ClusterIP `redis:6379` | 验证 K8s 清单可用 |
 
-端口刻意错开：容器形态不抢占本机 3306/6379/8080/5173，两套可以同时跑。
+端口刻意错开：容器形态不抢占本机 5432/6379/8080/5173，两套可以同时跑。
+（数据库自 2026-10-27 起整体迁移到 PostgreSQL，MySQL 相关端口已全部退役。）
 
 ---
 
@@ -114,18 +115,19 @@ cd ../deploy && docker compose up -d --build backend
 ```bash
 cd deploy
 docker compose up -d --build     # 首次构建约 1-2 分钟（前端 npm ci 占大头）
-docker compose ps                # 四个容器，mysql/redis/backend 应为 healthy
+docker compose ps                # 四个容器，postgres/redis/backend 应为 healthy
 docker compose logs -f backend
 docker compose down -v           # 连数据卷一起清掉，下次会重新初始化
 ```
 
 - 后端镜像只装可执行 JAR（构建前先 `cd server && mvn package`），不在镜像里重复编译，
   也就不可能绕过 CI 的测试门禁。
-- MySQL 用 `mysql:5.7` 并加 `--ngram_token_size=2`：中文全文检索按 2 字切词，与知识库检索口径一致。
-- 初始化脚本 `deploy/mysql-init/01-init.sh` **按时间顺序**导入：
-  `schema → data → patch2 → patch3 → patch4 → patch5 → patch6(文件模块) → 14 天演示打卡`。
-  顺序不能颠倒：增量脚本用 `INSERT IGNORE` 追加权限码，若先跑会占掉 `AUTO_INCREMENT` 的 id，
-  `data.sql` 再按显式 id 插入就主键冲突（实测 ERROR 1062）。
+- 数据库用 `postgres:16`（2026-10-27 由 MySQL 迁移而来）。知识库中文检索依赖 `pg_trgm` 扩展，
+  由 `schema.sql` 开头自动创建，不再需要 MySQL 时代的 `ngram_token_size` 启动参数。
+- 初始化脚本 `deploy/pg-init/01-init.sh` 按序导入：
+  `postgresql/schema → postgresql/data → 14 天演示打卡`。
+  PG 版 `schema.sql` 已把 patch-phase2~6 与 phaseE 全部内联，**不需要再逐个跑补丁**
+  （这点比 MySQL 版省事：那边补丁顺序颠倒会主键冲突，实测 ERROR 1062）。
 - **首次部署后必须跑一次日汇总重算**，否则看板是全 0 —— 初始化只导入了打卡流水，
   `att_daily_stat` 是空的（实测：99 条流水 / 0 条汇总，概览返回 `personDays=0`）：
   ```bash
@@ -145,7 +147,7 @@ docker compose down -v           # 连数据卷一起清掉，下次会重新初
 00-namespace.yaml   lianzhi 命名空间
 10-configmap.yaml   非敏感配置（DB/Redis 地址、人脸/地图/大模型开关）
 20-secret.yaml      口令与密钥（演示值，正式部署必须外部注入）
-30-mysql.yaml       Deployment + PVC + Service（含 ngram 参数与初始化挂载）
+30-postgres.yaml    Deployment + PVC + Service（含 pg_trgm 初始化挂载与 fsGroup）
 40-redis.yaml       Deployment + Service（纯缓存，不落盘）
 50-backend.yaml     Deployment + Service（Service 名必须是 backend）
 60-frontend.yaml    Deployment + NodePort 30081
@@ -193,9 +195,9 @@ kind load docker-image lianzhi/backend:1.0.0 lianzhi/frontend:1.0.0 --name lianz
 
 # 中间件镜像：多平台镜像 kind load 会失败，改为在节点内拉取后改回官方名字
 docker exec -e HTTP_PROXY= -e HTTPS_PROXY= lianzhi-control-plane \
-  ctr -n k8s.io images pull docker.1ms.run/library/mysql:5.7
+  ctr -n k8s.io images pull docker.1ms.run/library/postgres:16
 docker exec lianzhi-control-plane ctr -n k8s.io images tag \
-  docker.1ms.run/library/mysql:5.7 docker.io/library/mysql:5.7     # redis:7-alpine 同理
+  docker.1ms.run/library/postgres:16 docker.io/library/postgres:16     # redis:7-alpine 同理
 
 cd deploy/k8s && ./deploy.sh
 ```
@@ -204,6 +206,14 @@ cd deploy/k8s && ./deploy.sh
 `db=true`、`cache.mode=redis`、`cache.reachable=true`；
 登录后 `daily-rebuild` 重算 14 天 / 70 行，`summary` 返回 `personDays=70`、
 `attendanceRate=98.0`、`dataSource=mixed`；前端与 `/api` 反代均 200。
+
+> ⚠️ 上面这段是**迁移到 PostgreSQL 之前**（MySQL 时代）的实跑记录。
+> 2026-10-27 数据库整体换成 PG 后，K8s 清单已同步改为 `postgres:16`，
+> 但**尚未在真实集群上重跑**——本机没有 K8s 集群，只做到了：
+> ① 所有清单 `yaml.safe_load_all` 解析通过；② `deploy.sh` 通过 `bash -n`；
+> ③ 最关键的一步用 Docker 模拟了 K8s 的挂载形态（ConfigMap 平铺文件名），
+> 实测初始化出 25 表 / 5 用户 / 3 场所 / 94 条演示流水 / `pg_trgm` 已启用。
+> 差异点（PVC 权限、Service 名解析、镜像拉取）仍需在真实集群上验证。
 
 **kind 的两个注意事项**：
 
@@ -263,8 +273,10 @@ MSYS_NO_PATHCONV=1 /d/tools/act/act.exe -j frontend --action-offline-mode \
 
 - 容器内 Redis 用 `redis:7-alpine`，本机 Windows 服务是 Redis 5.0.14.1：
   仅缓存用途，命令集没有差异，但版本不一致这件事本身记录在案。
-- K8s 里 MySQL 是单副本 Deployment（不是 StatefulSet + 主从）：
+- K8s 里 PostgreSQL 是单副本 Deployment（不是 StatefulSet + 主从）：
   适用于演示与功能验证，**不是生产级数据库拓扑**。
+  声明了 `securityContext.fsGroup: 999`（官方镜像 postgres 用户的 gid），
+  否则 PVC 由 root 创建时 initdb 会因数据目录不可写而失败。
 - 镜像没有推到任何仓库，K8s 用 `imagePullPolicy: IfNotPresent` 依赖本地构建；
   换机器必须先把镜像 load 进去或推到私有仓库。
 - Nacos 仍是"已配置未启用"（`lz.nacos.enabled=false`），
