@@ -205,7 +205,6 @@ docker ps --filter name=lz-postgres --format "{{.Names}} {{.Status}}"
 ```powershell
 Start-Service redis-lianzhi
 docker start lz-postgres
-Start-Service redis-lianzhi
 ```
 
 两者都是 `Automatic` 启动类型，正常开机就在跑。**不建议停它们**——它们是 services 不是"演示服务"。
