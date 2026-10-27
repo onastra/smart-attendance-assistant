@@ -42,6 +42,7 @@
 | `application-local.yml` | **含本机数据库口令、JWT 密钥、大模型与地图 Key**。只能用同目录的 `.example` 模板自行生成 |
 | `.git/`、`.vscode/`、`.workbuddy/`、`.tmp_extract/`、`.edge-debug/` | 版本历史 / 编辑器配置 / AI 工作日志 / 临时解析产物 |
 | `server/data/files/`、`server/lz-app/data/files/`、`*.log`、backup 类文件 | 运行时上传文件与日志，含个人数据 |
+| `.workbuddy/`、`docs/reference/` | 作者本机 AI 工作日志与学校原始作业文档（3.3 MB），与运行无关且含个人信息，**本包已排除**；自己重新打包时同样要排除 |
 
 **需要重新生成的产物**：前端依赖 `npm install`；后端可执行包 `mvn package`（产出 `server/lz-app/target/lz-app.jar`，`finalName` 固定为 `lz-app`）。
 
