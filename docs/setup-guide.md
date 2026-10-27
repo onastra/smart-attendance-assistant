@@ -126,7 +126,15 @@ lz:
   security:
     jwt:
       secret: ...          # ← 生产环境务必换成自己的随机串
+  map:
+    provider: amap         # ← 地图选址：高德 Web端 JS API
+    api-key: ...           # ← 高德控制台的应用 Key（不填则坐标手动录入，页面不出现地图入口）
+    security-code: ...     # ← 配套安全密钥 jscode（2021-12 后申请的 Key 必填）
 ```
+
+> **地图 Key 安全说明**：Key 只写在本文件（已 gitignore），仓库与前端源码里都没有。
+> 高德 JS API Key 本质"前端可见"（由后端 map-status 接口下发），真正的防线是
+> 高德控制台 → 应用管理 → 为该 Key 配置**域名白名单**（开发期加 `http://localhost:5173`）。
 
 > **Git Bash 里执行 `cp` 时若提示文件已存在**，说明之前生成过，直接跳过即可。
 

@@ -10,12 +10,13 @@ import java.time.LocalDateTime;
 /**
  * 办公场所。
  *
- * <p><code>lng/lat</code> 为 WGS84 或业务方自定坐标系下的经纬度。</p>
+ * <p><code>lng/lat</code> 统一按 <strong>WGS84</strong> 存储：H5 打卡页浏览器定位上报的
+ * 就是 WGS84，围栏校验（GeoDistanceUtil）两侧同坐标系才不会出现几百米偏差。
+ * 管理端高德地图选点得到的是 GCJ-02（火星坐标），前端回填表单前已转换为 WGS84；
+ * 反向展示（WGS84→GCJ-02）发生在前端地图渲染时，库内永远只有 WGS84。</p>
  *
- * <p><strong>坐标采集诚实性</strong>：本系统未配置第三方地图服务 Key，
- * 坐标只能由管理员手动录入或批量导入，不存在"自动定位"能力。
- * 一旦 {@code lz.map.provider} 配置为具体厂商，应在地图上取点后回填此处，
- * 而不是谎称已自动采集。</p>
+ * <p><strong>坐标采集诚实性</strong>：{@code lz.map.provider} 为 none 时坐标只能手动录入；
+ * 配置为具体厂商后，由前端地图选点回填，来源见 PlaceService#mapStatus。</p>
  */
 @Data
 public class Place {

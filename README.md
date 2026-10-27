@@ -193,9 +193,10 @@ curl -s http://localhost:5173/api/system/health
 | 4 | 统计与看板（幂等重算 + 定时任务） | ✅ 32 项回归 |
 | 5 | AI 知识库（retrieval-only 起步，后升级 llm-augmented）+ 人脸模拟适配层 | ✅ 46 项回归 |
 | 6 | Redis 缓存、过期码清理、文件鉴权下载、H5 响应式、uni-app 评估、Docker/K8s/CI 实跑 | ✅ 20 项回归 |
-| 7 | 测试、构建与验收 | ✅ **221 项全通过** + 验收清单/演示脚本 |
+| 7 | 测试、构建与验收 | ✅ **241 项全通过** + 验收清单/演示脚本 |
 | 8 | 文档与答辩 | ✅ 测试报告、用户手册、已知问题、答辩题库（Markdown 版，正式排版待定） |
 | E | 模块 E 请假/加班审批补齐（解除 Q-1 暂缓） | ✅ 29 项回归（`verify-phaseE.mjs`），E-07 统计消费待接 |
+| F | 地图选址：高德 JS API 2.0 接入（搜索/取点/半径圈可视化，GCJ-02↔WGS84 自动换算） | ✅ 20 项回归（`verify-phaseF.mjs`），Key 未配置时诚实降级为手动录入 |
 
 **质量门禁**：一条命令跑完全量回归
 
@@ -203,7 +204,7 @@ curl -s http://localhost:5173/api/system/health
 export LZ_MYSQL_BIN="$(command -v mysql)"   # Windows 未加入 PATH 时填绝对路径
 export LZ_MYSQL_PWD=<本机 MySQL 口令>
 npm run verify
-# Maven 单元测试 64 项 + 接口回归 157 项 = 221 项（含阶段 E 29 项）
+# Maven 单元测试 64 项 + 接口回归 177 项 = 241 项（含阶段 E 29 项、阶段 F 20 项）
 ```
 
 `npm run verify:api` 只跑接口回归，`npm run verify:unit` 只跑单元测试；接口回归要求后端已在 8080 运行。

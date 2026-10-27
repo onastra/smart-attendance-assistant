@@ -42,3 +42,6 @@ backups/
 Thumbs.db
 desktop.ini
 .edge-debug/
+
+# Office 打开文档时产生的锁定临时文件
+~\$*

@@ -28,7 +28,7 @@
 | REQ-B-01 | 办公场所新增/查询/编辑/停用 | P11（办公场所：登记） | 必做 | place.vue | GET/POST/PUT /api/places、PUT /api/places/{id}/status | biz_place | 管理员 | TC-B-01 同名场所校验；TC-B-02 停用后不可作为打卡场所 | ✅ 已实现（阶段2） | 接口 + 页面 |
 | REQ-B-02 | 公司及子公司办公场所登记 | P11（各公司以及子公司等办公场所登记） | 必做 | place.vue | 同上（company_id 关联） | biz_place.company_id | 管理员 | TC-B-03 子公司场所可独立维护 | ✅ 已实现（阶段2） | 页面演示 |
 | REQ-B-03 | 公司 ID 码 / 业务识别码生成 | P9（第 9 天：办公室登记 公司 ID 码生成） | 必做 | place.vue | POST /api/places/{id}/code | biz_place.place_code | 管理员 | TC-B-04 生成的码全局唯一且可续期/吊销 | ✅ 已实现（阶段2） | 接口测试 |
-| REQ-B-04 | 经纬度与第三方地图坐标采集 | P11（坐标采集：第三方地图坐标采集）、P9 | 必做 | place-map.vue（含手动录入） | PUT /api/places/{id}/location、GET /api/map/adapter/status | biz_place(lng,lat) | 管理员 | TC-B-05 无 API Key 时状态显式返回 `mapProvider=none`；TC-B-06 手动坐标可保存并生效 | ✅ 已实现（阶段2） | 接口 + 界面标注 |
+| REQ-B-04 | 经纬度与第三方地图坐标采集 | P11（坐标采集：第三方地图坐标采集）、P9 | 必做 | PlaceManage.vue（地图选址抽屉 + 手动录入兜底） | GET /api/places/map-status（enabled/apiKey 下发） | biz_place(lng,lat) | 管理员 | TC-B-05 无 API Key 时状态显式返回 `enabled=false`；TC-B-06 手动坐标可保存并生效 | ✅ 已实现（阶段2手动录入；阶段F接入高德选址：搜索/取点/半径圈/GCJ-02→WGS84 自动换算） | 接口 + 界面标注 |
 | REQ-B-05 | 场所重复/无效坐标/关联数据校验 | IDX-B7 | 必做 | — | PlaceValidator | — | 管理员 | TC-B-07 经纬度越界被拒绝 | ✅ 已实现（阶段2） | 接口测试 |
 
 ## 模块 C：二维码与 H5 考勤打卡（最高优先级核心链路）

@@ -38,3 +38,12 @@ lz:
     embedding:
       enabled: true
       model: BAAI/bge-large-zh-v1.5
+
+  # 地图选址（高德开放平台 Web端 JS API）。不配或留空 = 未接入，坐标手动录入
+  # Key + 安全密钥在 https://console.amap.com 应用管理里查看；
+  # ⚠️ 与 LLM Key 同理：只写在本文件（已 gitignore），绝不提交进仓库。
+  # 建议在高德控制台为该 Key 配置域名白名单（开发期 localhost:5173）。
+  map:
+    provider: amap
+    api-key: your_amap_jsapi_key_here
+    security-code: your_amap_security_jscode_here

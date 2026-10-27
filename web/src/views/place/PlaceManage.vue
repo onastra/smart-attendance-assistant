@@ -107,6 +107,10 @@
           <el-input-number v-model="form.lat" :precision="7" :step="0.0001" controls-position="right"
                            style="width: 100%"/>
         </el-form-item>
+        <el-form-item v-if="mapStatus?.enabled" label-width="110px">
+          <el-button type="primary" plain :icon="MapLocation" @click="openMapPicker">地图选址（推荐）</el-button>
+          <span class="map-pick-tip">搜索地点或点击地图取点，坐标自动回填</span>
+        </el-form-item>
         <el-form-item label="打卡半径(米)">
           <el-input-number v-model="form.coverRadiusM" :min="10" :max="5000" :step="50"
                            controls-position="right" style="width: 100%"/>
@@ -120,6 +124,56 @@
         <el-button type="primary" :loading="submitting" @click="submit">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 地图选址抽屉：Key 由后端 map-status 下发，前端源码零硬编码。
+         注意不能用 destroy-on-close：高德 SDK 实例持有容器 DOM 引用，
+         销毁后重开地图会指向已脱离文档的旧节点而白屏，这里保持 DOM 常驻复用实例。 -->
+    <el-drawer v-model="mapVisible" title="地图选址（高德）" size="720px" :close-on-click-modal="false"
+               append-to-body>
+      <div class="picker-wrap">
+        <div class="picker-search">
+          <el-input v-model="searchKeyword" placeholder="输入地点名称搜索，如：XX大厦" clearable
+                    @keyup.enter="doSearch">
+            <template #append>
+              <el-button :icon="Search" @click="doSearch">搜索</el-button>
+            </template>
+          </el-input>
+        </div>
+
+        <!-- 加载失败如实告知并保留手动录入兜底，不假装地图可用 -->
+        <el-alert v-if="mapError" type="error" :closable="false" show-icon
+                  title="地图加载失败" :description="mapError"/>
+        <div v-show="!mapError" v-loading="mapLoading" class="picker-map" id="place-map-container"/>
+
+        <div v-if="searchResults.length" class="picker-results">
+          <div v-for="(poi, idx) in searchResults" :key="idx" class="picker-result-item"
+               @click="choosePoi(poi)">
+            <span class="poi-name">{{ poi.name }}</span>
+            <span class="poi-addr">{{ poi.address }}</span>
+          </div>
+        </div>
+
+        <div class="picker-info">
+          <template v-if="pickedGcj">
+            <div class="picked-line">
+              选中点（存库 WGS84）：<strong>{{ pickedWgs84.lng.toFixed(7) }}, {{ pickedWgs84.lat.toFixed(7) }}</strong>
+            </div>
+            <div class="text-muted picked-sub">
+              地图取点为 GCJ-02，已自动换算为 WGS84 存储（与 H5 打卡上报坐标一致）
+              <span v-if="pickedGcj.name">· 来自：{{ pickedGcj.name }}</span>
+            </div>
+          </template>
+          <div v-else class="text-muted">点击地图任意位置或拖拽蓝色标记以选点</div>
+
+          <div class="picker-actions">
+            <span class="radius-label">打卡半径(米)</span>
+            <el-input-number v-model="form.coverRadiusM" :min="10" :max="5000" :step="50"
+                             controls-position="right" style="width: 140px"/>
+            <el-button type="primary" :disabled="!pickedGcj" @click="confirmPick">使用该坐标</el-button>
+          </div>
+        </div>
+      </div>
+    </el-drawer>
 
     <!-- 绑定员工 -->
     <el-dialog v-model="bindVisible" :title="`绑定员工 — ${current.placeName || ''}`" width="700px">
@@ -135,9 +189,9 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, MapLocation } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import {
   pagePlaces, createPlace, updatePlace, changePlaceStatus, getMapStatus,
@@ -145,6 +199,8 @@ import {
 } from '@/api/place'
 import { listCompanies } from '@/api/org'
 import { pageEmployees } from '@/api/employee'
+import { loadAMap } from '@/utils/amap'
+import { gcj02ToWgs84, wgs84ToGcj02 } from '@/utils/coordTransform'
 
 const userStore = useUserStore()
 const canCreate = userStore.hasPermission('place:create')
@@ -294,6 +350,136 @@ const handleTransferChange = async (newTargetKeys, direction, movedKeys) => {
 
 const filterEmployee = (queryStr, item) => item.label.includes(queryStr)
 
+// ---- 地图选址（高德 JS API 2.0）----
+const mapVisible = ref(false)
+const mapLoading = ref(false)
+const mapError = ref('')
+const searchKeyword = ref('')
+const searchResults = ref([])
+/** 当前选中点，保持地图原始坐标系 GCJ-02；确认时才转 WGS84 存库 */
+const pickedGcj = ref(null)
+
+// 地图实例不放进 reactive：SDK 对象内部有循环引用，代理化会导致性能问题甚至报错
+let mapInstance = null
+let marker = null
+let circle = null
+let placeSearch = null
+let AMapRef = null
+
+const pickedWgs84 = computed(() => {
+  if (!pickedGcj.value) return null
+  const w = gcj02ToWgs84(pickedGcj.value.lng, pickedGcj.value.lat)
+  return { lng: Number(w.lng.toFixed(7)), lat: Number(w.lat.toFixed(7)) }
+})
+
+const setPick = (lng, lat, name) => {
+  pickedGcj.value = { lng, lat, name: name || pickedGcj.value?.name || '' }
+  marker.setPosition([lng, lat])
+  circle.setCenter([lng, lat])
+}
+
+/** 编辑已有场所时，把库里的 WGS84 坐标换算到 GCJ-02 并显示到地图 */
+const syncPickFromForm = () => {
+  if (form.lng != null && form.lat != null) {
+    const g = wgs84ToGcj02(form.lng, form.lat)
+    setPick(g.lng, g.lat, '')
+    mapInstance.setZoomAndCenter(16, [g.lng, g.lat])
+  }
+}
+
+const initMap = () => {
+  mapInstance = new AMapRef.Map('place-map-container', {
+    zoom: 14,
+    // 默认视野：北京；有搜索/已有坐标时会立即跳转
+    center: [116.397428, 39.90923],
+  })
+  marker = new AMapRef.Marker({ draggable: true, cursor: 'move' })
+  circle = new AMapRef.Circle({
+    radius: form.coverRadiusM || 200,
+    strokeColor: '#409eff',
+    strokeOpacity: 0.7,
+    strokeWeight: 2,
+    fillColor: '#409eff',
+    fillOpacity: 0.12,
+  })
+  marker.setMap(mapInstance)
+  circle.setMap(mapInstance)
+  placeSearch = new AMapRef.PlaceSearch({ pageSize: 10, pageIndex: 1 })
+
+  mapInstance.on('click', (e) => setPick(e.lnglat.getLng(), e.lnglat.getLat(), ''))
+  marker.on('dragend', () => {
+    const p = marker.getPosition()
+    setPick(p.getLng(), p.getLat(), '')
+  })
+  syncPickFromForm()
+}
+
+const openMapPicker = async () => {
+  mapVisible.value = true
+  mapError.value = ''
+  if (!mapInstance) {
+    mapLoading.value = true
+    try {
+      AMapRef = await loadAMap({
+        apiKey: mapStatus.value?.apiKey,
+        securityJsCode: mapStatus.value?.securityJsCode,
+      })
+      await nextTick()
+      initMap()
+    } catch (e) {
+      mapError.value = e?.message || '地图加载失败，请手动录入坐标'
+    } finally {
+      mapLoading.value = false
+    }
+  } else {
+    syncPickFromForm()
+  }
+}
+
+const doSearch = async () => {
+  const kw = searchKeyword.value.trim()
+  if (!kw || !placeSearch) return
+  try {
+    const res = await placeSearch.search(kw)
+    const pois = res?.pois || []
+    if (pois.length) {
+      searchResults.value = pois.map((p) => ({
+        name: p.name,
+        address: `${p.pname || ''}${p.cityname || ''}${p.adname || ''}${p.address || ''}`,
+        location: p.location,
+      }))
+    } else {
+      searchResults.value = []
+      ElMessage.info('未搜索到相关地点')
+    }
+  } catch (e) {
+    ElMessage.error('搜索失败：' + (e?.message || '请稍后重试'))
+  }
+}
+
+const choosePoi = (poi) => {
+  if (!poi?.location) return
+  const lng = typeof poi.location.getLng === 'function' ? poi.location.getLng() : poi.location.lng
+  const lat = typeof poi.location.getLat === 'function' ? poi.location.getLat() : poi.location.lat
+  setPick(lng, lat, poi.name)
+  mapInstance.setZoomAndCenter(16, [lng, lat])
+  searchResults.value = []
+}
+
+const confirmPick = () => {
+  const w = pickedWgs84.value
+  if (!w) return
+  form.lng = w.lng
+  form.lat = w.lat
+  mapVisible.value = false
+  ElMessage.success('已回填坐标（WGS84，与 H5 打卡上报坐标系一致）')
+}
+
+// 抽屉里调整半径时实时同步到围栏圆
+watch(() => form.coverRadiusM, (v) => {
+  if (circle) circle.setRadius(v || 200)
+})
+
 onMounted(() => {
   loadList()
   loadOptions()
@@ -342,5 +528,84 @@ onMounted(() => {
   font-size: 13px;
   text-align: center;
   margin-top: 12px;
+}
+
+.map-pick-tip {
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ---- 地图选址抽屉 ---- */
+.picker-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+/* 地图容器必须有确定高度，否则 SDK 无法计算画布尺寸、地图不渲染 */
+.picker-map {
+  width: 100%;
+  height: 420px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+}
+
+.picker-results {
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+}
+
+.picker-result-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.picker-result-item:hover {
+  background: var(--el-fill-color-light);
+}
+
+.picker-result-item + .picker-result-item {
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.poi-name {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.poi-addr {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.picker-info {
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding-top: 12px;
+}
+
+.picked-line {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.picked-sub {
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.picker-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.radius-label {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
 }
 </style>

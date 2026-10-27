@@ -45,6 +45,14 @@ public class PlaceService {
     @Value("${lz.map.provider:none}")
     private String mapProvider;
 
+    /** 地图开放平台 Key；只允许出现在 application-local.yml（gitignored）或环境变量，绝不入库 */
+    @Value("${lz.map.api-key:}")
+    private String mapApiKey;
+
+    /** 高德 JS API 2.0 配套安全密钥；2021-12 后申请的 Key 必须配套使用 */
+    @Value("${lz.map.security-code:}")
+    private String mapSecurityCode;
+
     public PageResult<Place> page(PlaceQuery query) {
         long total = placeMapper.countByQuery(query);
         if (total == 0) {
@@ -156,17 +164,34 @@ public class PlaceService {
     /**
      * 地图能力状态。
      *
-     * <p>明确上报当前没有接入任何地图服务，坐标必须手动录入。
+     * <p>未配置时明确上报没有接入任何地图服务，坐标必须手动录入；
+     * 配置后携带 Key 供前端动态加载 JS SDK——Key 的唯一来源是本方法，
+     * 前端源码里不允许出现硬编码 Key（公开仓库防泄漏）。
      * 这是为了杜绝"界面上看着像能自动定位、实际数据是假的"这种情况。</p>
+     *
+     * <p>Key 只会暴露在登录管理员的浏览器网络面板里，与 JS API Key
+     * 本身"前端可见"的属性一致；真正防线是开放平台控制台的域名白名单，
+     * 部署文档中要求配置。</p>
      */
     public Map<String, Object> mapStatus() {
         Map<String, Object> status = new HashMap<>();
-        boolean configured = StringUtils.hasText(mapProvider) && !"none".equalsIgnoreCase(mapProvider);
+        // 占位符（未替换的模板值）不算已配置：宁可上报"未接入"手动录入，
+        // 也不能下发一个假 Key 让前端地图加载失败还显示"已接入"
+        boolean keyPresent = StringUtils.hasText(mapApiKey)
+                && !mapApiKey.contains("请填入") && !mapApiKey.contains("your_");
+        boolean configured = StringUtils.hasText(mapProvider) && !"none".equalsIgnoreCase(mapProvider)
+                && keyPresent;
         status.put("enabled", configured);
         status.put("provider", configured ? mapProvider : "none");
         status.put("coordinateSource", configured ? "map-picker" : "manual-input");
+        if (configured) {
+            status.put("apiKey", mapApiKey);
+            if (StringUtils.hasText(mapSecurityCode)) {
+                status.put("securityJsCode", mapSecurityCode);
+            }
+        }
         status.put("note", configured
-                ? "已配置地图服务，可在地图上取点"
+                ? "已接入地图服务（" + mapProvider + "），可在地图上搜索、取点选址"
                 : "未配置地图服务 Key，坐标需由管理员手动录入（不存在自动定位）");
         return status;
     }
