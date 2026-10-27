@@ -90,8 +90,9 @@ services:
       # 密钥：演示环境固定值，正式部署必须换成环境变量注入的强密钥
       LZ_JWT_SECRET: demo-only-jwt-secret-please-override-in-production-32b
       LZ_QR_SIGN_SECRET: demo-only-qr-sign-secret-please-override
-      # 允许的前端来源：容器化前端走 18081
-      LZ_WEB_ORIGINS: http://localhost:18081,http://127.0.0.1:18081
+      # 允许的前端来源：容器化前端走 18081；末尾的局域网模式用于手机真机访问
+      # http://<局域网IP>:18081（否则预检 403，前端只报"没有访问该资源的权限"）
+      LZ_WEB_ORIGINS: http://localhost:18081,http://127.0.0.1:18081,http://192.168.*:*,http://10.*:*,http://172.20.*:*
       LZ_LOG_LEVEL: info
       TZ: Asia/Shanghai
     ports:

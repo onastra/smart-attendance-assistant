@@ -404,6 +404,8 @@ docker compose stop        # 保留数据卷
 | 统计看板有数据但出勤率 0% | 库里只有当天流水，重算区间没覆盖 | 跑 `scripts/seed-sample-attendance.mjs` 补 14 天流水后重算 |
 | Redis 里读不到 key / 看板数字不更新 | 缓存 TTL 未失效 | 重算后会自动 evict；或 `docker exec lz-redis redis-cli FLUSHDB`（容器）/ 直接 `redis-cli -a <pwd> FLUSHDB` |
 | Vue 文件满屏报错 | 装了 Vetur 而不是 Vue - Official | 禁用 Vetur，装 Vue - Official |
+| **手机能打开 H5 打卡页，点登录却弹「没有访问该资源的权限」** | **CORS**：后端白名单不含手机用的局域网 Origin。Vite 代理会把 `Origin: http://<局域网IP>:5173` 原样转发，后端 Host 是 `localhost:8080`，于是判定跨域 → OPTIONS 预检 403 | 见 §10。默认已放行 `192.168.*` / `10.*` / `172.20.*`；其它网段重启后端时加 `LZ_WEB_ORIGINS=http://<网段>:*` |
+| H5 页点「打开摄像头扫码」提示"不是 HTTPS 或 localhost" | 局域网 HTTP 不是安全上下文，浏览器禁用摄像头与定位 | 正常行为不是故障：改用后台「复制原文」手动粘贴（校验链照走）；要真扫码需给 Vite 配 HTTPS 或用 Android Chrome 的 `#unsafely-treat-insecure-origin-as-secure` |
 
 ---
 
@@ -428,7 +430,8 @@ docker compose stop        # 保留数据卷
 ## 9. 一条命令版（日常快速回顾）
 
 ```bash
-# 前置：MySQL 和 Redis 服务是 Automatic，已在跑
+# 前置：Docker Desktop 已启动（PostgreSQL 容器 lz-postgres 会随 Docker 自启），
+#        Redis 是 Windows 服务 redis-lianzhi，开机自启
 
 # 终端 1
 cd "D:/A_school_training/Project Document/server/lz-app"
@@ -450,7 +453,57 @@ cd "D:/A_school_training/Project Document/server" && mvn -B package
 
 ---
 
-## 10. 相关文档
+## 10. 手机真机演示
+
+手机与电脑连**同一个 Wi-Fi**（用错网线/VirtualBox/WSL 的网段会连不上）。本机 Wi-Fi 地址用
+`ipconfig` 查，形如 `192.168.1.4`。
+
+### 10.1 H5 打卡页
+
+浏览器打开 `http://<电脑IP>:5173/h5/checkin`，页面内登录 `emp01 / Emp@123`。
+
+- 防火墙：首次启动 java / node 时 Windows 会弹窗，**必须点"允许访问"**，否则手机连不进来。
+- 手机只需能访问 5173：`/api` 由 Vite 代理转发到本机 8080。
+- **摄像头扫不了码**：局域网 HTTP 不是安全上下文，浏览器禁掉 `getUserMedia`。
+  演示改用后台「考勤二维码 → 复制原文」发到手机粘贴提交——签名、有效期、场所绑定、
+  幂等这些校验链照走，只是跳过围栏校验。
+
+### 10.2 微信小程序
+
+1. `miniprogram/config.js` 的 `BASE_URL` 改成 `http://<电脑IP>:8080`（**是 8080，小程序没有 Vite 代理**）
+2. 开发者工具：详情 → 本地设置 → 勾选「不校验合法域名、web-view、TLS 版本以及 HTTPS 证书」
+3. 点「预览」，手机微信扫出来的码打开开发版
+4. `wx.scanCode` **模拟器不能真扫**（只弹"选本地图片"），必须真机；
+   模拟器用"选图片"可验证扫码之后的业务逻辑
+5. 被扫的码用**长期固定码（24 小时）**：动态码只有 120 秒，演示中途会过期；
+   且**别勾「一次性」**，否则第二次扫就失败
+
+### 10.3 换网络后登录报「没有访问该资源的权限」
+
+这是跨域（CORS），不是权限问题——前端把 `Origin` 原样转发给后端，后端按白名单校验：
+
+```bash
+# 诊断：看预检是否 200，403 就是来源不在白名单
+curl -X OPTIONS -H "Origin: http://<电脑IP>:5173" \
+     -H "Access-Control-Request-Method: POST" \
+     -H "Access-Control-Request-Headers: content-type" \
+     http://127.0.0.1:8080/api/auth/login
+```
+
+后端已默认放行 `localhost` / `127.0.0.1` / `192.168.*` / `10.*` / `172.20.*`（iPhone 热点网段）。
+若你落在别的网段，重启后端时显式指定：
+
+```bash
+set LZ_WEB_ORIGINS=http://localhost:5173,http://172.18.*:*
+java -jar lz-app/target/lz-app.jar --spring.profiles.active=local
+```
+
+> Spring 的 CORS 模式**只支持 `*` 通配符**，不支持 `172.1[6-9]` 这类字符类（实测返回 403）。
+> 生产环境务必用 `LZ_WEB_ORIGINS` 指定真实域名，别依赖开发默认值。
+
+---
+
+## 11. 相关文档
 
 | 文档 | 内容 |
 |---|---|
