@@ -8,10 +8,11 @@
         q.status, q.issue_time, q.expire_time, q.used_time, q.created_by, q.created_at
     </sql>
 
-    <!-- 剩余秒数：已过期统一返回 0，避免前端拿到负数后显示奇怪的倒计时 -->
+    <!-- 剩余秒数：已过期统一返回 0，避免前端拿到负数后显示奇怪的倒计时
+         （PostgreSQL：TIMESTAMPDIFF(SECOND, a, b) → EXTRACT(EPOCH FROM (b - a))） -->
     <sql id="RemainSeconds">
         CASE WHEN q.expire_time &lt;= NOW() THEN 0
-             ELSE TIMESTAMPDIFF(SECOND, NOW(), q.expire_time) END AS remainSeconds
+             ELSE EXTRACT(EPOCH FROM (q.expire_time - NOW()))::bigint END AS remainSeconds
     </sql>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id"
@@ -57,7 +58,7 @@
             <if test="qrType != null and qrType != ''">AND q.qr_type = #{qrType}</if>
         </where>
         ORDER BY q.id DESC
-        LIMIT #{offset}, #{limit}
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="countByQuery" resultType="long">

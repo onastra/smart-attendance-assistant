@@ -59,7 +59,7 @@
         <include refid="Visibility_Join"/>
         <include refid="Page_Where"/>
         ORDER BY doc.id DESC
-        LIMIT #{offset}, #{limit}
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="countPage" resultType="long">

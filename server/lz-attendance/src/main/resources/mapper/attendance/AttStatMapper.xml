@@ -38,14 +38,14 @@
         VALUES
             (#{employeeId}, #{statDate}, #{firstCheckin}, #{lastCheckout}, #{workMinutes}, #{checkinCount},
              #{status}, #{source}, #{rebuiltAt})
-        ON DUPLICATE KEY UPDATE
-            first_checkin = VALUES(first_checkin),
-            last_checkout = VALUES(last_checkout),
-            work_minutes  = VALUES(work_minutes),
-            checkin_count = VALUES(checkin_count),
-            status        = VALUES(status),
-            source        = VALUES(source),
-            rebuilt_at    = VALUES(rebuilt_at)
+        ON CONFLICT (employee_id, stat_date) DO UPDATE SET
+            first_checkin = EXCLUDED.first_checkin,
+            last_checkout = EXCLUDED.last_checkout,
+            work_minutes  = EXCLUDED.work_minutes,
+            checkin_count = EXCLUDED.checkin_count,
+            status        = EXCLUDED.status,
+            source        = EXCLUDED.source,
+            rebuilt_at    = EXCLUDED.rebuilt_at
     </insert>
 
     <delete id="deleteInactiveEmployeeStat">

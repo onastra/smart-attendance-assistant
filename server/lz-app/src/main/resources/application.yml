@@ -11,11 +11,9 @@ spring:
 
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    # 注意：MySQL Connector/J 的 characterEncoding 必须是 Java 认识的字符集名（UTF-8），
-    # 写成 utf8mb4 会直接抛 UnsupportedEncodingException
-    url: ${LZ_DB_URL:jdbc:mysql://127.0.0.1:3306/lianzhi?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
-    username: ${LZ_DB_USERNAME:root}
+    driver-class-name: org.postgresql.Driver
+    url: ${LZ_DB_URL:jdbc:postgresql://127.0.0.1:5432/postgres}
+    username: ${LZ_DB_USERNAME:postgres}
     password: ${LZ_DB_PASSWORD:}
     druid:
       # 初始连接数设为 0：数据库暂不可用时应用仍可启动，
@@ -30,7 +28,9 @@ spring:
       validation-query: SELECT 1
       test-while-idle: true
       test-on-borrow: false
-      filters: stat,wall
+      # PG 方言的 wall 防火墙在 Druid 1.2.23 下解析 ON CONFLICT / word_similarity 等语法会误报拦截，
+      # 数据库换 PostgreSQL 后先只保留 stat 监控，注入防护由 MyBatis #{} 预编译参数承担
+      filters: stat
       stat-view-servlet:
         enabled: false
 

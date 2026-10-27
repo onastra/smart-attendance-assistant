@@ -71,25 +71,58 @@ async function upload(token, fileName, visibility = 'PUBLIC') {
   return call('POST', '/kb/documents', token, fd)
 }
 
+/** 执行一条 PostgreSQL 语句（Supabase 回退通道，凭据全部走环境变量） */
+function pgExec(sql) {
+  const host = process.env.LZ_PG_HOST
+  if (!host) {
+    throw new Error('LZ_PG_HOST 未设置')
+  }
+  const code = [
+    'import psycopg2',
+    `conn = psycopg2.connect(host=${JSON.stringify(host)}, port=${JSON.stringify(process.env.LZ_PG_PORT || '5432')}, dbname=${JSON.stringify(process.env.LZ_PG_DB || 'postgres')}, user=${JSON.stringify(process.env.LZ_PG_USER || '')}, password=${JSON.stringify(process.env.LZ_PG_PWD || '')}, sslmode='require')`,
+    'cur = conn.cursor()',
+    `cur.execute(${JSON.stringify(sql)})`,
+    'conn.commit()',
+  ].join('\n')
+  execSync('python -', { input: code, stdio: ['pipe', 'ignore', 'ignore'] })
+}
+
 function cleanPreviousRuns() {
-  const bin = process.env.LZ_MYSQL_BIN
-  const pwd = process.env.LZ_MYSQL_PWD
-  // 口令不写进文件：没给就跳过清理，只影响可重复性，不影响被测能力
-  if (!bin || !pwd) {
-    console.log('  [提示] 未同时设置 LZ_MYSQL_BIN 与 LZ_MYSQL_PWD，跳过清理；'
-      + '若上一轮已上传过同名文档，去重用例会报 409')
-    return
+  // 口令不写进文件：凭据一律走环境变量，没给就跳过清理，只影响可重复性，不影响被测能力
+  if (process.env.LZ_MYSQL_BIN && process.env.LZ_MYSQL_PWD) {
+    try {
+      execSync(
+        `"${process.env.LZ_MYSQL_BIN}" -uroot -p${process.env.LZ_MYSQL_PWD} lianzhi -e ` +
+          '"DELETE FROM kb_qa_log; DELETE FROM kb_chunk; DELETE FROM kb_document; DELETE FROM face_feature;"',
+        { stdio: 'ignore' }
+      )
+      console.log('  已清理上一轮的知识库与人脸数据（MySQL）')
+      return
+    } catch {
+      console.log('  [提示] mysql 清理失败，尝试 PostgreSQL 清理通道')
+    }
   }
-  try {
-    execSync(
-      `"${bin}" -uroot -p${pwd} lianzhi -e ` +
-        '"DELETE FROM kb_qa_log; DELETE FROM kb_chunk; DELETE FROM kb_document; DELETE FROM face_feature;"',
-      { stdio: 'ignore' }
-    )
-    console.log('  已清理上一轮的知识库与人脸数据')
-  } catch {
-    console.log('  [提示] mysql 清理失败，继续跑，去重用例可能被上一轮数据影响')
+  if (process.env.LZ_PG_HOST) {
+    try {
+      for (const sql of [
+        'DELETE FROM kb_qa_log',
+        'DELETE FROM kb_chunk',
+        'DELETE FROM kb_message',
+        'DELETE FROM kb_conversation',
+        'DELETE FROM kb_document',
+        'DELETE FROM face_feature',
+        'DELETE FROM sys_file',
+      ]) {
+        pgExec(sql)
+      }
+      console.log('  已清理上一轮的知识库与人脸数据（PostgreSQL）')
+      return
+    } catch {
+      console.log('  [提示] PostgreSQL 清理通道不可用')
+    }
   }
+  console.log('  [提示] 未配置 LZ_MYSQL_BIN/LZ_MYSQL_PWD 或 LZ_PG_HOST，跳过清理；'
+    + '若上一轮已上传过同名文档，去重用例会报 409')
 }
 
 /** 生成一张最小合法 PNG（1x1），尾部附加随机字节以区分两张"不同照片" */

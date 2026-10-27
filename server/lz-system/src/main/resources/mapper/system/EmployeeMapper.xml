@@ -45,7 +45,7 @@
             <if test="status != null">AND e.status = #{status}</if>
         </where>
         ORDER BY e.id DESC
-        LIMIT #{offset}, #{limit}
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="countByQuery" resultType="long">

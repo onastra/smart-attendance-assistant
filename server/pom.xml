@@ -44,7 +44,7 @@
         <!-- 第三方依赖版本（与本机环境实测兼容） -->
         <mybatis.starter.version>3.0.3</mybatis.starter.version>
         <druid.starter.version>1.2.23</druid.starter.version>
-        <mysql.connector.version>8.3.0</mysql.connector.version>
+        <postgresql.driver.version>42.7.4</postgresql.driver.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.6.0</springdoc.version>
         <hutool.skip>true</hutool.skip>
@@ -128,9 +128,9 @@
                 <version>${druid.starter.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.mysql</groupId>
-                <artifactId>mysql-connector-j</artifactId>
-                <version>${mysql.connector.version}</version>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.driver.version}</version>
             </dependency>
 
             <!-- 安全：JWT -->
