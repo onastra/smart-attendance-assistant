@@ -27,7 +27,7 @@
 数据：D:\tools\redis\data
 日志：D:\tools\redis\logs\redis-service.log
 端口：127.0.0.1:6379（仅回环）
-口令：lianzhi_dev_redis（本机开发用弱口令，见 application-local.yml）
+口令：<你的 Redis 口令>（本机开发用弱口令，见 application-local.yml）
 ```
 
 **常用命令**
@@ -35,8 +35,8 @@
 ```bat
 sc query Redis-Lianzhi                       :: 查看状态
 net stop Redis-Lianzhi / net start Redis-Lianzhi
-D:\tools\redis\redis-cli.exe -a lianzhi_dev_redis --no-auth-warning ping
-D:\tools\redis\redis-cli.exe -a lianzhi_dev_redis --no-auth-warning keys lz:cache:v1:*
+D:\tools\redis\redis-cli.exe -a <你的 Redis 口令> --no-auth-warning ping
+D:\tools\redis\redis-cli.exe -a <你的 Redis 口令> --no-auth-warning keys lz:cache:v1:*
 ```
 
 重装或迁移到别的机器：以管理员运行 `D:\tools\redis\install-redis-service.bat`。

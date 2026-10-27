@@ -113,7 +113,7 @@ spring:
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/lianzhi?...
     username: root
-    password: gjc          # ← 改成你的 MySQL 口令
+    password: <你的 MySQL 口令>
   data:
     redis:
       host: 127.0.0.1
@@ -135,7 +135,7 @@ lz:
 ```bash
 cd <ROOT>
 export LZ_MYSQL_BIN="D:/gjcmysql/mysql-5.7.19-winx64/bin/mysql.exe"
-export LZ_MYSQL_PWD=gjc
+export LZ_MYSQL_PWD=<你的 MySQL 口令>
 ```
 
 然后按顺序导入 `<ROOT>/docs/sql/`：
@@ -295,7 +295,7 @@ curl http://localhost:8080/api/system/health
 ```bash
 cd <ROOT>
 export LZ_MYSQL_BIN="D:/gjcmysql/mysql-5.7.19-winx64/bin/mysql.exe"
-export LZ_MYSQL_PWD=gjc
+export LZ_MYSQL_PWD=<你的 MySQL 口令>
 npm run verify
 ```
 
