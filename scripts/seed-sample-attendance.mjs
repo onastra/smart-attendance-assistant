@@ -206,9 +206,26 @@ VALUES
     return
   }
 
+  // PostgreSQL 通道优先：2026-10-27 起数据库已迁到 PG（含 Supabase），
+  // 本机 Docker 的 PG 默认不开 SSL，用 LZ_PG_SSLMODE=disable 覆盖
+  if (process.env.LZ_PG_HOST) {
+    const code = [
+      'import psycopg2',
+      `conn = psycopg2.connect(host=${JSON.stringify(process.env.LZ_PG_HOST)}, port=${JSON.stringify(process.env.LZ_PG_PORT || '5432')}, dbname=${JSON.stringify(process.env.LZ_PG_DB || 'postgres')}, user=${JSON.stringify(process.env.LZ_PG_USER || '')}, password=${JSON.stringify(process.env.LZ_PG_PWD || '')}, sslmode=${JSON.stringify(process.env.LZ_PG_SSLMODE || 'require')})`,
+      'cur = conn.cursor()',
+      `cur.execute(open(${JSON.stringify(outPath)}, encoding='utf-8').read())`,
+      'conn.commit()',
+      `cur.execute("SELECT COUNT(*) FROM att_record WHERE source='SAMPLE'")`,
+      'print(cur.fetchone()[0])',
+    ].join('\n')
+    const count = execSync('python -', { input: code, encoding: 'utf-8' }).trim().split('\n').pop()
+    console.log(`  已写入 PostgreSQL，当前 SAMPLE 记录数：${count}`)
+    return
+  }
+
   const password = process.env.LZ_MYSQL_PWD
   if (!password) {
-    console.log('  [跳过执行] 未设置 LZ_MYSQL_PWD，SQL 已落盘，可手工执行或用环境变量重跑')
+    console.log('  [跳过执行] 未设置 LZ_MYSQL_PWD / LZ_PG_HOST，SQL 已落盘，可手工执行或用环境变量重跑')
     return
   }
 

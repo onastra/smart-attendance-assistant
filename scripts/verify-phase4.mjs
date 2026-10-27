@@ -39,6 +39,35 @@ function mysqlQuery(sql) {
   }).trim()
 }
 
+/**
+ * PostgreSQL 查询通道（2026-10-27 数据库迁到 PG 后补，与 phase3/phase5 同款写法）。
+ * 没有它的话，本套件在纯 PG 环境下会静默跳过"与数据库逐行核对"，
+ * 看起来全绿实则少验证了一层。
+ */
+function pgQuery(sql) {
+  if (!process.env.LZ_PG_HOST) {
+    return null
+  }
+  const code = [
+    'import psycopg2',
+    `conn = psycopg2.connect(host=${JSON.stringify(process.env.LZ_PG_HOST)}, port=${JSON.stringify(process.env.LZ_PG_PORT || '5432')}, dbname=${JSON.stringify(process.env.LZ_PG_DB || 'postgres')}, user=${JSON.stringify(process.env.LZ_PG_USER || '')}, password=${JSON.stringify(process.env.LZ_PG_PWD || '')}, sslmode=${JSON.stringify(process.env.LZ_PG_SSLMODE || 'require')})`,
+    'cur = conn.cursor()',
+    `cur.execute(${JSON.stringify(sql)})`,
+    'rows = cur.fetchall()',
+    'print("\\n".join("|".join("" if v is None else str(v) for v in r) for r in rows))',
+  ].join('\n')
+  return execSync('python -', { input: code, encoding: 'utf8' }).trim()
+}
+
+/** 库内查询：MySQL 与 PostgreSQL 双通道，都没有就返回 null（调用方会提示跳过） */
+function dbQuery(mysqlSql, pgSql) {
+  const viaMysql = mysqlQuery(mysqlSql)
+  if (viaMysql !== null) {
+    return viaMysql
+  }
+  return pgQuery(pgSql || mysqlSql)
+}
+
 async function call(method, path, token, body) {
   const headers = { 'Content-Type': 'application/json' }
   if (token) {
@@ -74,20 +103,23 @@ async function main() {
   const r2 = await call('POST', `/statistics/daily-rebuild?dateFrom=${RANGE.from}&dateTo=${RANGE.to}`, admin.token)
   check('重复重算行数一致（幂等）', r2.json?.data?.affectedRows === rows1, `${r2.json?.data?.affectedRows} 行`)
 
-  const statRows = mysqlQuery(`SELECT COUNT(*) FROM att_daily_stat WHERE stat_date BETWEEN '${RANGE.from}' AND '${RANGE.to}';`)
+  const statRows = dbQuery(`SELECT COUNT(*) FROM att_daily_stat WHERE stat_date BETWEEN '${RANGE.from}' AND '${RANGE.to}';`)
   if (statRows !== null) {
     check('汇总行数与重算结果一致', Number(statRows) === rows1, `库内 ${statRows} 行`)
 
     // 抽一天跟库核对：重算两次后，同一天的判定结果必须逐字一致（SQL 必须写成单行，
-    // Windows 下 execSync 走 cmd.exe，多行 SQL 会被截断）
-    const snapshotSql =
+    // Windows 下 execSync 走 cmd.exe，多行 SQL 会被截断）。
+    // MySQL 用 GROUP_CONCAT，PG 用 string_agg —— 两边拼出来的串必须完全一致才能比对
+    const snapshotMysql =
       "SELECT GROUP_CONCAT(CONCAT(employee_id,'=',status,'/',work_minutes,'/',checkin_count) ORDER BY employee_id) FROM att_daily_stat WHERE stat_date='2026-10-13';"
-    const snap1 = mysqlQuery(snapshotSql)
+    const snapshotPg =
+      "SELECT string_agg(employee_id||'='||status||'/'||work_minutes||'/'||checkin_count, ',' ORDER BY employee_id) FROM att_daily_stat WHERE stat_date='2026-10-13'"
+    const snap1 = dbQuery(snapshotMysql, snapshotPg)
     await call('POST', '/statistics/daily-rebuild?date=2026-10-13', admin.token)
-    const snap2 = mysqlQuery(snapshotSql)
+    const snap2 = dbQuery(snapshotMysql, snapshotPg)
     check('单日重算内容逐行一致（真幂等）', snap1 === snap2 && !!snap1)
   } else {
-    console.log('  [提示] 未设置 LZ_MYSQL_PWD，跳过与数据库的逐行核对')
+    console.log('  [提示] 未设置 LZ_MYSQL_PWD / LZ_PG_HOST，跳过与数据库的逐行核对')
   }
 
   // ---------- 2. summary ----------

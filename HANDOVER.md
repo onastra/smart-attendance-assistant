@@ -55,22 +55,34 @@
 | JDK | **17+** | 硬性 | Spring Boot 3.3.5 的最低要求，低版本直接报 `class file has wrong version` |
 | Maven | **3.6+** | 硬性（构建 jar 时） | 首次构建需联网拉依赖；已只发 jar 则可免 |
 | Node.js | **18+** | 硬性 | Vite 5 与 `package.json` 的 engines 要求 |
-| MySQL | **5.7+** | 硬性 | 必须支持 InnoDB 全文索引 + ngram 中文分词 |
-| MySQL 服务端参数 | `ngram_token_size=2` | 硬性（否则知识库中文检索失效） | 见下方配置片段 |
+| PostgreSQL | **15+** | 硬性 | 2026-10-27 起数据库已从 MySQL 迁移到 PG（含 Supabase），驱动与全部 SQL 方言均为 PG |
+| PostgreSQL 扩展 | `pg_trgm` | 硬性（否则知识库检索建索引失败） | 建表脚本开头会 `CREATE EXTENSION IF NOT EXISTS pg_trgm`，官方镜像自带 |
+| ~~MySQL~~ | — | **不再需要** | 代码已不兼容 MySQL；旧脚本保留在 `docs/sql/` 仅供对照 |
 | Redis | 5.x+ | **可选** | 默认 `lz.cache.enabled=false`，不装也能跑完整链路 |
-| Docker + Compose | 20.x+ | 可选 | 仅容器化演示需要 |
+| Docker + Compose | 20.x+ | 推荐（起本地 PG 最省事） | 容器化演示也需要 |
 | Git | 2.x | 可选 | 想保留版本历史才需要 |
 
-### MySQL 服务端必须加的参数（改完重启 MySQL）
+### 起一个本地 PostgreSQL（最省事的两种方式）
 
-```ini
-[mysqld]
-ft_min_word_len=1
-ngram_token_size=2        # 中文二元分词，知识库全文检索依赖它
-innodb_large_prefix=ON    # 避免 767 bytes 索引长度限制
+```bash
+# 方式 A：Docker（推荐，不动系统环境）
+docker run -d --name lz-postgres --restart unless-stopped \
+  -e POSTGRES_PASSWORD=你的口令 -e POSTGRES_DB=lianzhi -p 5432:5432 postgres:16
+
+# 方式 B：本机安装后
+createdb lianzhi
+psql -d lianzhi -f docs/sql/postgresql/schema.sql
+psql -d lianzhi -f docs/sql/postgresql/data.sql
 ```
 
-> 未设置时系统**不会崩**，检索器会自动降级到 `LIKE` 并在日志打 WARN，但召回质量明显下降。
+然后补演示打卡流水（不补的话趋势图与统计看板是空的）：
+
+```bash
+LZ_PG_HOST=127.0.0.1 LZ_PG_PORT=5432 LZ_PG_DB=lianzhi LZ_PG_USER=postgres \
+LZ_PG_PWD=你的口令 LZ_PG_SSLMODE=disable node scripts/seed-sample-attendance.mjs
+```
+
+> `LZ_PG_SSLMODE=disable` 是给**本地无 SSL** 的 PG 用的；连 Supabase 等云端 PG 时去掉它（默认 `require`）。
 
 ### 三平台安装方式
 
@@ -79,10 +91,10 @@ innodb_large_prefix=ON    # 避免 767 bytes 索引长度限制
 | JDK 17 | `winget install Microsoft.OpenJDK.17` | `brew install openjdk@17` | `sudo apt install openjdk-17-jdk` |
 | Maven | `winget install Apache.Maven` | `brew install maven` | `sudo apt install maven` |
 | Node 18+ | `winget install OpenJS.NodeJS.LTS` | `brew install node` | `sudo apt install nodejs npm` |
-| MySQL 5.7/8 | mysql.com Installer（选 Server only） | `brew install mysql@8.0` | `sudo apt install mysql-server` |
+| PostgreSQL 15+ | `winget install PostgreSQL.PostgreSQL.16` | `brew install postgresql@16` | `sudo apt install postgresql` |
 | Redis（可选） | tporadowski Redis 或 WSL | `brew install redis` | `sudo apt install redis-server` |
 
-装完自检：`java -version`、`mvn -v`、`node -v`、`mysql --version`。
+装完自检：`java -version`、`mvn -v`、`node -v`、`psql --version`。
 
 ---
 

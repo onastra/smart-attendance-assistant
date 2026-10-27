@@ -3,9 +3,14 @@
 
 spring:
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/lianzhi?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: your_mysql_password
+    # ⚠️ 2026-10-27：数据库已从 MySQL 迁移到 PostgreSQL（含 Supabase），驱动与全部
+    # Mapper SQL 方言均为 PG。**不要改回 mysql 连接串**，否则启动即报方言错误。
+    # 建表脚本：docs/sql/postgresql/{schema,data}.sql（MySQL 旧脚本仍在 docs/sql/ 下，仅供对照）
+    # 用 Docker 起本地库：docker run -d --name lz-postgres -p 5432:5432 \
+    #   -e POSTGRES_PASSWORD=你的口令 -e POSTGRES_DB=lianzhi postgres:16
+    url: jdbc:postgresql://127.0.0.1:5432/lianzhi
+    username: postgres
+    password: your_postgres_password
   data:
     redis:
       # 本机 Redis（Windows 服务 redis-lianzhi，见 docs/deployment.md）。

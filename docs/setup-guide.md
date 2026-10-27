@@ -1,7 +1,12 @@
 # 项目启动与运行指南（VSCode 版）
 
-> 适用环境：Windows + VSCode + 本机 MySQL/Redis（非 Docker）
-> 全程实测于 2026-10-26，命令与预期输出均为真实结果。
+> 适用环境：Windows + VSCode + PostgreSQL(Docker 容器) + 本机 Redis
+> 实测于 2026-10-27，命令与预期输出均为真实结果。
+>
+> ⚠️ **2026-10-27 起数据库已从 MySQL 迁移到 PostgreSQL**（合作者提交 `97aafc3`）。
+> 文中凡涉及 MySQL 客户端、3306 端口、`LZ_MYSQL_*` 环境变量的地方，
+> 均已换成 PostgreSQL 的对应写法；旧 MySQL 库仅作为历史数据保留，不再被代码使用。
+>
 > 项目根目录记作 `<ROOT>` = `D:\A_school_training\Project Document`
 
 ---
@@ -11,9 +16,9 @@
 启动顺序**有依赖关系**，跳步会报错：
 
 ```
-   ┌─────────────┐   ┌──────────────┐
-   │ MySQL :3306 │   │ Redis :6379  │     ① 基础设施（Windows 服务，开机自启）
-   └──────┬──────┘   └──────┬───────┘
+   ┌──────────────────┐   ┌──────────────┐
+   │ PostgreSQL :5432 │   │ Redis :6379  │     ① 基础设施（PG 走 Docker 容器，Redis 是 Windows 服务）
+   └──────┬───────────┘   └──────┬───────┘
           │                 │
           └────────┬────────┘
                    ▼
@@ -27,7 +32,8 @@
 ```
 
 **Redis 不是硬依赖**：它挂了后端仍能起（缓存自动降级为直查，日志 WARN），只是没缓存。
-**MySQL 是硬依赖**：它没起来，后端能启动但所有接口报数据库连接失败。
+**PostgreSQL 是硬依赖**：它没起来，后端能启动但所有接口报数据库连接失败。
+本机 PG 跑在 Docker 容器 `lz-postgres` 里（`--restart unless-stopped`，开机自动拉起）。
 
 ---
 
@@ -39,8 +45,9 @@
 | Maven | 3.9.6 | `mvn -v` | 装在 `D:\apache-maven-3.9.6-bin\apache-maven-3.9.6` |
 | Node | v22.22.2 | `node -v` | |
 | npm | 10.9.7 | `npm -v` | |
-| MySQL | 5.7.19 | 服务名 `MySQL` | 客户端 `D:\gjcmysql\mysql-5.7.19-winx64\bin\mysql.exe` |
+| PostgreSQL | 16.15 | `docker ps --filter name=lz-postgres` | 容器 `lz-postgres`，卷 `lz-pg-data`，库名 `lianzhi`；客户端用 `docker exec -it lz-postgres psql -U postgres -d lianzhi` |
 | Redis | 5.0.14 | 服务名 `redis-lianzhi` | 装在 `D:\tools\redis` |
+| ~~MySQL~~ | 5.7.19（仅历史库） | 服务名 `MySQL` | **代码已不兼容**，仅保留旧数据供对照，不要再配成它 |
 | VSCode | — | `code -v` | 可执行在 `D:\Microsoft VS Code\bin\code` |
 
 > 若 `java` / `mvn` / `node` 提示"不是内部或外部命令"，说明没配 PATH。
@@ -111,9 +118,9 @@ cp application-local.yml.example application-local.yml
 ```yaml
 spring:
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/lianzhi?...
-    username: root
-    password: <你的 MySQL 口令>
+    url: jdbc:postgresql://127.0.0.1:5432/lianzhi
+    username: postgres
+    password: <你的 PostgreSQL 口令>   # ← 容器 POSTGRES_PASSWORD 设的那个
   data:
     redis:
       host: 127.0.0.1
@@ -148,17 +155,27 @@ lz:
 
 ### 3.3 初始化数据库
 
+PostgreSQL 的建表脚本把 MySQL 版的 `patch-phase2~6 + phaseE` 全部内联了，**一次执行即为最终结构**，
+不用再逐个跑 patch：
+
 ```bash
 cd <ROOT>
-export LZ_MYSQL_BIN="D:/gjcmysql/mysql-5.7.19-winx64/bin/mysql.exe"
-export LZ_MYSQL_PWD=<你的 MySQL 口令>
+docker exec -i lz-postgres psql -U postgres -d lianzhi -q < docs/sql/postgresql/schema.sql
+docker exec -i lz-postgres psql -U postgres -d lianzhi -q < docs/sql/postgresql/data.sql
 ```
 
-然后按顺序导入 `<ROOT>/docs/sql/`：
-`schema.sql → data.sql → patch2 … patch6 → 14 天演示打卡`。
+然后补 14 天演示打卡流水（**不补的话趋势图与统计看板是空的**）：
 
-> **顺序不能颠倒**：patch 脚本用 `INSERT IGNORE` 追加权限码，先跑会占掉 AUTO_INCREMENT 的 id，
-> `data.sql` 再按显式 id 插入就主键冲突（实测 ERROR 1062）。详见 `docs/deployment.md`。
+```bash
+export LZ_PG_HOST=127.0.0.1 LZ_PG_PORT=5432 LZ_PG_DB=lianzhi LZ_PG_USER=postgres
+export LZ_PG_PWD=你的口令 LZ_PG_SSLMODE=disable
+node scripts/seed-sample-attendance.mjs
+```
+
+> `schema.sql` 开头会 `CREATE EXTENSION IF NOT EXISTS pg_trgm`（知识库中文检索依赖它）。
+> 脚本用 `DROP TABLE IF EXISTS ... CASCADE`，**可重复执行，但会清空业务数据**。
+> 如果本地 PG 没开 SSL（Docker 默认如此），务必带 `LZ_PG_SSLMODE=disable`，
+> 否则种子脚本与回归脚本的 psycopg2 通道会静默连不上。
 
 ### 3.4 首次部署后必须做一次日汇总重算
 
@@ -179,13 +196,15 @@ curl -X POST http://localhost:8080/api/statistics/daily-rebuild \
 ### 4.1 检查 / 启动基础设施
 
 ```powershell
-Get-Service MySQL, redis-lianzhi | Select-Object Name, Status
+Get-Service redis-lianzhi | Select-Object Name, Status
+docker ps --filter name=lz-postgres --format "{{.Names}} {{.Status}}"
 ```
 
-预期两个都是 `Running`。若不是，手动启动：
+预期 Redis 是 `Running`、容器是 `Up`。若不是，手动启动：
 
 ```powershell
-Start-Service MySQL
+Start-Service redis-lianzhi
+docker start lz-postgres
 Start-Service redis-lianzhi
 ```
 
@@ -291,7 +310,7 @@ curl http://localhost:8080/api/system/health
 }
 ```
 
-- `database.connected` 必须是 `true`，否则去看 MySQL 服务
+- `database.connected` 必须是 `true`（且 url 以 `jdbc:postgresql` 开头），否则去看 PG 容器
 - `cache.mode` 是 `redis` 说明缓存生效；显示 `noop` 说明 Redis 没连上（会降级但不致命）
 
 ### 5.2 浏览器验收
@@ -310,33 +329,39 @@ curl http://localhost:8080/api/system/health
 
 ```bash
 cd <ROOT>
-export LZ_MYSQL_BIN="D:/gjcmysql/mysql-5.7.19-winx64/bin/mysql.exe"
-export LZ_MYSQL_PWD=<你的 MySQL 口令>
+export LZ_PG_HOST=127.0.0.1 LZ_PG_PORT=5432 LZ_PG_DB=lianzhi LZ_PG_USER=postgres
+export LZ_PG_PWD=你的 PostgreSQL 口令 LZ_PG_SSLMODE=disable
 npm run verify
 ```
 
-预期输出：
+预期输出（2026-10-27 实测）：
 
 ```
-套件                          通过   失败   耗时
-Maven 单元测试                  64     0   11.8s
-阶段 3 二维码打卡闭环            30     0    3.6s
-阶段 4 统计与看板                32     0    0.8s
-阶段 5 知识库与人脸识别           46     0    0.8s
-阶段 6 文件受控存储与鉴权         20     0    0.5s
-----------------------------------------
-合计：192 项，失败 0
+套件                              通过    失败    耗时
+Maven 单元测试                    64       0    12.7s
+阶段 3 二维码打卡闭环                  30       0    5.0s
+阶段 4 统计与看板                    31       0    2.1s
+阶段 5 知识库与人脸识别                 46       0   48.4s
+阶段 6 文件受控存储与鉴权                20       0    0.6s
+阶段 E 审批中心（用户新增）               29       0    0.6s
+阶段 F 地图选址（用户新增）               20       0    0.3s
+----------------------------------------------------------------
+合计：通过 240 项，失败 0 项
 ```
 
-> ⚠️ **必须带 `LZ_MYSQL_PWD` 环境变量**，脚本才会清理上一轮测试数据。
+> ⚠️ **必须带 PG（或 MySQL）连接环境变量**，脚本才会清理上一轮测试数据。
 > 不带的话会因为"5 分钟去重窗口"和"上传去重"出现**假失败**——
 > 看起来像功能坏了，实际是数据没清。这个坑在 `progress.md` 里踩过并记录下来了。
+>
+> PG 通道走 Python 的 `psycopg2`（`pip install psycopg2-binary`）。
+> 本地 Docker 的 PG 没开 SSL，**必须** `LZ_PG_SSLMODE=disable`；
+> 连 Supabase 等云端 PG 则去掉它（默认 `require`）。
 
 ---
 
 ## 6. 停止服务
 
-**停演示服务**（保留 MySQL/Redis）：
+**停演示服务**（保留 PostgreSQL 容器与 Redis）：
 
 ```powershell
 # 查 pid
@@ -356,8 +381,10 @@ docker compose stop        # 保留数据卷
 # docker compose down -v   # 连数据一起删（下次会重新初始化）
 ```
 
-> **MySQL 和 Redis 不建议停**——它们是 Windows 服务，`Automatic` 启动类型，
+> **Redis 不建议停**——它是 Windows 服务，`Automatic` 启动类型，
 > 停了以后每次都要手动 Start-Service，没必要。
+> PostgreSQL 在 Docker 容器里，容器设了 `--restart unless-stopped`，
+> 会随 Docker Desktop 一起自动拉起；`docker stop lz-postgres` 才会停。
 
 ---
 
@@ -368,13 +395,14 @@ docker compose stop        # 保留数据卷
 | 现象 | 原因 | 解法 |
 |---|---|---|
 | `mvn package` 报 `Unable to rename lz-app.jar` | 8080 上的旧 java 进程占着 jar | `netstat -ano \| grep :8080` 查 pid 后 `taskkill //PID <pid> //F` |
-| 后端起了但 health 里 `database.connected=false` | MySQL 服务没开，或 `application-local.yml` 口令不对 | `Start-Service MySQL`；核对 yml 里 password |
+| 后端起了但 health 里 `database.connected=false` | PG 容器没跑，或 `application-local.yml` 里连的还是 mysql 串/口令不对 | `docker start lz-postgres`；核对 yml 的 url/username/password |
 | health 里 `cache.mode=noop` | Redis 没开或口令错 | `Start-Service redis-lianzhi`；**不致命**，会自动降级直查 |
 | 8080 能启动但访问不到 | 环境变量 `SERVER__PORT/PORT` 污染了端口 | `env \| grep -i server`；改用 `scripts/start-backend.cmd` |
 | 前端 5173 起不来：`EADDRINUSE` | 端口被上次的 vite 占着 | 换端口 `npm run dev -- --port 5174`，或杀掉旧进程 |
 | 前端页面白屏 / 接口 404 | 前端代理目标是 8080，但后端没起 | 先确认 `curl localhost:8080/api/system/health` 通 |
-| 回归脚本一堆失败，但功能明明正常 | 没带 `LZ_MYSQL_PWD`，旧数据没清理 | 见 §5.3 说明，带上环境变量重跑 |
-| 首次部署看板全是 0 | 没跑日汇总重算 | 见 §3.4 |
+| 回归脚本一堆失败，但功能明明正常 | 没带 `LZ_PG_PWD`/`LZ_MYSQL_PWD`，旧数据没清理 | 见 §5.3 说明，带上环境变量重跑 |
+| 首次部署看板全是 0 | 没跑日汇总重算，或没灌演示打卡流水 | 见 §3.3（种子脚本）与 §3.4 |
+| 统计看板有数据但出勤率 0% | 库里只有当天流水，重算区间没覆盖 | 跑 `scripts/seed-sample-attendance.mjs` 补 14 天流水后重算 |
 | Redis 里读不到 key / 看板数字不更新 | 缓存 TTL 未失效 | 重算后会自动 evict；或 `docker exec lz-redis redis-cli FLUSHDB`（容器）/ 直接 `redis-cli -a <pwd> FLUSHDB` |
 | Vue 文件满屏报错 | 装了 Vetur 而不是 Vue - Official | 禁用 Vetur，装 Vue - Official |
 
@@ -384,17 +412,17 @@ docker compose stop        # 保留数据卷
 
 | 端口 | 用途 | 谁在跑 |
 |---|---|---|
-| 3306 | MySQL | Windows 服务 `MySQL` |
+| 5432 | PostgreSQL | Docker 容器 `lz-postgres`（数据卷 `lz-pg-data`） |
 | 6379 | Redis | Windows 服务 `redis-lianzhi` |
 | 8080 | 后端 API | `java -jar lz-app.jar` |
 | 5173 | 前端开发服务器 | Vite |
+| 3306 | ~~MySQL~~ | 仅历史库，**代码已不用** |
 | 18080 | **容器版** 后端 | docker compose（`deploy/`） |
 | 18081 | **容器版** 前端（Nginx） | docker compose |
-| 13306 | **容器版** MySQL | docker compose |
-| 16379 | **容器版** Redis | docker compose |
 
 > 本机 8080/5173 与容器 18080/18081 是**两套独立环境**，可以同时跑互不干扰。
-> 但两者用的是**不同的数据库**（本机 3306 vs 容器 13306），数据不通，别串着想。
+> `deploy/` 那套 compose 仍是旧版（含 MySQL），数据库迁移后**尚未同步**，
+> 要跑容器演示需先把 compose 里的 db 服务换成 PostgreSQL。
 
 ---
 

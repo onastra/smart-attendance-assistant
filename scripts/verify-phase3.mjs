@@ -68,7 +68,9 @@ function pgExec(sql) {
   }
   const code = [
     'import psycopg2',
-    `conn = psycopg2.connect(host=${JSON.stringify(host)}, port=${JSON.stringify(process.env.LZ_PG_PORT || '5432')}, dbname=${JSON.stringify(process.env.LZ_PG_DB || 'postgres')}, user=${JSON.stringify(process.env.LZ_PG_USER || '')}, password=${JSON.stringify(process.env.LZ_PG_PWD || '')}, sslmode='require')`,
+    // sslmode 默认 require（Supabase 强制 SSL）；本地 Docker 的 PG 默认不开 SSL，
+    // 用 LZ_PG_SSLMODE=disable 覆盖，否则整条清理通道会静默失效
+    `conn = psycopg2.connect(host=${JSON.stringify(host)}, port=${JSON.stringify(process.env.LZ_PG_PORT || '5432')}, dbname=${JSON.stringify(process.env.LZ_PG_DB || 'postgres')}, user=${JSON.stringify(process.env.LZ_PG_USER || '')}, password=${JSON.stringify(process.env.LZ_PG_PWD || '')}, sslmode=${JSON.stringify(process.env.LZ_PG_SSLMODE || 'require')})`,
     'cur = conn.cursor()',
     `cur.execute(${JSON.stringify(sql)})`,
     'conn.commit()',
