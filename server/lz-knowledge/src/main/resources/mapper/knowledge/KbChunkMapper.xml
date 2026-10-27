@@ -36,17 +36,23 @@
         ORDER BY chunk_index
     </select>
 
+    <!-- PostgreSQL（Supabase）版全文检索：
+         MySQL 的 ngram MATCH...AGAINST 换成 pg_trgm 的 word_similarity——
+         取内容中任意连续片段与关键词的三元组相似度（0~1），
+         关键词完整出现在内容中时得分接近 1，模糊命中随相似度衰减，
+         与 ngram 自然语言模式的排序语义最接近。
+         加速：kb_chunk.content 上已建 gin_trgm_ops 索引（见 docs/sql/postgresql/schema.sql）。 -->
     <select id="searchByFullText" resultType="com.lianzhi.attendance.knowledge.dto.ChunkHit">
         SELECT
-            c.id                                                                   AS chunkId,
-            c.document_id                                                          AS documentId,
-            doc.title                                                              AS documentTitle,
-            c.section                                                              AS section,
-            c.content                                                              AS content,
-            MATCH(c.content) AGAINST (#{keyword} IN NATURAL LANGUAGE MODE)         AS score
+            c.id                                        AS chunkId,
+            c.document_id                               AS documentId,
+            doc.title                                   AS documentTitle,
+            c.section                                   AS section,
+            c.content                                   AS content,
+            word_similarity(#{keyword}, c.content)      AS score
         FROM kb_chunk c
         JOIN kb_document doc ON doc.id = c.document_id
-        WHERE MATCH(c.content) AGAINST (#{keyword} IN NATURAL LANGUAGE MODE) &gt; #{minScore}
+        WHERE word_similarity(#{keyword}, c.content) &gt; #{minScore}
         <include refid="Visible_Document"/>
         <if test="documentId != null">
             AND c.document_id = #{documentId}
@@ -65,7 +71,7 @@
             1.0           AS score
         FROM kb_chunk c
         JOIN kb_document doc ON doc.id = c.document_id
-        WHERE c.content LIKE CONCAT('%', #{keyword}, '%')
+        WHERE c.content ILIKE CONCAT('%', #{keyword}, '%')
         <include refid="Visible_Document"/>
         <if test="documentId != null">
             AND c.document_id = #{documentId}

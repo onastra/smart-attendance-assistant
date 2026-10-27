@@ -33,7 +33,12 @@ function deleteRecordByRequestId(requestId) {
   try {
     mysqlExec(`DELETE FROM att_record WHERE request_id='${requestId}';`)
   } catch {
-    /* 清理失败不影响后续断言，只是该用例可能被重复窗口拦下 */
+    /* MySQL 通道不可用时回退 PostgreSQL（Supabase）；都失败只是该用例可能被重复窗口拦下 */
+    try {
+      pgExec(`DELETE FROM att_record WHERE request_id='${requestId}'`)
+    } catch {
+      /* 清理失败不影响后续断言 */
+    }
   }
 }
 
@@ -53,17 +58,45 @@ function mysqlExec(sql) {
   execSync(`"${bin}" ${auth} ${database} -e "${sql}"`, { stdio: 'ignore' })
 }
 
+/** 执行一条 PostgreSQL 语句（Supabase 回退通道，凭据全部走环境变量）。
+ *  用法：LZ_PG_HOST=aws-0-xxx.pooler.supabase.com LZ_PG_USER=postgres.xxx LZ_PG_PWD=口令 node scripts/verify-phase3.mjs
+ */
+function pgExec(sql) {
+  const host = process.env.LZ_PG_HOST
+  if (!host) {
+    throw new Error('LZ_PG_HOST 未设置')
+  }
+  const code = [
+    'import psycopg2',
+    `conn = psycopg2.connect(host=${JSON.stringify(host)}, port=${JSON.stringify(process.env.LZ_PG_PORT || '5432')}, dbname=${JSON.stringify(process.env.LZ_PG_DB || 'postgres')}, user=${JSON.stringify(process.env.LZ_PG_USER || '')}, password=${JSON.stringify(process.env.LZ_PG_PWD || '')}, sslmode='require')`,
+    'cur = conn.cursor()',
+    `cur.execute(${JSON.stringify(sql)})`,
+    'conn.commit()',
+  ].join('\n')
+  execSync('python -', { input: code, stdio: ['pipe', 'ignore', 'ignore'] })
+}
+
+
 function cleanPreviousRuns() {
-  if (!process.env.LZ_MYSQL_PWD) {
-    console.log('  [提示] 未设置 LZ_MYSQL_PWD，跳过历史记录清理；若上一轮刚跑过，重复打卡用例可能失败')
-    return
+  if (process.env.LZ_MYSQL_PWD) {
+    try {
+      mysqlExec("DELETE FROM att_record WHERE request_id LIKE 'CK%';")
+      console.log('  已清理上一轮验证产生的打卡记录（MySQL）')
+      return
+    } catch {
+      console.log('  [提示] mysql 客户端不可用，尝试 PostgreSQL 清理通道')
+    }
   }
-  try {
-    mysqlExec("DELETE FROM att_record WHERE request_id LIKE 'CK%';")
-    console.log('  已清理上一轮验证产生的打卡记录')
-  } catch {
-    console.log('  [提示] 未能连接 mysql 客户端清理历史记录，若上一轮刚跑过，重复打卡用例可能失败')
+  if (process.env.LZ_PG_HOST) {
+    try {
+      pgExec("DELETE FROM att_record WHERE request_id LIKE 'CK%'")
+      console.log('  已清理上一轮验证产生的打卡记录（PostgreSQL）')
+      return
+    } catch {
+      console.log('  [提示] PostgreSQL 清理通道不可用')
+    }
   }
+  console.log('  [提示] 未配置 LZ_MYSQL_PWD 或 LZ_PG_HOST，跳过历史记录清理；若上一轮刚跑过，重复打卡用例可能失败')
 }
 
 let passed = 0

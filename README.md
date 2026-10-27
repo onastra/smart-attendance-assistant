@@ -57,6 +57,7 @@ cd smart-attendance-assistant
 | Maven | 3.6+ | 首次构建需联网下载依赖 |
 | Node.js | 18+ | Vite 5 的要求，仓库含 `package-lock.json` |
 | MySQL | 5.7+ | 需 InnoDB 全文索引与 ngram 分词插件（`ngram_token_size=2`），中文检索依赖它 |
+| PostgreSQL | 15+ | 可选替代 MySQL：驱动已内置（postgresql 42.7.4），建表脚本见 `docs/sql/postgresql/`，知识库检索走 pg_trgm |
 | Redis | 可选 | 默认关闭（`LZ_CACHE_ENABLED=false`），不装也能跑完整链路 |
 | Docker | 可选 | 仅容器化演示（Compose / K8s）需要 |
 | Git | 2.x | —— |
@@ -64,6 +65,12 @@ cd smart-attendance-assistant
 **所有外部依赖都是开关化的**，默认全部关闭、关闭时应用仍可正常启动：大模型（`lz.llm.enabled`）、地图（`lz.map.provider`）、人脸 SDK（`lz.face.provider`）、Redis（`lz.cache.enabled`）、Nacos/Feign（`lz.nacos.enabled` / `lz.feign.enabled`）。开关与取值集中在 `server/lz-app/src/main/resources/application.yml` 的 `lz.*` 段，代码侧缺配置时只降级、不崩溃，也不会假装可用。
 
 ## 4. 数据库初始化
+
+> **PostgreSQL / Supabase 部署**（已验证，接口回归 175 项 + 单元测试全通过）：跳过本节的 MySQL 步骤，
+> 改用 `docs/sql/postgresql/` 下的 `schema.sql` + `data.sql`（patch-phase2~6+phaseE 已全部内联，无需再跑补丁），
+> 数据源换为 `jdbc:postgresql://<host>:5432/<db>?sslmode=require`、驱动 `org.postgresql.Driver`。
+> Supabase 用户直连 `db.<ref>.supabase.co` 需 IPv6；IPv4 网络请用 Session pooler（`aws-0-<region>.pooler.supabase.com:5432`）。
+> 知识库全文检索在 PG 侧依赖 `pg_trgm` 扩展（脚本已自动 `CREATE EXTENSION IF NOT EXISTS`）。
 
 ```bash
 # Windows 下 mysql 客户端未加入 PATH 时，把 MYSQL 换成绝对路径（例如 "C:/mysql/bin/mysql.exe"）

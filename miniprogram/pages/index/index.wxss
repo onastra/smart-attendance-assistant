@@ -1,0 +1,63 @@
+.page {
+  padding-bottom: 40rpx;
+}
+
+.greet-name {
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.greet-sub {
+  margin-top: 8rpx;
+  color: #8A94A6;
+  font-size: 24rpx;
+}
+
+.greet-last {
+  margin-top: 16rpx;
+  color: #2F6FED;
+  font-size: 26rpx;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.grid-item {
+  width: 33.33%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 0;
+}
+
+.grid-icon {
+  width: 92rpx;
+  height: 92rpx;
+  border-radius: 28rpx;
+  color: #ffffff;
+  font-size: 40rpx;
+  font-weight: 600;
+  line-height: 92rpx;
+  text-align: center;
+}
+
+.icon-blue { background: #2F6FED; }
+.icon-green { background: #17803D; }
+.icon-orange { background: #B25E09; }
+.icon-purple { background: #6D4FD3; }
+.icon-red { background: #C62A2F; }
+
+.grid-text {
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  color: #1F2937;
+}
+
+.foot-note {
+  margin: 20rpx 24rpx;
+  font-size: 22rpx;
+  color: #A5ADBB;
+  line-height: 1.6;
+}

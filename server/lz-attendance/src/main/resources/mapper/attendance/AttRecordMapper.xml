@@ -84,7 +84,7 @@
         LEFT JOIN biz_place p ON p.id = r.place_id
         <include refid="QueryWhere"/>
         ORDER BY r.checkin_time DESC, r.id DESC
-        LIMIT #{offset}, #{limit}
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="countByQuery" resultType="long">

@@ -1,0 +1,32 @@
+<view class="page">
+  <view class="hero">
+    <view class="logo">联</view>
+    <view class="title">联智考勤</view>
+    <view class="subtitle">企业级 AI Agent 智能考勤与业务助手</view>
+  </view>
+
+  <view class="card">
+    <view class="form-item">
+      <text class="form-label">账号</text>
+      <input class="form-input" placeholder="请输入账号" value="{{username}}" bindinput="onUsernameInput" />
+    </view>
+    <view class="form-item">
+      <text class="form-label">口令</text>
+      <input class="form-input" password placeholder="请输入口令" value="{{password}}" bindinput="onPasswordInput" />
+    </view>
+    <button class="btn-primary login-btn" loading="{{loading}}" disabled="{{loading}}" bindtap="doLogin">登 录</button>
+  </view>
+
+  <view class="card demo-card">
+    <view class="card-title">演示账号（点击自动填充）</view>
+    <view class="demo-row" bindtap="fillDemo" data-role="admin">
+      <text>系统管理员</text><text class="demo-account">admin / Admin@123</text>
+    </view>
+    <view class="demo-row" bindtap="fillDemo" data-role="manager">
+      <text>部门主管</text><text class="demo-account">manager01 / Admin@123</text>
+    </view>
+    <view class="demo-row" bindtap="fillDemo" data-role="emp">
+      <text>普通员工</text><text class="demo-account">emp01 / Emp@123</text>
+    </view>
+  </view>
+</view>

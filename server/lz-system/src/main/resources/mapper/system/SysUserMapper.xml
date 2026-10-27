@@ -35,7 +35,7 @@
             </if>
         </where>
         ORDER BY id DESC
-        LIMIT #{offset}, #{limit}
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="countByQuery" resultType="long">
@@ -86,10 +86,11 @@
     </delete>
 
     <insert id="insertUserRoles">
-        INSERT IGNORE INTO sys_user_role (user_id, role_id)
+        INSERT INTO sys_user_role (user_id, role_id)
         VALUES
         <foreach collection="roleIds" item="rid" separator=",">
             (#{userId}, #{rid})
         </foreach>
+        ON CONFLICT DO NOTHING
     </insert>
 </mapper>

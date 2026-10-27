@@ -1,0 +1,51 @@
+<view class="page">
+  <view class="card">
+    <view class="card-title">扫码打卡</view>
+    <view class="type-row">
+      <picker range="{{typeLabels}}" value="{{typeIndex}}" bindchange="onTypeChange">
+        <view class="picker-value">{{typeLabels[typeIndex]}}</view>
+      </picker>
+    </view>
+    <view class="loc-row">
+      <text class="loc-label">附带定位（围栏校验）</text>
+      <switch checked="{{useLocation}}" bindchange="onUseLocationChange" color="#2F6FED" />
+    </view>
+    <view class="loc-text" wx:if="{{locationText}}">{{locationText}}</view>
+    <button class="btn-primary scan-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="scanAndCheckin">扫 码 打 卡</button>
+  </view>
+
+  <view class="card">
+    <view class="card-title">手动输入（兜底）</view>
+    <view class="tip">摄像头不可用或二维码破损时，把管理员发布的二维码内容粘贴到这里，校验链与扫码完全一致。</view>
+    <textarea class="form-textarea" placeholder="粘贴二维码原文" value="{{manualContent}}" bindinput="onManualInput" maxlength="-1" />
+    <button class="btn-plain manual-btn" disabled="{{submitting}}" bindtap="submitManual">提交手动打卡</button>
+  </view>
+
+  <view class="card" wx:if="{{result}}">
+    <view class="card-title">{{result.title}}</view>
+    <view class="cell">
+      <text class="cell-label">员工</text>
+      <text class="cell-value">{{result.employeeName}}</text>
+    </view>
+    <view class="cell">
+      <text class="cell-label">场所</text>
+      <text class="cell-value">{{result.placeName}}</text>
+    </view>
+    <view class="cell">
+      <text class="cell-label">类型</text>
+      <text class="cell-value">{{result.typeText}}</text>
+    </view>
+    <view class="cell">
+      <text class="cell-label">结果</text>
+      <text class="cell-value">{{result.resultText}}</text>
+    </view>
+    <view class="cell">
+      <text class="cell-label">时间</text>
+      <text class="cell-value">{{result.timeText}}</text>
+    </view>
+    <view class="cell">
+      <text class="cell-label">围栏</text>
+      <text class="cell-value">{{result.distanceText}}</text>
+    </view>
+  </view>
+</view>

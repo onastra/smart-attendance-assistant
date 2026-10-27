@@ -1,0 +1,13 @@
+.dt-row {
+  display: flex;
+  gap: 16rpx;
+}
+
+.dt-date {
+  flex: 1.4;
+}
+
+.dt-time {
+  flex: 1;
+  text-align: center;
+}

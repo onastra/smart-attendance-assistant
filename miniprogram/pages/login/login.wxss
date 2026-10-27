@@ -1,0 +1,59 @@
+.page {
+  min-height: 100vh;
+  padding-bottom: 40rpx;
+}
+
+.hero {
+  padding: 100rpx 40rpx 60rpx;
+  text-align: center;
+}
+
+.logo {
+  width: 132rpx;
+  height: 132rpx;
+  margin: 0 auto 24rpx;
+  border-radius: 36rpx;
+  background: #2F6FED;
+  color: #ffffff;
+  font-size: 64rpx;
+  font-weight: 700;
+  line-height: 132rpx;
+}
+
+.title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #1F2937;
+}
+
+.subtitle {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #8A94A6;
+}
+
+.login-btn {
+  margin-top: 16rpx;
+}
+
+.demo-card {
+  padding-bottom: 8rpx;
+}
+
+.demo-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 20rpx 0;
+  border-bottom: 2rpx solid #F0F2F6;
+  font-size: 26rpx;
+  color: #1F2937;
+}
+
+.demo-row:last-child {
+  border-bottom: none;
+}
+
+.demo-account {
+  color: #8A94A6;
+  font-size: 24rpx;
+}

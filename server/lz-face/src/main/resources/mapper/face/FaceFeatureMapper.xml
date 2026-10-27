@@ -44,7 +44,7 @@
             </if>
         </where>
         ORDER BY f.id DESC
-        LIMIT #{offset}, #{limit}
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="countPage" resultType="long">

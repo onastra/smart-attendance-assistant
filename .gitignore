@@ -45,3 +45,6 @@ desktop.ini
 
 # Office 打开文档时产生的锁定临时文件
 ~\$*
+
+# 微信开发者工具个人本地配置
+miniprogram/project.private.config.json

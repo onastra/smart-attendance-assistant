@@ -1,0 +1,41 @@
+<view class="page">
+  <view class="card">
+    <view class="form-item">
+      <text class="form-label">申请类型</text>
+      <picker range="{{typeLabels}}" value="{{typeIndex}}" bindchange="onTypeChange">
+        <view class="picker-value">{{typeLabels[typeIndex]}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">开始时间</text>
+      <view class="dt-row">
+        <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+          <view class="picker-value dt-date">{{startDate}}</view>
+        </picker>
+        <picker mode="time" value="{{startTime}}" bindchange="onStartTimeChange">
+          <view class="picker-value dt-time">{{startTime}}</view>
+        </picker>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">结束时间</text>
+      <view class="dt-row">
+        <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+          <view class="picker-value dt-date">{{endDate}}</view>
+        </picker>
+        <picker mode="time" value="{{endTime}}" bindchange="onEndTimeChange">
+          <view class="picker-value dt-time">{{endTime}}</view>
+        </picker>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">请假 / 加班事由</text>
+      <textarea class="form-textarea" placeholder="请填写事由（必填，最多 500 字）" maxlength="500" value="{{reason}}" bindinput="onReasonInput" />
+    </view>
+
+    <button class="btn-primary" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">提交申请</button>
+  </view>
+</view>

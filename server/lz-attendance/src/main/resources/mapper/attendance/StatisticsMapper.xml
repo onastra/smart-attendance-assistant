@@ -19,12 +19,12 @@
             SUM(CASE WHEN s.status = 'ABSENT' THEN 1 ELSE 0 END)              AS absentDays,
             SUM(CASE WHEN s.status = 'REST'   THEN 1 ELSE 0 END)              AS restDays,
             SUM(CASE WHEN s.source = 'SAMPLE' THEN 1 ELSE 0 END)              AS sampleDays,
-            IFNULL(SUM(s.checkin_count), 0)                                   AS checkinCount,
-            IFNULL(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes
+            COALESCE(SUM(s.checkin_count), 0)                                   AS checkinCount,
+            COALESCE(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes
         FROM att_daily_stat s
         JOIN hr_employee e ON e.id = s.employee_id
         <where>
-            s.stat_date BETWEEN #{dateFrom} AND #{dateTo}
+            s.stat_date BETWEEN CAST(#{dateFrom} AS date) AND CAST(#{dateTo} AS date)
             <if test="deptId != null">AND e.dept_id = #{deptId}</if>
             <if test="employeeId != null">AND s.employee_id = #{employeeId}</if>
         </where>
@@ -40,29 +40,29 @@
         SELECT
             <choose>
                 <when test="query.type == 'week'">
-                    CONCAT(YEAR(s.stat_date), '-W', LPAD(WEEK(s.stat_date, 1), 2, '0'))
+                    CONCAT(EXTRACT(YEAR FROM s.stat_date)::int, '-W', LPAD(EXTRACT(WEEK FROM s.stat_date)::int::text, 2, '0'))
                 </when>
                 <when test="query.type == 'month'">
-                    DATE_FORMAT(s.stat_date, '%Y-%m')
+                    TO_CHAR(s.stat_date, 'YYYY-MM')
                 </when>
                 <otherwise>
                     s.stat_date
                 </otherwise>
             </choose>                                                          AS period,
-            IFNULL(SUM(s.checkin_count), 0)                                    AS checkinCount,
+            COALESCE(SUM(s.checkin_count), 0)                                    AS checkinCount,
             SUM(CASE WHEN s.status = 'NORMAL' THEN 1 ELSE 0 END)                AS normalDays,
             SUM(CASE WHEN s.status = 'LATE'   THEN 1 ELSE 0 END)                AS lateDays,
             SUM(CASE WHEN s.status = 'EARLY'  THEN 1 ELSE 0 END)                AS earlyDays,
             SUM(CASE WHEN s.status = 'ABSENT' THEN 1 ELSE 0 END)                AS absentDays,
-            IFNULL(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes,
+            COALESCE(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes,
             -- 出勤率的分母排除休息日：周末没人打卡不是考勤问题
-            IFNULL(ROUND(SUM(CASE WHEN s.status IN ('NORMAL', 'LATE', 'EARLY') THEN 1 ELSE 0 END) * 100.0
+            COALESCE(ROUND(SUM(CASE WHEN s.status IN ('NORMAL', 'LATE', 'EARLY') THEN 1 ELSE 0 END) * 100.0
                    / NULLIF(SUM(CASE WHEN s.status &lt;&gt; 'REST' THEN 1 ELSE 0 END), 0), 1), 0) AS attendanceRate,
             MAX(CASE WHEN s.source = 'SAMPLE' THEN 1 ELSE 0 END)                AS sample
         FROM att_daily_stat s
         JOIN hr_employee e ON e.id = s.employee_id
         <where>
-            s.stat_date BETWEEN #{query.dateFrom} AND #{query.dateTo}
+            s.stat_date BETWEEN CAST(#{query.dateFrom} AS date) AND CAST(#{query.dateTo} AS date)
             <if test="query.deptId != null">AND e.dept_id = #{query.deptId}</if>
             <if test="query.employeeId != null">AND s.employee_id = #{query.employeeId}</if>
         </where>
@@ -74,21 +74,21 @@
     <select id="selectDeptStat" resultType="com.lianzhi.attendance.attendance.dto.DeptStatItem">
         SELECT
             d.id                                                               AS deptId,
-            IFNULL(d.dept_name, '未分配部门')                                   AS deptName,
+            COALESCE(d.dept_name, '未分配部门')                                   AS deptName,
             COUNT(DISTINCT s.employee_id)                                       AS employeeCount,
-            IFNULL(SUM(s.checkin_count), 0)                                     AS checkinCount,
+            COALESCE(SUM(s.checkin_count), 0)                                     AS checkinCount,
             SUM(CASE WHEN s.status = 'NORMAL' THEN 1 ELSE 0 END)                 AS normalDays,
             SUM(CASE WHEN s.status = 'LATE'   THEN 1 ELSE 0 END)                 AS lateDays,
             SUM(CASE WHEN s.status = 'EARLY'  THEN 1 ELSE 0 END)                 AS earlyDays,
             SUM(CASE WHEN s.status = 'ABSENT' THEN 1 ELSE 0 END)                 AS absentDays,
-            IFNULL(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes,
-            IFNULL(ROUND(SUM(CASE WHEN s.status IN ('NORMAL', 'LATE', 'EARLY') THEN 1 ELSE 0 END) * 100.0
+            COALESCE(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes,
+            COALESCE(ROUND(SUM(CASE WHEN s.status IN ('NORMAL', 'LATE', 'EARLY') THEN 1 ELSE 0 END) * 100.0
                    / NULLIF(SUM(CASE WHEN s.status &lt;&gt; 'REST' THEN 1 ELSE 0 END), 0), 1), 0) AS attendanceRate
         FROM att_daily_stat s
         JOIN hr_employee e ON e.id = s.employee_id
         LEFT JOIN org_department d ON d.id = e.dept_id
         <where>
-            s.stat_date BETWEEN #{dateFrom} AND #{dateTo}
+            s.stat_date BETWEEN CAST(#{dateFrom} AS date) AND CAST(#{dateTo} AS date)
             <if test="deptId != null">AND e.dept_id = #{deptId}</if>
             <if test="employeeId != null">AND s.employee_id = #{employeeId}</if>
         </where>
@@ -105,19 +105,19 @@
         SELECT
             p.id          AS placeId,
             p.place_name  AS placeName,
-            HOUR(r.checkin_time) AS hour,
+            EXTRACT(HOUR FROM r.checkin_time) AS hour,
             COUNT(*)      AS count
         FROM att_record r
         JOIN biz_place p ON p.id = r.place_id
         JOIN hr_employee e ON e.id = r.employee_id
         <where>
-            r.checkin_time &gt;= #{dateFrom}
-            AND r.checkin_time &lt; DATE_ADD(#{dateTo}, INTERVAL 1 DAY)
+            r.checkin_time &gt;= CAST(#{dateFrom} AS timestamp)
+            AND r.checkin_time &lt; CAST(#{dateTo} AS date) + INTERVAL '1 day'
             <if test="placeId != null">AND r.place_id = #{placeId}</if>
             <if test="deptId != null">AND e.dept_id = #{deptId}</if>
             <if test="employeeId != null">AND r.employee_id = #{employeeId}</if>
         </where>
-        GROUP BY p.id, p.place_name, HOUR(r.checkin_time)
+        GROUP BY p.id, p.place_name, EXTRACT(HOUR FROM r.checkin_time)
         ORDER BY p.id, hour
     </select>
 
@@ -132,8 +132,8 @@
         JOIN biz_place p ON p.id = r.place_id
         JOIN hr_employee e ON e.id = r.employee_id
         <where>
-            r.checkin_time &gt;= #{dateFrom}
-            AND r.checkin_time &lt; DATE_ADD(#{dateTo}, INTERVAL 1 DAY)
+            r.checkin_time &gt;= CAST(#{dateFrom} AS timestamp)
+            AND r.checkin_time &lt; CAST(#{dateTo} AS date) + INTERVAL '1 day'
             <if test="deptId != null">AND e.dept_id = #{deptId}</if>
             <if test="employeeId != null">AND r.employee_id = #{employeeId}</if>
         </where>
