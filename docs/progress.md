@@ -80,7 +80,7 @@
 | Maven | 3.9.6 | ✅ | 本地仓库已有 Spring Boot 3.3.5 等依赖 |
 | Node.js / npm | 22.22.2 / 10.9.7 | ✅ | Vite 5 兼容 |
 | Git | 2.55.0 | ✅ | 已 `git init`，首个提交 `685f9b1`（64 文件）；`autocrlf=input`、`quotepath=false` |
-| MySQL | 5.7.19，端口 3306，服务 Running | ✅ | **root/gjc 已连通并完成初始化**；客户端路径 `D:/gjcmysql/mysql-5.7.19-winx64/bin/mysql.exe`（需绝对路径调用）。`ngram_token_size=2`、`innodb_large_prefix=ON`。不支持窗口函数 |
+| MySQL | 5.7.19，端口 3306，服务 Running | ✅ | **root/&lt;本机 MySQL 口令&gt; 已连通并完成初始化**（口令只写在 gitignore 的本地配置里，此处不落真实值）；客户端路径 `&lt;你的 mysql 客户端路径&gt;/bin/mysql.exe`（需绝对路径调用）。`ngram_token_size=2`、`innodb_large_prefix=ON`。不支持窗口函数 |
 | Redis | 未安装 | ❌ | 相关能力标记为待接入；应用默认降级不依赖 Redis |
 | Docker | CLI 29.1.3，**daemon 未启动** | ❌ | 容器化/CI 演示受阻 |
 | 虹软 SDK / Face-Api 授权 | 无 | ❌ | 人脸识别走模拟适配层 |
