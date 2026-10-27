@@ -210,3 +210,77 @@ LZ_MYSQL_PWD=<你的 MySQL 口令> npm run verify        # Windows / bash 通用
 大模型（`lz.llm.enabled`）、地图选址（`lz.map.provider`）、人脸识别（`lz.face.provider`，默认 `noop` 模拟层并在日志打 `[MOCK]`）、Redis（`lz.cache.enabled`）、Nacos/Feign（`lz.nacos.enabled` / `lz.feign.enabled`）。全部集中在 `server/lz-app/src/main/resources/application.yml` 的 `lz.*` 段，关闭时代码只降级、**不假装可用**。
 
 因此拿到包之后，最省事的跑法是：只填 MySQL 口令 + 一个随机 JWT 密钥，其余全保持默认 —— 除了"知识库生成式回答"和"地图选址"这两个需要你自己 Key 的功能外，其它功能都是真实可用的。
+
+---
+
+## 7. 协作者（朋友）如何推送自己的改动
+
+> 仓库：`https://github.com/onastra/smart-attendance-assistant`（public，默认分支 `master`）
+
+### ⚠️ 先说结论：本 zip 不能 `git push`
+
+压缩包里**没有 `.git` 目录**（这是刻意的），直接 `git push` 会报 `not a git repository`。要推送必须先把代码变成仓库。
+
+### 推荐做法：直接 clone（不要从压缩包反向初始化）
+
+```bash
+# 1) 克隆仓库（用你自己 GitHub 账号的凭据，见下方鉴权说明）
+git clone git@github.com:onastra/smart-attendance-assistant.git
+#   或 HTTPS：git clone https://github.com/onastra/smart-attendance-assistant.git
+cd smart-attendance-assistant
+
+# 2) 把已经调好的本地私密配置搬过来（该文件被 .gitignore 忽略，不会被提交）
+cp ../lianzhi-attendance/server/lz-app/src/main/resources/application-local.yml \
+   server/lz-app/src/main/resources/
+
+# 3) 重装前端依赖即可继续跑（后端 Jar 重新按第 4.2 节构建一次）
+cd web && npm install && cd ..
+```
+
+> **为什么不建议把解压目录 `git init` 后当仓库用**：本包刻意排除了 `.workbuddy/` 和 `docs/reference/`，
+> 从它反向初始化出来的仓库会把这两个目录**当成"你删除了它们"**，一旦推送就会把远端文件删掉。
+
+### 推送到自己的分支（推荐）
+
+```bash
+git switch -c feature/你改的内容
+# ……改代码……
+git add -A
+git commit -m "简述改了什么"
+git push -u origin feature/你改的内容      # 首次推送要带 -u
+```
+
+然后到 GitHub 网页发起 Pull Request → 由仓库主人 review 后合并。
+
+### 能否直接推 master？
+
+取决于两件事，**缺一不可**：
+
+1. 你在 Settings → **Collaborators** 里的角色必须是 **Write / Maintain / Admin**（Triage 或 Read 只能读）；
+   - 主人查看/邀请：仓库 Settings → Collaborators → Add people
+2. `master` **没有开启分支保护**（Settings → Branches → Branch protection rules）。
+   若开了 "Require a pull request before merging"，直推会被拒：`remote rejected ... protected branch`。
+
+两条都满足时可以直推，但不推荐（两个人同时直推容易互相覆盖）：
+
+```bash
+git switch master
+git pull --ff-only origin master     # 先把别人的改动拉下来
+# ……改代码并提交……
+git push origin master
+```
+
+### 鉴权：密钥要加到**你自己的** GitHub 账号
+
+- SSH（推荐）：本地生成并添加到自己的账号 → `ssh-keygen -t ed25519`、把公钥贴到 GitHub Settings → SSH and GPG keys → 自检 `ssh -T git@github.com`
+- HTTPS：需要 Personal Access Token（Settings → Developer settings → **Fine-grained token**，仓库选这一个，Contents 权限设为 Read and write），推送时用户名填自己的 GitHub 用户名、密码处填 token
+
+### 提交前自检（别把私密配置传上去）
+
+```bash
+git status                                              # 确认没有 application-local.yml
+git check-ignore -v server/lz-app/src/main/resources/application-local.yml   # 看到命中忽略规则才算安全
+```
+
+> `.gitignore` 已随包提供，`application-local.yml`、`.env*`、`node_modules/`、`target/`、`dist/` 都会被自动排除；
+> 万一误提交且已 push，**要立刻在控制台轮换口令/密钥**，因为公开仓库的历史记录是删不干净的。
