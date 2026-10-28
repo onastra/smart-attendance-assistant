@@ -32,6 +32,7 @@ if not exist "%JAR%" (
 )
 
 set "LOCAL_CFG=%~dp0..\server\lz-app\src\main\resources\application-local.yml"
+set "CLOUD_CFG=%~dp0..\server\lz-app\src\main\resources\application-cloud.yml"
 
 REM --- 自动激活 local profile（私密配置存在时）--------------
 if exist "%LOCAL_CFG%" (
@@ -41,6 +42,13 @@ if exist "%LOCAL_CFG%" (
   set "PROFILE_ARG="
   echo [WARN ] application-local.yml not found - using defaults.
   echo         Copy application-local.yml.example and fill in your DB password.
+)
+
+REM --- 追加激活 cloud profile（共享 Supabase 数据源存在时）--
+REM cloud 覆盖 local 里的数据源（local 现在只放 LLM/地图等本机能力配置）
+if exist "%CLOUD_CFG%" (
+  set "PROFILE_ARG=%PROFILE_ARG%,cloud"
+  echo [INFO ] Found application-cloud.yml - activating 'cloud' profile for shared Supabase datasource.
 )
 
 echo [INFO ] Starting backend on port %APP_PORT% ...
