@@ -1,0 +1,33 @@
+# 共享云端数据库配置模板（Supabase）：复制为 application-cloud.yml 后填写，该文件已被 .gitignore 忽略
+#
+# 用途：两名开发者共用同一个 Supabase PostgreSQL，各自的后端仍跑在本机，
+#       只是数据源指向云端。数据实时互通（A 打的卡，B 的后台立刻能看到）。
+#
+# 启动方式（cloud 覆盖 local 里的数据源，其余 LLM/地图/Redis 等仍用你本机的 local 配置）：
+#   java -jar lz-app/target/lz-app.jar --spring.profiles.active=local,cloud
+#
+# 完整步骤见 docs/shared-supabase.md。
+
+spring:
+  datasource:
+    # Supabase「Connect → Session pooler」给出的连接串（端口 5432，域名形如
+    # aws-0-<区域>.pooler.supabase.com）。⚠️ 不要用 db.<ref>.supabase.co 直连域名——
+    # 免费版那是 IPv6-only，家用网络基本连不上；pooler 域名走 IPv4。
+    # sslmode=require 必须带上：Supabase 强制 TLS。
+    url: jdbc:postgresql://aws-0-<区域>.pooler.supabase.com:5432/postgres?sslmode=require
+    # Session pooler 的用户名是 postgres.<项目ref>（带项目前缀，别只写 postgres）
+    username: postgres.<项目ref>
+    # 数据库口令：Supabase 控制台 Project Settings → Database → Database password
+    password: your_supabase_db_password
+
+lz:
+  security:
+    jwt:
+      # ⚠️ 两台机器必须填同一个值（微信私发，绝不进 git/群聊）。
+      # 原因：JWT 签名密钥不同 → 你签发的登录 token 在对方后端直接 401。
+      # 生成：openssl rand -base64 32
+      secret: your_shared_jwt_secret_at_least_32_bytes
+  attendance:
+    # ⚠️ 同样两台机器必须一致。原因：二维码由 HMAC-SHA256 签发——
+    # A 的后台生成的场所码，员工手机如果请求打到 B 的后端，签名对不上会被判伪造。
+    qr-sign-secret: your_shared_qr_sign_secret

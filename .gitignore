@@ -21,6 +21,9 @@ out/
 # ===== 本地私密配置（禁止入库）=====
 application-local.yml
 application-local.properties
+# 共享云端库（Supabase）的连接口令同样私密，只允许 example 模板入库
+application-cloud.yml
+application-cloud.properties
 .env
 .env.local
 *.pem

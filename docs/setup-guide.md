@@ -512,3 +512,4 @@ java -jar lz-app/target/lz-app.jar --spring.profiles.active=local
 | `docs/acceptance.md` | 验收清单 + 十分钟演示脚本 |
 | `docs/test-report.md` | 测试策略与 192 项回归说明 |
 | `docs/known-issues.md` | 已知限制（人脸模拟、AI retrieval-only 等） |
+| `docs/shared-supabase.md` | 两人共用一个 Supabase 云端数据库（跨网络数据互通） |
