@@ -46,8 +46,14 @@ if exist "%LOCAL_CFG%" (
 
 REM --- 追加激活 cloud profile（共享 Supabase 数据源存在时）--
 REM cloud 覆盖 local 里的数据源（local 现在只放 LLM/地图等本机能力配置）
+REM 注意：local 缺失时 PROFILE_ARG 为空，直接拼会导致 ",cloud" 被当成非选项参数
+REM （cloud 静默失效、看起来还启动成功），所以这里分两种情况处理。
 if exist "%CLOUD_CFG%" (
-  set "PROFILE_ARG=%PROFILE_ARG%,cloud"
+  if "%PROFILE_ARG%"=="" (
+    set "PROFILE_ARG=--spring.profiles.active=cloud"
+  ) else (
+    set "PROFILE_ARG=%PROFILE_ARG%,cloud"
+  )
   echo [INFO ] Found application-cloud.yml - activating 'cloud' profile for shared Supabase datasource.
 )
 

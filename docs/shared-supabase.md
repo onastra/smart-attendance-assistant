@@ -108,6 +108,7 @@ npm run verify
 | 偶尔操作慢半拍 | 数据库在海外机房，往返 50–100ms | 正常，演示无感 |
 | 隔了一周连不上 | Supabase 免费版 7 天不活跃自动暂停 | 控制台点 Restore |
 | 两人同时跑日汇总重算 | 定时任务两边都会触发 | 重算是幂等的（覆盖写），无害 |
+| **启动后第一次 health 显示 `connected=false`，刷新一次又变 true** | 云端库**首次**连接要做 TLS 握手 + JVM 安全随机数初始化，实测 5 秒出头，超过 `application.yml` 里本地库用的 `max-wait: 5000` | `application-cloud.yml`（模板已含）把 `spring.datasource.druid.max-wait` 放宽到 `15000`。之后连接稳定在 1~2 秒 |
 
 ## 7. 安全边界
 

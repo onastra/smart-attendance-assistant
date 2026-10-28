@@ -19,6 +19,12 @@ spring:
     username: postgres.<项目ref>
     # 数据库口令：Supabase 控制台 Project Settings → Database → Database password
     password: your_supabase_db_password
+    druid:
+      # ⚠️ 云端库必须放宽：application.yml 里的 max-wait 是 5000ms，够本地库用，
+      # 但连 Supabase 的**首次**连接含 TLS 握手 + JVM 安全随机数初始化，实测 5s 出头
+      # （之后稳定在 1~2s）。不放宽表现为首次 health 显示 connected=false，
+      # 第二次刷新才 true——看起来像"数据库没连上"，实际只是超时太紧。
+      max-wait: 15000
 
 lz:
   security:
