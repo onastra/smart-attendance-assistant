@@ -3,19 +3,22 @@
     "pages/index/index",
     "pages/checkin/checkin",
     "pages/records/records",
+    "pages/assistant/assistant",
     "pages/profile/profile",
     "pages/login/login",
     "pages/apply/apply",
-    "pages/applications/applications"
+    "pages/applications/applications",
+    "pages/dashboard/dashboard"
   ],
   "window": {
     "navigationBarBackgroundColor": "#2F6FED",
     "navigationBarTitleText": "联智考勤",
     "navigationBarTextStyle": "white",
-    "backgroundColor": "#F5F7FB",
+    "backgroundColor": "#F4F6FB",
     "backgroundTextStyle": "dark"
   },
   "tabBar": {
+    "custom": true,
     "color": "#8A94A6",
     "selectedColor": "#2F6FED",
     "backgroundColor": "#ffffff",
@@ -26,12 +29,16 @@
         "text": "首页"
       },
       {
+        "pagePath": "pages/records/records",
+        "text": "考勤"
+      },
+      {
         "pagePath": "pages/checkin/checkin",
         "text": "打卡"
       },
       {
-        "pagePath": "pages/records/records",
-        "text": "考勤"
+        "pagePath": "pages/assistant/assistant",
+        "text": "助手"
       },
       {
         "pagePath": "pages/profile/profile",

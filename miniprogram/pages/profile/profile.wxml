@@ -26,7 +26,7 @@
       <text class="cell-label">地址</text>
       <text class="cell-value small-text">{{baseUrl}}</text>
     </view>
-    <view class="tip">模拟器直接用 localhost；真机预览改为电脑局域网 IP，并在开发者工具勾选"不校验合法域名"。</view>
+    <view class="tip">当前连接阿里云函数计算线上后端（Supabase 云端库）。真机测试请用「真机调试」；正式发布需配置 ICP 备案的 HTTPS 域名。</view>
   </view>
 
   <view class="card">

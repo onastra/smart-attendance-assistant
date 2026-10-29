@@ -134,7 +134,28 @@ docker push registry.<区域>.aliyuncs.com/lianzhi/lianzhi-backend:fc
    长期没人用，答辩前记得去控制台唤醒
 5. **FC 流量费用**：公网出流量按 GB 计费，演示级可以忽略；别拿来当下载站
 
-## 8. 回退方案
+## 8. 小程序端接入线上后端
+
+改 `miniprogram/config.js` 里的 `BASE_URL` 即可，不需要改任何页面代码：
+
+```js
+// 线上 FC 默认域名（HTTPS 证书有效，推荐）
+const PROD_FC_URL = 'https://<你的函数名>-<随机串>.<区域>.fcapp.run'
+const BASE_URL = PROD_FC_URL
+```
+
+注意事项：
+
+1. **必须勾选「不校验合法域名」**：微信开发者工具 → 详情 → 本地设置。
+   仓库里 `project.config.json` / `project.private.config.json` 已设 `urlCheck: false`
+2. **真机测试用「真机调试」，不要用「预览」**：预览/体验版强制校验域名白名单，
+   而白名单要求域名已 ICP 备案（香港节点备不了案）；真机调试跟随工具里的勾选
+3. **打卡依赖扫码 + 定位**：模拟器里无法完成完整打卡，需真机验证
+4. **函数重建会导致 URL 变化**：FC 默认域名绑定函数实例，删函数重建会换新域名，
+   届时同步改 `config.js`；想固定入口请走自定义域名（本文第 6 节）
+5. 小程序请求不带 `Origin` 头，不受后端 CORS 白名单影响，无需改 `LZ_WEB_ORIGINS`
+
+## 9. 回退方案
 
 随时可以回到本机模式：`scripts/start-backend.cmd` + 前端 `npm run dev`，
 数据库两边连的是同一个 Supabase，云端下线不影响本地开发。

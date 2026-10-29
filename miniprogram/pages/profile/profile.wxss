@@ -1,54 +1,55 @@
+/* 我的页 */
 .user-card {
   display: flex;
   align-items: center;
+  background: linear-gradient(140deg, #3B7BF5 0%, #2F6FED 55%, #1B4FD8 100%);
+  color: #ffffff;
+  border-radius: 28rpx;
+  padding: 38rpx 34rpx;
 }
 
 .avatar {
-  width: 108rpx;
-  height: 108rpx;
+  width: 116rpx;
+  height: 116rpx;
   border-radius: 50%;
-  background: #2F6FED;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+  border: 3rpx solid rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 48rpx;
   font-weight: 700;
-  line-height: 108rpx;
-  text-align: center;
+  flex-shrink: 0;
 }
 
 .user-info {
-  margin-left: 24rpx;
+  margin-left: 26rpx;
 }
 
 .user-name {
-  font-size: 34rpx;
+  font-size: 38rpx;
   font-weight: 700;
 }
 
 .user-sub {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #8A94A6;
+  margin-top: 10rpx;
+  font-size: 25rpx;
+  opacity: 0.88;
 }
 
 .warn-text {
-  color: #C62A2F;
+  color: var(--lz-red);
 }
 
 .small-text {
-  font-size: 24rpx;
-  word-break: break-all;
-}
-
-.tip {
-  margin-top: 16rpx;
-  font-size: 22rpx;
-  color: #A5ADBB;
-  line-height: 1.6;
+  font-size: 23rpx;
 }
 
 .logout-btn {
-  border: none;
-  background: #ffffff;
-  color: #E5484D;
-  font-size: 30rpx;
+  margin-top: 6rpx;
+}
+
+/* 我的页卡片间距微调 */
+.page .card {
+  margin-top: 24rpx;
 }

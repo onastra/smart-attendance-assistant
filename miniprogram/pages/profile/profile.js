@@ -18,6 +18,10 @@ Page({
       wx.reLaunch({ url: '/pages/login/login' })
       return
     }
+    // 同步 tabBar 高亮（索引 4 = 我的）
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setSelected(4)
+    }
     this.render()
     // 拉一次最新 profile，顺带验证 token 是否仍有效
     const that = this

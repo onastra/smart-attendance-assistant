@@ -1,0 +1,69 @@
+<view class="page">
+  <!-- 时间范围 -->
+  <view class="filter-chips">
+    <view
+      wx:for="{{ranges}}"
+      wx:key="index"
+      class="chip {{rangeIndex === index ? 'chip-on' : ''}}"
+      data-index="{{index}}"
+      bindtap="onRangeTap"
+    >{{item}}</view>
+  </view>
+
+  <!-- 无权限 -->
+  <view class="empty" wx:if="{{denied}}">
+    <view class="empty-icon">🔒</view>
+    <view>没有查看权限</view>
+    <view class="empty-sub">管理看板仅对 ADMIN / MANAGER 角色开放</view>
+  </view>
+
+  <block wx:if="{{!denied}}">
+    <!-- 概览卡片 -->
+    <view class="card" wx:if="{{!loading}}">
+      <view class="card-title">出勤概览</view>
+      <view class="stat-grid">
+        <view class="stat-item" wx:for="{{cards}}" wx:key="label">
+          <view class="stat-value {{item.cls}}">{{item.value}}</view>
+          <view class="stat-label">{{item.label}}</view>
+        </view>
+      </view>
+      <view class="dash-meta">{{metaText}}</view>
+      <view class="dash-meta">{{scopeText}}</view>
+    </view>
+
+    <!-- 趋势 -->
+    <view class="card" wx:if="{{!loading}}">
+      <view class="card-title">打卡趋势（有打卡记录的日期）</view>
+      <view class="chart" wx:if="{{!trendEmpty}}">
+        <view class="chart-row" wx:for="{{trendBars}}" wx:key="period">
+          <view class="chart-label">{{item.period}}</view>
+          <view class="chart-track">
+            <view class="chart-bar {{item.sample ? 'bar-sample' : ''}}" style="width: {{item.height}}%;"></view>
+          </view>
+          <view class="chart-count">{{item.count}}<text class="chart-late" wx:if="{{item.late > 0}}"> · 迟{{item.late}}</text></view>
+        </view>
+      </view>
+      <view class="empty" wx:else>
+        <view class="empty-icon">📉</view>
+        <view>该区间暂无打卡数据</view>
+      </view>
+    </view>
+
+    <!-- 场所分布 -->
+    <view class="card" wx:if="{{!loading}}">
+      <view class="card-title">场所打卡分布</view>
+      <view class="place-row" wx:for="{{places}}" wx:key="name">
+        <view class="place-name">{{item.name}}</view>
+        <view class="place-track">
+          <view class="place-bar" style="width: {{item.pct}}%;"></view>
+        </view>
+        <view class="place-count">{{item.count}}</view>
+      </view>
+      <view class="empty" wx:if="{{placeEmpty}}">
+        <view>该区间暂无场所数据</view>
+      </view>
+    </view>
+
+    <view class="tip dash-foot" wx:if="{{!loading}}">数据由每日汇总任务与打卡流水实时混合计算；含演示数据时会如实标注。</view>
+  </block>
+</view>

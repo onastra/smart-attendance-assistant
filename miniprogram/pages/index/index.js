@@ -1,22 +1,33 @@
-// 首页：功能入口 + 我的考勤概览（当天最近一条）
+// 首页：问候 + 扫码直扫 + 最近打卡概览 + 常用功能入口
 const api = require('../../utils/request')
 const auth = require('../../utils/auth')
 const fmt = require('../../utils/format')
+const checkin = require('../../utils/checkin')
 
 Page({
   data: {
+    greeting: '你好',
     nickname: '',
     username: '',
     roleText: '',
+    avatarChar: '联',
     canApprove: false,
+    isAdmin: false,
     lastRecord: null,
-    lastRecordText: ''
+    lastRecordText: '',
+    lastResultMeta: null,
+    // 首页直扫的结果浮层
+    sheetResult: null
   },
 
   onShow: function () {
     if (!auth.isLoggedIn()) {
       wx.reLaunch({ url: '/pages/login/login' })
       return
+    }
+    // 同步 tabBar 高亮（索引 0 = 首页）
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setSelected(0)
     }
     this.renderProfile()
     this.loadLastRecord()
@@ -25,11 +36,22 @@ Page({
   renderProfile: function () {
     const profile = auth.getProfile() || {}
     const roles = profile.roles || []
+    const hour = new Date().getHours()
+    let greeting = '你好'
+    if (hour < 6) greeting = '夜深了'
+    else if (hour < 12) greeting = '上午好'
+    else if (hour < 14) greeting = '中午好'
+    else if (hour < 18) greeting = '下午好'
+    else greeting = '晚上好'
+    const nickname = profile.nickname || profile.username || '同学'
     this.setData({
-      nickname: profile.nickname || profile.username || '同学',
+      greeting: greeting,
+      nickname: nickname,
       username: profile.username || '',
       roleText: roles.length > 0 ? roles.join(' / ') : '员工',
-      canApprove: auth.hasPermission('application:approve')
+      avatarChar: (nickname || '联').slice(0, 1),
+      canApprove: auth.hasPermission('application:approve'),
+      isAdmin: auth.hasPermission('statistics:view')
     })
   },
 
@@ -39,14 +61,15 @@ Page({
       .then(function (data) {
         const list = (data.page && data.page.list) || []
         if (list.length === 0) {
-          that.setData({ lastRecord: null, lastRecordText: '今天还没有打卡记录' })
+          that.setData({ lastRecord: null, lastRecordText: '', lastResultMeta: null })
           return
         }
         const r = list[0]
         const meta = fmt.resultMeta(r.result, r.resultText)
         that.setData({
           lastRecord: r,
-          lastRecordText: fmt.shortTime(r.checkinTime) + ' · ' + (r.checkinTypeText || '') + ' · ' + meta.text
+          lastRecordText: fmt.shortTime(r.checkinTime) + ' · ' + (r.checkinTypeText || '') + ' · ' + meta.text,
+          lastResultMeta: meta
         })
       })
       .catch(function () {
@@ -54,7 +77,28 @@ Page({
       })
   },
 
-  goCheckin: function () {
+  // 首页直扫：不跳二级页，摄像头直接拉起，结果用浮层展示
+  scanCheckin: function () {
+    const that = this
+    checkin.scanAndSubmit({
+      onResult: function (result) {
+        that.setData({ sheetResult: result })
+        that.loadLastRecord()
+      }
+    })
+  },
+
+  closeSheet: function () {
+    this.setData({ sheetResult: null })
+  },
+
+  sheetToRecords: function () {
+    this.setData({ sheetResult: null })
+    wx.switchTab({ url: '/pages/records/records' })
+  },
+
+  // 摄像头不可用/二维码破损时的兜底入口
+  goManual: function () {
     wx.switchTab({ url: '/pages/checkin/checkin' })
   },
 
@@ -72,5 +116,13 @@ Page({
 
   goTodo: function () {
     wx.navigateTo({ url: '/pages/applications/applications?tab=todo' })
+  },
+
+  goAssistant: function () {
+    wx.switchTab({ url: '/pages/assistant/assistant' })
+  },
+
+  goDashboard: function () {
+    wx.navigateTo({ url: '/pages/dashboard/dashboard' })
   }
 })

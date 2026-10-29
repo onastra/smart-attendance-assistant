@@ -1,41 +1,81 @@
 <view class="page">
-  <view class="greet card">
-    <view class="greet-name">你好，{{nickname}}</view>
-    <view class="greet-sub">{{roleText}} · {{username}}</view>
-    <view class="greet-last" wx:if="{{lastRecordText}}">最近打卡：{{lastRecordText}}</view>
-  </view>
+  <!-- 顶部渐变问候区 -->
+  <view class="hero">
+    <view class="hero-top">
+      <view class="hero-left">
+        <view class="hero-hi">{{greeting}}，{{nickname}}</view>
+        <view class="hero-sub">{{roleText}} · {{username}}</view>
+      </view>
+      <view class="hero-avatar">{{avatarChar}}</view>
+    </view>
 
-  <view class="card">
-    <view class="card-title">考勤</view>
-    <view class="grid">
-      <view class="grid-item" bindtap="goCheckin">
-        <view class="grid-icon icon-blue">码</view>
-        <view class="grid-text">扫码打卡</view>
-      </view>
-      <view class="grid-item" bindtap="goRecords">
-        <view class="grid-icon icon-green">勤</view>
-        <view class="grid-text">我的考勤</view>
-      </view>
+    <!-- 最近打卡状态条 -->
+    <view class="hero-status" bindtap="goRecords">
+      <view class="hs-badge" wx:if="{{lastResultMeta}}">{{lastResultMeta.text}}</view>
+      <view class="hs-badge hs-badge-idle" wx:else>待打卡</view>
+      <view class="hs-text">{{lastRecordText || '暂无打卡记录，点击查看考勤'}}</view>
+      <view class="hs-arrow">›</view>
     </view>
   </view>
 
-  <view class="card">
-    <view class="card-title">请假 / 加班</view>
+  <!-- 主 CTA：扫码打卡 -->
+  <view class="scan-cta" bindtap="scanCheckin">
+    <view class="scan-cta-icon">
+      <image class="scan-cta-img" src="/images/scan-white.png" mode="aspectFit" />
+    </view>
+    <view class="scan-cta-main">
+      <view class="scan-cta-title">扫码打卡</view>
+      <view class="scan-cta-sub">对准考勤二维码 · 自动定位与围栏校验</view>
+    </view>
+    <view class="scan-cta-arrow">›</view>
+  </view>
+  <view class="manual-link" bindtap="goManual">摄像头不可用？使用手动输入 ›</view>
+
+  <!-- 常用功能 -->
+  <view class="section-title">常用功能</view>
+  <view class="card grid-card">
     <view class="grid">
+      <view class="grid-item" bindtap="goRecords">
+        <view class="grid-icon gi-green">勤</view>
+        <view class="grid-text">我的考勤</view>
+      </view>
       <view class="grid-item" bindtap="goApply">
-        <view class="grid-icon icon-orange">申</view>
+        <view class="grid-icon gi-orange">申</view>
         <view class="grid-text">提交申请</view>
       </view>
       <view class="grid-item" bindtap="goApplications">
-        <view class="grid-icon icon-purple">单</view>
+        <view class="grid-icon gi-purple">单</view>
         <view class="grid-text">我的申请</view>
       </view>
       <view class="grid-item" wx:if="{{canApprove}}" bindtap="goTodo">
-        <view class="grid-icon icon-red">批</view>
+        <view class="grid-icon gi-red">批</view>
         <view class="grid-text">待我审批</view>
+      </view>
+      <view class="grid-item" bindtap="goAssistant">
+        <view class="grid-icon gi-blue">AI</view>
+        <view class="grid-text">智能助手</view>
+      </view>
+      <view class="grid-item" wx:if="{{isAdmin}}" bindtap="goDashboard">
+        <view class="grid-icon gi-cyan">板</view>
+        <view class="grid-text">管理看板</view>
       </view>
     </view>
   </view>
 
-  <view class="foot-note">后端未启动或地址不对时，接口会提示网络错误；真机预览请把 config.js 里的地址改成电脑局域网 IP。</view>
+  <!-- 打卡结果浮层 -->
+  <view class="sheet-mask" wx:if="{{sheetResult}}" bindtap="closeSheet"></view>
+  <view class="sheet" wx:if="{{sheetResult}}">
+    <view class="sheet-bar"></view>
+    <view class="sheet-title {{sheetResult.success ? 'sheet-ok' : 'sheet-idem'}}">{{sheetResult.title}}</view>
+    <view class="cell"><text class="cell-label">员工</text><text class="cell-value">{{sheetResult.employeeName}}</text></view>
+    <view class="cell"><text class="cell-label">场所</text><text class="cell-value">{{sheetResult.placeName}}</text></view>
+    <view class="cell"><text class="cell-label">类型</text><text class="cell-value">{{sheetResult.typeText}}</text></view>
+    <view class="cell"><text class="cell-label">结果</text><text class="cell-value">{{sheetResult.resultText}}</text></view>
+    <view class="cell"><text class="cell-label">时间</text><text class="cell-value">{{sheetResult.timeText}}</text></view>
+    <view class="cell"><text class="cell-label">围栏</text><text class="cell-value">{{sheetResult.distanceText}}</text></view>
+    <view class="sheet-actions">
+      <button class="btn-plain sheet-btn" bindtap="closeSheet">关闭</button>
+      <button class="btn-primary sheet-btn" bindtap="sheetToRecords">查看考勤</button>
+    </view>
+  </view>
 </view>

@@ -1,65 +1,89 @@
-.filter-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20rpx 30rpx;
+.page {
+  padding-bottom: 160rpx;
 }
 
-.filter-picker {
-  font-size: 26rpx;
-  color: #2F6FED;
+/* 筛选胶囊组 */
+.filter-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 22rpx 24rpx 6rpx;
+}
+
+.chip {
+  padding: 10rpx 30rpx;
+  border-radius: 999rpx;
   background: #ffffff;
-  border-radius: 12rpx;
-  padding: 12rpx 20rpx;
+  color: var(--lz-text-2);
+  font-size: 26rpx;
+  margin-right: 16rpx;
+  margin-bottom: 12rpx;
+  border: 2rpx solid #E8ECF3;
 }
 
-.filter-total {
+.chip-on {
+  background: linear-gradient(135deg, #4C8DFF, #2F6FED);
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 600;
+  box-shadow: 0 6rpx 14rpx rgba(47, 111, 237, 0.28);
+}
+
+.total-text {
+  margin-left: auto;
   font-size: 24rpx;
-  color: #8A94A6;
+  color: var(--lz-text-3);
 }
 
-.record-item {
+/* 记录卡 */
+.record-list {
+  padding: 8rpx 0;
+}
+
+.record-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 22rpx 0;
-  border-bottom: 2rpx solid #F0F2F6;
+  background: #ffffff;
+  border-radius: 22rpx;
+  margin: 14rpx 24rpx;
+  padding: 26rpx 28rpx;
+  box-shadow: 0 4rpx 18rpx rgba(22, 36, 72, 0.05);
 }
 
-.record-item:last-child {
-  border-bottom: none;
-}
-
-.record-main {
-  flex: 1;
-}
-
-.record-line1 {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.record-type {
-  font-size: 28rpx;
+.rc-type {
+  font-size: 31rpx;
   font-weight: 600;
+  color: var(--lz-text);
 }
 
-.record-line2 {
+.rc-meta {
   margin-top: 8rpx;
   font-size: 24rpx;
-  color: #8A94A6;
+  color: var(--lz-text-3);
 }
 
-.record-source {
+.rc-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.rc-source {
+  margin-top: 10rpx;
   font-size: 22rpx;
-  color: #A5ADBB;
-  margin-left: 16rpx;
+  color: var(--lz-text-3);
 }
 
-.loading-more {
+.empty-sub {
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  color: #B9C2D0;
+}
+
+.load-more {
   text-align: center;
-  color: #A5ADBB;
+  color: var(--lz-text-3);
   font-size: 24rpx;
-  padding: 24rpx 0;
+  padding: 24rpx 0 10rpx;
 }

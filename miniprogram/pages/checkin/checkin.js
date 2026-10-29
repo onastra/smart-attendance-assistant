@@ -1,30 +1,35 @@
-// 打卡页：wx.scanCode 扫二维码 → 幂等请求号 → 提交打卡
-// 与 H5 打卡页同一套校验链：二维码格式 → 签名 → 有效期 → 场所 → 绑定 → 幂等 → 重复窗口 → 围栏
-const api = require('../../utils/request')
-const auth = require('../../utils/auth')
+// 打卡 tab：中央扫码大按钮已下沉到 tabBar，本页承担——
+// 1) 接收 tabBar/首页直扫的结果并展示  2) 类型选择  3) 手动输入兜底
+const checkin = require('../../utils/checkin')
 
-const TYPE_OPTIONS = [
-  { label: '自动判定（按时间）', value: '' },
-  { label: '上班', value: 'ON_DUTY' },
-  { label: '下班', value: 'OFF_DUTY' },
-  { label: '外勤', value: 'FIELD' }
-]
+const RESULT_KEY = 'lz_last_checkin_result'
 
 Page({
   data: {
     typeIndex: 0,
-    typeLabels: TYPE_OPTIONS.map(function (o) { return o.label }),
+    typeLabels: checkin.TYPE_OPTIONS.map(function (o) { return o.label }),
     manualContent: '',
-    useLocation: true,
-    locationText: '',
     submitting: false,
     // 最近一次打卡结果（已格式化，供 WXML 直接展示）
     result: null
   },
 
   onShow: function () {
-    if (!auth.isLoggedIn()) {
+    const token = require('../../utils/auth').getToken()
+    if (!token) {
       wx.reLaunch({ url: '/pages/login/login' })
+      return
+    }
+    // tabBar/首页直扫的结果通过 storage 转交（switchTab 不能带参数）
+    let pending = null
+    try { pending = wx.getStorageSync(RESULT_KEY) } catch (e) { }
+    if (pending && pending.title) {
+      try { wx.removeStorageSync(RESULT_KEY) } catch (e) { }
+      this.setData({ result: pending })
+    }
+    // 同步 tabBar 高亮（索引 2 = 打卡）
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setSelected(2)
     }
   },
 
@@ -36,113 +41,40 @@ Page({
     this.setData({ manualContent: e.detail.value })
   },
 
-  onUseLocationChange: function (e) {
-    this.setData({ useLocation: e.detail.value, locationText: '' })
-  },
-
-  // 定位失败不阻断打卡：后端对未上报坐标会跳过围栏校验并在记录中标注
-  fetchLocation: function () {
-    const that = this
-    if (!this.data.useLocation) {
-      return Promise.resolve(null)
-    }
-    return new Promise(function (resolve) {
-      wx.getLocation({
-        type: 'gcj02',
-        success: function (res) {
-          that.setData({
-            locationText: '已获取定位（' + res.longitude.toFixed(5) + ', ' + res.latitude.toFixed(5) + '）'
-          })
-          resolve({ lng: res.longitude, lat: res.latitude })
-        },
-        fail: function () {
-          that.setData({ locationText: '定位失败，将按"未上报坐标"提交（跳过围栏校验）' })
-          resolve(null)
-        }
-      })
-    })
-  },
-
   scanAndCheckin: function () {
     const that = this
-    wx.scanCode({
-      onlyFromCamera: false,
-      success: function (res) {
-        const content = res.result || ''
-        if (!content) {
-          wx.showToast({ title: '二维码内容为空', icon: 'none' })
-          return
-        }
-        that.confirmAndSubmit(content)
-      },
-      fail: function () {
-        // 用户取消扫码，不打扰
+    checkin.scanAndSubmit({
+      checkinType: checkin.TYPE_OPTIONS[this.data.typeIndex].value,
+      onResult: function (result) {
+        that.setData({ result: result })
       }
     })
   },
 
   submitManual: function () {
+    const that = this
     const content = (this.data.manualContent || '').trim()
     if (!content) {
       wx.showToast({ title: '请粘贴二维码内容', icon: 'none' })
       return
     }
-    this.confirmAndSubmit(content)
-  },
-
-  confirmAndSubmit: function (content) {
-    const that = this
-    wx.showModal({
-      title: '确认打卡',
-      content: content.length > 120 ? content.slice(0, 120) + '…' : content,
-      confirmText: '打卡',
-      success: function (res) {
-        if (res.confirm) {
-          that.doCheckin(content)
-        }
-      }
-    })
-  },
-
-  doCheckin: function (content) {
-    const that = this
     if (this.data.submitting) return
     this.setData({ submitting: true })
-    // 1) 先拿幂等请求号，2) 带上二维码原文提交
-    api.post('/api/checkin/request-id', {})
-      .then(function (data) {
-        return that.fetchLocation().then(function (coords) {
-          return api.post('/api/checkin', {
-            content: content,
-            requestId: data.requestId,
-            checkinType: TYPE_OPTIONS[that.data.typeIndex].value || undefined,
-            lng: coords ? coords.lng : undefined,
-            lat: coords ? coords.lat : undefined
-          })
-        })
-      })
+    wx.showLoading({ title: '提交中…', mask: true })
+    checkin.submit(content, checkin.TYPE_OPTIONS[this.data.typeIndex].value)
       .then(function (result) {
-        that.setData({
-          result: {
-            title: result.idempotent ? '重复提交已拦截（幂等生效）' : '打卡成功',
-            placeName: result.placeName || '-',
-            employeeName: result.employeeName || '',
-            typeText: result.checkinTypeText || result.checkinType || '-',
-            resultText: result.resultText || result.result || '-',
-            timeText: String(result.checkinTime || '').replace('T', ' ').slice(0, 19),
-            distanceText: result.locationChecked
-              ? '围栏校验通过，距场所 ' + Number(result.distanceMeters).toFixed(1) + ' 米'
-              : '未做围栏校验（未上报坐标或场所未启用）',
-            source: result.source || ''
-          },
-          manualContent: ''
-        })
+        that.setData({ result: result, manualContent: '' })
       })
       .catch(function () {
         // 错误提示已由 request 统一弹出
       })
       .then(function () {
+        wx.hideLoading()
         that.setData({ submitting: false })
       })
+  },
+
+  goRecords: function () {
+    wx.switchTab({ url: '/pages/records/records' })
   }
 })

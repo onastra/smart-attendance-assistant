@@ -1,59 +1,99 @@
-/* 全局样式：统一配色、卡片、徽标 */
+/* 全局样式：设计令牌 + 通用组件（卡片/按钮/徽标/表单/单元格） */
 page {
-  background: #F5F7FB;
+  /* 设计令牌 */
+  --lz-primary: #2F6FED;
+  --lz-primary-deep: #1B4FD8;
+  --lz-bg: #F4F6FB;
+  --lz-text: #1F2937;
+  --lz-text-2: #5B6472;
+  --lz-text-3: #8A94A6;
+  --lz-line: #EEF1F6;
+  --lz-green: #17803D;
+  --lz-orange: #B25E09;
+  --lz-red: #C62A2F;
+
+  background: var(--lz-bg);
   font-size: 28rpx;
-  color: #1F2937;
+  color: var(--lz-text);
+  /* 用户偏好大字体 */
+  line-height: 1.6;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
 }
 
+/* ===== 卡片 ===== */
 .card {
   background: #ffffff;
-  border-radius: 20rpx;
+  border-radius: 24rpx;
   margin: 20rpx 24rpx;
-  padding: 28rpx;
-  box-shadow: 0 4rpx 16rpx rgba(31, 41, 55, 0.06);
+  padding: 30rpx;
+  box-shadow: 0 6rpx 24rpx rgba(22, 36, 72, 0.06);
 }
 
 .card-title {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 600;
-  color: #1F2937;
-  margin-bottom: 20rpx;
+  color: var(--lz-text);
+  margin-bottom: 22rpx;
 }
 
-.btn-primary {
-  background: #2F6FED;
-  color: #ffffff;
-  border-radius: 16rpx;
+.section-title {
+  display: flex;
+  align-items: center;
   font-size: 30rpx;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--lz-text);
+  margin: 30rpx 24rpx 6rpx;
+}
+
+.section-title::before {
+  content: '';
+  width: 8rpx;
+  height: 28rpx;
+  border-radius: 4rpx;
+  background: linear-gradient(180deg, #4C8DFF, #2F6FED);
+  margin-right: 14rpx;
+}
+
+/* ===== 按钮 ===== */
+.btn-primary {
+  background: linear-gradient(135deg, #4C8DFF, #2F6FED);
+  color: #ffffff;
+  border-radius: 20rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 20rpx rgba(47, 111, 237, 0.30);
+  border: none;
 }
 
 .btn-primary[disabled] {
   background: #A9C2F7;
   color: #ffffff;
+  box-shadow: none;
 }
 
 .btn-plain {
   background: #ffffff;
-  color: #2F6FED;
-  border: 2rpx solid #2F6FED;
-  border-radius: 16rpx;
+  color: var(--lz-primary);
+  border: 2rpx solid rgba(47, 111, 237, 0.5);
+  border-radius: 20rpx;
   font-size: 30rpx;
+  font-weight: 500;
 }
 
 .btn-danger {
   background: #ffffff;
-  color: #E5484D;
-  border: 2rpx solid #E5484D;
-  border-radius: 16rpx;
-  font-size: 28rpx;
+  color: var(--lz-red);
+  border: 2rpx solid rgba(198, 42, 47, 0.5);
+  border-radius: 20rpx;
+  font-size: 30rpx;
+  font-weight: 500;
 }
 
-/* 徽标 */
+/* ===== 徽标 ===== */
 .tag {
   display: inline-block;
-  padding: 4rpx 16rpx;
-  border-radius: 8rpx;
+  padding: 4rpx 18rpx;
+  border-radius: 999rpx;
   font-size: 22rpx;
   line-height: 36rpx;
 }
@@ -64,13 +104,13 @@ page {
 .tag-gray { background: #EEF1F5; color: #5B6472; }
 .tag-blue { background: #E9F0FE; color: #2F6FED; }
 
-/* 列表项通用 */
+/* ===== 列表单元格 ===== */
 .cell {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 24rpx 0;
-  border-bottom: 2rpx solid #F0F2F6;
+  border-bottom: 2rpx solid var(--lz-line);
 }
 
 .cell:last-child {
@@ -78,62 +118,83 @@ page {
 }
 
 .cell-label {
-  color: #5B6472;
-  font-size: 26rpx;
+  color: var(--lz-text-2);
+  font-size: 27rpx;
+  flex-shrink: 0;
 }
 
 .cell-value {
-  color: #1F2937;
+  color: var(--lz-text);
   font-size: 28rpx;
   text-align: right;
   max-width: 460rpx;
 }
 
-/* 空状态 */
+/* ===== 空状态 ===== */
 .empty {
   text-align: center;
-  color: #8A94A6;
-  font-size: 26rpx;
-  padding: 80rpx 0;
+  color: var(--lz-text-3);
+  font-size: 27rpx;
+  padding: 100rpx 0;
 }
 
-/* 表单 */
+.empty-icon {
+  width: 120rpx;
+  height: 120rpx;
+  margin: 0 auto 20rpx;
+  border-radius: 50%;
+  background: #EDF1F8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52rpx;
+  color: #B9C2D0;
+}
+
+/* ===== 表单 ===== */
 .form-item {
-  margin-bottom: 28rpx;
+  margin-bottom: 30rpx;
 }
 
 .form-label {
-  font-size: 26rpx;
-  color: #5B6472;
+  font-size: 27rpx;
+  color: var(--lz-text-2);
   margin-bottom: 12rpx;
   display: block;
 }
 
 .form-input {
-  background: #F5F7FB;
-  border-radius: 14rpx;
-  padding: 20rpx 24rpx;
-  font-size: 28rpx;
+  background: #F4F6FB;
+  border-radius: 16rpx;
+  padding: 22rpx 26rpx;
+  font-size: 30rpx;
 }
 
 .form-textarea {
-  background: #F5F7FB;
-  border-radius: 14rpx;
-  padding: 20rpx 24rpx;
-  font-size: 28rpx;
+  background: #F4F6FB;
+  border-radius: 16rpx;
+  padding: 22rpx 26rpx;
+  font-size: 30rpx;
   width: 100%;
   box-sizing: border-box;
   min-height: 160rpx;
 }
 
 .picker-value {
-  background: #F5F7FB;
-  border-radius: 14rpx;
-  padding: 20rpx 24rpx;
-  font-size: 28rpx;
-  color: #1F2937;
+  background: #F4F6FB;
+  border-radius: 16rpx;
+  padding: 22rpx 26rpx;
+  font-size: 30rpx;
+  color: var(--lz-text);
 }
 
 .picker-placeholder {
-  color: #8A94A6;
+  color: var(--lz-text-3);
+}
+
+/* ===== 通用提示 ===== */
+.tip {
+  font-size: 24rpx;
+  color: var(--lz-text-3);
+  line-height: 1.7;
 }

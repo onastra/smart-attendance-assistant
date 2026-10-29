@@ -1,0 +1,166 @@
+.page {
+  padding-bottom: 60rpx;
+}
+
+.filter-chips {
+  display: flex;
+  align-items: center;
+  padding: 22rpx 24rpx 6rpx;
+}
+
+.chip {
+  padding: 10rpx 30rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: var(--lz-text-2);
+  font-size: 26rpx;
+  margin-right: 16rpx;
+  margin-bottom: 12rpx;
+  border: 2rpx solid #E8ECF3;
+}
+
+.chip-on {
+  background: linear-gradient(135deg, #4C8DFF, #2F6FED);
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 600;
+  box-shadow: 0 6rpx 14rpx rgba(47, 111, 237, 0.28);
+}
+
+/* 概览 */
+.stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  width: 33.33%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18rpx 0;
+}
+
+.stat-value {
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.stat-label {
+  margin-top: 6rpx;
+  font-size: 23rpx;
+  color: var(--lz-text-3);
+}
+
+.c-blue { color: #2F6FED; }
+.c-green { color: #17803D; }
+.c-orange { color: #B25E09; }
+.c-red { color: #C62A2F; }
+
+.dash-meta {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: var(--lz-text-3);
+}
+
+/* 趋势横向条形图 */
+.chart {
+  padding-top: 4rpx;
+}
+
+.chart-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14rpx;
+}
+
+.chart-label {
+  width: 96rpx;
+  font-size: 22rpx;
+  color: var(--lz-text-2);
+  flex-shrink: 0;
+}
+
+.chart-track {
+  flex: 1;
+  height: 28rpx;
+  background: #F0F3F9;
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.chart-bar {
+  height: 100%;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #4C8DFF, #2F6FED);
+  min-width: 6rpx;
+  transition: width 0.3s ease-out;
+}
+
+.bar-sample {
+  background: linear-gradient(90deg, #B9C7DE, #8FA3C4);
+}
+
+.chart-count {
+  width: 130rpx;
+  text-align: right;
+  font-size: 23rpx;
+  color: var(--lz-text);
+  flex-shrink: 0;
+}
+
+.chart-late {
+  color: #B25E09;
+  font-size: 20rpx;
+}
+
+/* 场所分布 */
+.place-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18rpx;
+}
+
+.place-name {
+  width: 240rpx;
+  font-size: 24rpx;
+  color: var(--lz-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.place-track {
+  flex: 1;
+  height: 22rpx;
+  background: #F0F3F9;
+  border-radius: 999rpx;
+  overflow: hidden;
+  margin: 0 16rpx;
+}
+
+.place-bar {
+  height: 100%;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #38C6D9, #1B8FA3);
+  transition: width 0.3s ease-out;
+}
+
+.place-count {
+  width: 64rpx;
+  text-align: right;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--lz-text);
+}
+
+.dash-foot {
+  margin: 0 32rpx 30rpx;
+}
+
+.empty-sub {
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  color: #B9C2D0;
+}

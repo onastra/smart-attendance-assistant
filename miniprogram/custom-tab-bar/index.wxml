@@ -1,0 +1,20 @@
+<view class="tabbar">
+  <view
+    wx:for="{{list}}"
+    wx:key="text"
+    class="tab-item {{item.scan ? 'tab-scan' : ''}} {{selected === index && !item.scan ? 'tab-active' : ''}}"
+    data-index="{{index}}"
+    bindtap="{{item.scan ? 'scanTap' : 'onItemTap'}}"
+  >
+    <block wx:if="{{item.scan}}">
+      <view class="scan-btn">
+        <image class="scan-icon" src="/images/scan-white.png" mode="aspectFit" />
+      </view>
+      <view class="tab-text scan-text">打卡</view>
+    </block>
+    <block wx:else>
+      <image class="tab-icon" src="/images/{{selected === index ? item.iconOn : item.icon}}.png" mode="aspectFit" />
+      <view class="tab-text">{{item.text}}</view>
+    </block>
+  </view>
+</view>

@@ -1,0 +1,66 @@
+<view class="chat-page">
+  <!-- 顶部状态条 -->
+  <view class="ai-status">
+    <view class="ai-dot {{llmReady ? 'ai-dot-on' : 'ai-dot-off'}}"></view>
+    <text>{{llmReady ? '知识库问答 · 已连接 Qwen + 向量检索' : 'AI 服务未就绪，请联系管理员'}}</text>
+    <view class="ai-clear" bindtap="clearChat">清空</view>
+  </view>
+
+  <!-- 消息区 -->
+  <scroll-view class="chat-scroll" scroll-y scroll-into-view="{{scrollTo}}" scroll-with-animation>
+    <view wx:for="{{messages}}" wx:key="id" id="{{item.id}}">
+      <!-- 用户消息 -->
+      <view class="row row-user" wx:if="{{item.role === 'user'}}">
+        <view class="bubble bubble-user">{{item.text}}</view>
+      </view>
+
+      <!-- AI 消息 -->
+      <view class="row row-ai" wx:else>
+        <view class="ai-avatar">AI</view>
+        <view class="bubble bubble-ai">
+          <text class="bubble-text" user-select>{{item.text}}</text>
+          <view class="msg-foot" wx:if="{{item.latencyText || item.sources.length > 0}}">
+            <text class="grounded" wx:if="{{item.grounded === true}}">有据可查</text>
+            <text class="grounded grounded-no" wx:elif="{{item.grounded === false}}">未找到依据</text>
+            <text class="latency" wx:if="{{item.latencyText}}">{{item.latencyText}}</text>
+          </view>
+          <view class="sources" wx:if="{{item.sources.length > 0}}">
+            <view class="source-item" wx:for="{{item.sources}}" wx:for-item="s" wx:key="title">
+              <view class="source-title">📄 {{s.title}}</view>
+              <view class="source-section" wx:if="{{s.section}}">{{s.section}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 欢迎建议 -->
+    <view class="suggest" wx:if="{{messages.length <= 1}}">
+      <view class="suggest-title">试试这样问：</view>
+      <view
+        class="suggest-item"
+        wx:for="{{suggestions}}"
+        wx:key="*this"
+        data-q="{{item}}"
+        bindtap="onSuggestionTap"
+      >{{item}}</view>
+    </view>
+    <view class="chat-pad-bottom"></view>
+  </scroll-view>
+
+  <!-- 输入区 -->
+  <view class="input-bar">
+    <input
+      class="chat-input"
+      placeholder="输入你的问题…"
+      value="{{inputValue}}"
+      bindinput="onInput"
+      bindconfirm="onSend"
+      confirm-type="send"
+      disabled="{{thinking}}"
+    />
+    <button class="send-btn {{thinking ? 'send-btn-idle' : ''}}" bindtap="onSend" disabled="{{thinking}}">
+      {{thinking ? '…' : '发送'}}
+    </button>
+  </view>
+</view>

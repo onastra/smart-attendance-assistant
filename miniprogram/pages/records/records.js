@@ -28,6 +28,10 @@ Page({
       wx.reLaunch({ url: '/pages/login/login' })
       return
     }
+    // 同步 tabBar 高亮（索引 1 = 考勤）
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setSelected(1)
+    }
     this.reload()
   },
 
@@ -42,18 +46,27 @@ Page({
     this.loadPage(this.data.pageNum + 1)
   },
 
-  onFilterChange: function (e) {
-    this.setData({ filterIndex: Number(e.detail.value) })
+  // 胶囊筛选：点击直接切换
+  onFilterTap: function (e) {
+    const idx = Number(e.currentTarget.dataset.index)
+    if (idx === this.data.filterIndex) return
+    this.setData({ filterIndex: idx })
     this.reload()
   },
 
   buildQuery: function (pageNum) {
     const filter = RESULT_FILTERS[this.data.filterIndex]
-    return {
+    const q = {
       pageNum: pageNum,
-      pageSize: PAGE_SIZE,
-      result: filter.value || undefined
+      pageSize: PAGE_SIZE
     }
+    // 注意：GET 查询参数里不能塞 undefined —— wx.request 会把它序列化成
+    // 字符串 "undefined" 传给后端，导致"全部"筛选命中 0 条（2026-10-29 实测踩坑）。
+    // 只在选中具体结果时才加 result 键。
+    if (filter.value) {
+      q.result = filter.value
+    }
+    return q
   },
 
   reload: function (done) {
