@@ -184,14 +184,44 @@
       </div>
     </el-drawer>
 
-    <!-- 绑定员工：穿梭框，勾选后点中间按钮完成绑定/解绑 -->
-    <el-dialog v-model="bindVisible" :title="`绑定员工 — ${current.placeName || ''}`" width="820px">
-      <el-alert type="info" :closable="false" class="dialog-tip" show-icon
-                title="在左侧勾选员工，点「绑定」加入右侧；在右侧勾选已绑定员工，点「解绑」移除。"/>
-      <el-transfer v-model="boundIds" :data="allEmployees" class="bind-transfer"
-                   filterable :filter-method="filterEmployee" filter-placeholder="搜索姓名或工号"
-                   :titles="['待绑定员工', '已绑定员工']" :button-texts="['解绑', '绑定']"
-                   :props="{ key: 'id', label: 'label' }" @change="handleTransferChange"/>
+    <!-- 绑定员工：双面板，行内一键绑定/解绑，无需先勾选再点箭头 -->
+    <el-dialog v-model="bindVisible" :title="`绑定员工 — ${current.placeName || ''}`" width="780px">
+      <el-input v-model="bindKeyword" class="bind-search" placeholder="搜索姓名或工号，两个列表同时过滤"
+                clearable :prefix-icon="Search"/>
+      <div class="bind-layout">
+        <!-- 待绑定 -->
+        <div class="bind-panel">
+          <div class="bind-panel-header">
+            <span class="bind-panel-title">待绑定员工</span>
+            <el-tag size="small" round type="info" effect="plain">{{ unboundList.length }}</el-tag>
+          </div>
+          <div class="bind-list">
+            <div v-if="!unboundList.length" class="bind-empty">全部员工都已绑定</div>
+            <div v-for="e in unboundList" :key="e.id" class="bind-item">
+              <span class="bind-avatar">{{ e.name.charAt(0) }}</span>
+              <span class="bind-name">{{ e.name }}<small>（{{ e.empNo }}）</small></span>
+              <el-button size="small" type="primary" plain round :disabled="bindBusy"
+                         @click="doBind(e)">绑定</el-button>
+            </div>
+          </div>
+        </div>
+        <!-- 已绑定 -->
+        <div class="bind-panel is-bound">
+          <div class="bind-panel-header">
+            <span class="bind-panel-title">已绑定员工</span>
+            <el-tag size="small" round type="success" effect="plain">{{ boundList.length }}</el-tag>
+          </div>
+          <div class="bind-list">
+            <div v-if="!boundList.length" class="bind-empty">还没有绑定员工，从左侧一键绑定</div>
+            <div v-for="e in boundList" :key="e.id" class="bind-item">
+              <span class="bind-avatar is-bound">{{ e.name.charAt(0) }}</span>
+              <span class="bind-name">{{ e.name }}<small>（{{ e.empNo }}）</small></span>
+              <el-button size="small" type="danger" plain round :disabled="bindBusy"
+                         @click="doUnbind(e)">解绑</el-button>
+            </div>
+          </div>
+        </div>
+      </div>
       <p v-if="!allEmployees.length" class="empty-tip">暂无可选员工，请先在「员工管理」建档。</p>
     </el-dialog>
   </div>
@@ -321,16 +351,20 @@ const toggleStatus = async (row) => {
 }
 
 // ---- 绑定员工 ----
+const bindKeyword = ref('')
+const bindBusy = ref(false)
+
 const openBind = async (row) => {
   Object.assign(current, { id: row.id, placeName: row.placeName })
+  bindKeyword.value = ''
   boundIds.value = []
   try {
     const bound = await listPlaceEmployees(row.id) || []
     const all = await pageEmployees({ pageNum: 1, pageSize: 100, status: 1 }) || {}
     allEmployees.value = (all.list || []).map((e) => ({
       id: e.id,
-      label: `${e.name}（${e.empNo}）`,
-      disabled: false
+      name: e.name,
+      empNo: e.empNo
     }))
     boundIds.value = bound.map((e) => e.employeeId)
   } catch (e) {
@@ -339,25 +373,53 @@ const openBind = async (row) => {
   bindVisible.value = true
 }
 
-const handleTransferChange = async (newTargetKeys, direction, movedKeys) => {
+/** 待绑定 = 全部在职员工里去掉已绑定，再按关键字过滤 */
+const unboundList = computed(() => {
+  const kw = bindKeyword.value.trim().toLowerCase()
+  const boundSet = new Set(boundIds.value)
+  return allEmployees.value.filter((e) => {
+    if (boundSet.has(e.id)) return false
+    return !kw || e.name.toLowerCase().includes(kw) || (e.empNo || '').toLowerCase().includes(kw)
+  })
+})
+
+const boundList = computed(() => {
+  const kw = bindKeyword.value.trim().toLowerCase()
+  const order = new Map(boundIds.value.map((id, i) => [id, i]))
+  return allEmployees.value
+    .filter((e) => order.has(e.id))
+    .filter((e) => !kw || e.name.toLowerCase().includes(kw) || (e.empNo || '').toLowerCase().includes(kw))
+    .sort((a, b) => order.get(a.id) - order.get(b.id))
+})
+
+/** 行内一键绑定：单条调用，成功即把该员工移入右栏 */
+const doBind = async (e) => {
+  bindBusy.value = true
   try {
-    if (direction === 'right') {
-      await bindEmployees(current.id, movedKeys)
-      ElMessage.success(`已绑定 ${movedKeys.length} 名员工`)
-    } else {
-      for (const id of movedKeys) {
-        await unbindEmployee(current.id, id)
-      }
-      ElMessage.success(`已解绑 ${movedKeys.length} 名员工`)
-    }
+    await bindEmployees(current.id, [e.id])
+    boundIds.value = [...boundIds.value, e.id]
+    ElMessage.success(`已绑定 ${e.name}`)
     loadList()
-  } catch (e) {
-    ElMessage.error(e?.message || '操作失败')
-    openBind(current)
+  } catch (err) {
+    ElMessage.error(err?.message || '绑定失败')
+  } finally {
+    bindBusy.value = false
   }
 }
 
-const filterEmployee = (queryStr, item) => item.label.includes(queryStr)
+const doUnbind = async (e) => {
+  bindBusy.value = true
+  try {
+    await unbindEmployee(current.id, e.id)
+    boundIds.value = boundIds.value.filter((id) => id !== e.id)
+    ElMessage.success(`已解绑 ${e.name}`)
+    loadList()
+  } catch (err) {
+    ElMessage.error(err?.message || '解绑失败')
+  } finally {
+    bindBusy.value = false
+  }
+}
 
 // ---- 地图选址（高德 JS API 2.0）----
 const mapVisible = ref(false)
@@ -616,41 +678,109 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
-/* ---- 绑定员工穿梭框 ---- */
-.bind-transfer {
-  display: flex;
-  justify-content: center;
-  --el-transfer-panel-width: 320px;
+/* ---- 绑定员工双面板 ---- */
+.bind-search {
+  margin-bottom: 14px;
 }
 
-/* 中间按钮竖排、带文字，宽度一致，替代默认的窄箭头 */
-.bind-transfer :deep(.el-transfer__buttons) {
+.bind-layout {
   display: flex;
-  flex-direction: column;
+  gap: 16px;
+}
+
+.bind-panel {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--el-bg-color);
+}
+
+.bind-panel-header {
+  display: flex;
   align-items: center;
-  padding: 0 18px;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--el-fill-color-light);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.bind-transfer :deep(.el-transfer__button) {
-  width: 90px;
-  margin: 0 0 14px;
+.bind-panel.is-bound .bind-panel-header {
+  background: var(--el-color-success-light-9);
+  border-bottom-color: var(--el-color-success-light-7);
 }
 
-.bind-transfer :deep(.el-transfer__button:nth-child(2)) {
-  margin: 0;
+.bind-panel-title {
+  font-weight: 600;
+  font-size: 14px;
 }
 
-.bind-transfer :deep(.el-transfer__button .el-icon) {
-  margin: 0 4px 0 0;
+.bind-list {
+  height: 380px;
+  overflow-y: auto;
+  padding: 6px;
 }
 
-/* 列表加高，减少滚动；左侧未绑定多时可一屏看完 */
-.bind-transfer :deep(.el-transfer-panel__list) {
-  height: 360px;
+.bind-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  transition: background-color 0.15s;
 }
 
-.bind-transfer :deep(.el-transfer-panel__body) {
-  height: 410px;
+.bind-item + .bind-item {
+  margin-top: 2px;
+}
+
+.bind-item:hover {
+  background: var(--el-fill-color-light);
+}
+
+.bind-item .el-button {
+  margin-left: auto;
+}
+
+.bind-avatar {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--el-color-primary-light-8);
+  color: var(--el-color-primary);
+}
+
+.bind-avatar.is-bound {
+  background: var(--el-color-success-light-8);
+  color: var(--el-color-success);
+}
+
+.bind-name {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bind-name small {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.bind-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-placeholder);
+  font-size: 13px;
 }
 
 .empty-tip {
