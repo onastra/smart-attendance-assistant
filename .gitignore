@@ -56,3 +56,6 @@ miniprogram/project.private.config.json
 
 # Vite dev 临时产物
 web/vite.config.js.timestamp-*.mjs
+
+# Vite dev 临时产物
+web/vite.config.js.timestamp-*.mjs
