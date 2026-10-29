@@ -35,7 +35,12 @@ Page({
     trendEmpty: false,
     // 场所热力
     places: [],
-    placeEmpty: false
+    placeEmpty: false,
+    // 今日未打卡/请假
+    absentDate: '',
+    absentList: [],
+    leaveList: [],
+    absentEmpty: false
   },
 
   onShow: function () {
@@ -70,7 +75,7 @@ Page({
     let finished = 0
     function settle() {
       finished += 1
-      if (finished >= 3) {
+      if (finished >= 4) {
         that.setData({ loading: false })
         if (done) done()
       }
@@ -78,6 +83,7 @@ Page({
     this.loadSummary(p, settle)
     this.loadTrend(p, settle)
     this.loadPlaces(p, settle)
+    this.loadAbsent(settle)
   },
 
   handleDenied: function () {
@@ -167,6 +173,28 @@ Page({
             }
           })
         that.setData({ places: places, placeEmpty: false })
+        done()
+      })
+      .catch(function () { done() })
+  },
+
+  // 今日未打卡/请假名单（实时点名，不受时间范围筛选影响）
+  loadAbsent: function (done) {
+    const that = this
+    api.get('/api/statistics/today-absent')
+      .then(function (data) {
+        const absent = (data.absent || []).map(function (p) {
+          return p.employeeName + ' · ' + (p.deptName || '')
+        })
+        const leave = (data.leave || []).map(function (p) {
+          return p.employeeName + ' · ' + (p.deptName || '')
+        })
+        that.setData({
+          absentDate: data.date || '',
+          absentList: absent,
+          leaveList: leave,
+          absentEmpty: absent.length === 0 && leave.length === 0
+        })
         done()
       })
       .catch(function () { done() })

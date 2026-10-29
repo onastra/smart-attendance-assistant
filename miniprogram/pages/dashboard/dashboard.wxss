@@ -159,6 +159,62 @@
   margin: 0 32rpx 30rpx;
 }
 
+/* 今日未打卡/请假名单 */
+.absent-group {
+  margin-bottom: 22rpx;
+}
+
+.absent-group:last-child {
+  margin-bottom: 0;
+}
+
+.absent-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.absent-label {
+  font-size: 25rpx;
+  font-weight: 600;
+  color: var(--lz-text);
+  margin-right: 12rpx;
+}
+
+.absent-badge {
+  min-width: 36rpx;
+  height: 36rpx;
+  line-height: 36rpx;
+  border-radius: 999rpx;
+  text-align: center;
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 0 10rpx;
+}
+
+.badge-red { background: #FDECEC; color: #C62A2F; }
+.badge-orange { background: #FFF4E5; color: #B25E09; }
+
+.absent-tags {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.absent-pill {
+  font-size: 23rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  margin: 0 12rpx 12rpx 0;
+}
+
+.pill-red { background: #FDECEC; color: #C62A2F; }
+.pill-orange { background: #FFF4E5; color: #B25E09; }
+
+.absent-ok {
+  font-size: 25rpx;
+  color: #17803D;
+}
+
 .empty-sub {
   margin-top: 10rpx;
   font-size: 23rpx;

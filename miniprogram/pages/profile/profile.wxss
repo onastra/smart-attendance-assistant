@@ -53,3 +53,37 @@
 .page .card {
   margin-top: 24rpx;
 }
+
+/* 额度卡 */
+.balance-grid {
+  display: flex;
+  padding: 8rpx 0 4rpx;
+}
+
+.balance-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.balance-num {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--lz-text);
+}
+
+.num-blue { color: #2F6FED; }
+.num-green { color: #17803D; }
+
+.balance-label {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--lz-text-2);
+}
+
+.balance-sub {
+  margin-top: 4rpx;
+  font-size: 21rpx;
+  color: var(--lz-text-3);
+}

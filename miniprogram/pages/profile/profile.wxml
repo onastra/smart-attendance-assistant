@@ -20,6 +20,28 @@
     </view>
   </view>
 
+  <view class="card" wx:if="{{hasBalance}}">
+    <view class="card-title">我的额度（{{balanceYear}}）</view>
+    <view class="balance-grid">
+      <view class="balance-item">
+        <view class="balance-num num-blue">{{compensLeft}}h</view>
+        <view class="balance-label">调休余额</view>
+        <view class="balance-sub">加班 1:1 折算</view>
+      </view>
+      <view class="balance-item">
+        <view class="balance-num num-green">{{leaveLeft}}h</view>
+        <view class="balance-label">年假剩余</view>
+        <view class="balance-sub">共 {{leaveQuota}}h</view>
+      </view>
+      <view class="balance-item">
+        <view class="balance-num">{{leaveUsed}}h</view>
+        <view class="balance-label">本年已请</view>
+        <view class="balance-sub">所有假别累计</view>
+      </view>
+    </view>
+    <view class="tip">提交调休申请时按调休余额扣减，余额不足将无法通过审批。</view>
+  </view>
+
   <view class="card">
     <view class="card-title">后端服务</view>
     <view class="cell">

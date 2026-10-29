@@ -31,6 +31,32 @@
       <view class="dash-meta">{{scopeText}}</view>
     </view>
 
+    <!-- 今日未打卡/请假 -->
+    <view class="card" wx:if="{{!loading}}">
+      <view class="card-title">今日未打卡 / 请假（{{absentDate}}）</view>
+      <block wx:if="{{!absentEmpty}}">
+        <view class="absent-group" wx:if="{{absentList.length > 0}}">
+          <view class="absent-head">
+            <text class="absent-label">未打卡</text>
+            <view class="absent-badge badge-red">{{absentList.length}}</view>
+          </view>
+          <view class="absent-tags">
+            <view class="absent-pill pill-red" wx:for="{{absentList}}" wx:key="*this">{{item}}</view>
+          </view>
+        </view>
+        <view class="absent-group" wx:if="{{leaveList.length > 0}}">
+          <view class="absent-head">
+            <text class="absent-label">已批请假</text>
+            <view class="absent-badge badge-orange">{{leaveList.length}}</view>
+          </view>
+          <view class="absent-tags">
+            <view class="absent-pill pill-orange" wx:for="{{leaveList}}" wx:key="*this">{{item}}</view>
+          </view>
+        </view>
+      </block>
+      <view class="absent-ok" wx:else>全员到岗 ✓ 今日无异常</view>
+    </view>
+
     <!-- 趋势 -->
     <view class="card" wx:if="{{!loading}}">
       <view class="card-title">打卡趋势（有打卡记录的日期）</view>

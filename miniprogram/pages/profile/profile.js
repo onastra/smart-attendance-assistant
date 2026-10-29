@@ -10,7 +10,14 @@ Page({
     roleText: '',
     employeeBound: true,
     baseUrl: config.BASE_URL,
-    permissionCount: 0
+    permissionCount: 0,
+    // 额度（年假/调休）
+    hasBalance: false,
+    balanceYear: '',
+    leaveQuota: '',
+    leaveUsed: '',
+    leaveLeft: '',
+    compensLeft: ''
   },
 
   onShow: function () {
@@ -36,8 +43,41 @@ Page({
           permissions: data.permissions || []
         })
         that.render()
+        that.loadBalance()
       })
       .catch(function () { })
+  },
+
+  // 我的额度：加班折算的调休余额 + 年假额度（未绑定员工档案时不显示）
+  loadBalance: function () {
+    const profile = auth.getProfile() || {}
+    if (!profile.employeeId) {
+      this.setData({ hasBalance: false })
+      return
+    }
+    const that = this
+    api.get('/api/applications/balances/my')
+      .then(function (b) {
+        if (!b || !b.year) {
+          that.setData({ hasBalance: false })
+          return
+        }
+        const num = function (v) {
+          const n = Number(v)
+          return isNaN(n) ? '0' : String(Math.round(n * 10) / 10)
+        }
+        that.setData({
+          hasBalance: true,
+          balanceYear: b.year,
+          leaveQuota: num(b.leaveQuotaHours),
+          leaveUsed: num(b.leaveUsedHours),
+          leaveLeft: num(b.leaveAvailable),
+          compensLeft: num(b.compensAvailable)
+        })
+      })
+      .catch(function () {
+        that.setData({ hasBalance: false })
+      })
   },
 
   render: function () {

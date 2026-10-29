@@ -70,7 +70,7 @@
           </el-card>
         </el-col>
         <el-col :span="10">
-          <el-card shadow="never">
+          <el-card shadow="never" class="fill-card">
             <template #header><span>今日未打卡 / 请假（{{ absentDate }}）</span></template>
             <div class="absent-list">
               <div class="absent-group">
@@ -496,8 +496,9 @@ function renderPlace() {
   })
   placeChart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { bottom: 0 },
-    grid: { left: 48, right: 24, top: 24, bottom: 48 },
+    // 图例放顶部：场所名较长会换行，放底部会顶到 x 轴标签造成重叠
+    legend: { top: 0 },
+    grid: { left: 48, right: 24, top: 48, bottom: 36 },
     xAxis: { type: 'category', data: Array.from({ length: 24 }, (_, h) => `${h}点`) },
     yAxis: { type: 'value', name: '打卡次数' },
     series: series.length ? series : [{ name: '无数据', type: 'line', data: [] }]
@@ -651,9 +652,24 @@ onBeforeUnmount(() => {
   color: #909399;
 }
 
-.absent-list {
+/* 撑满所在行的剩余高度：与左侧图表卡等高，避免右列下方出现大片空白 */
+.fill-card {
+  height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.fill-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.absent-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
   gap: 16px;
 }
 
