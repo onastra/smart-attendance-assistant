@@ -6,7 +6,9 @@ import com.lianzhi.attendance.common.result.ResultCode;
 import com.lianzhi.attendance.common.util.TraceIdUtil;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -80,15 +83,28 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 路径不存在：返回 40401 而不是落进 50001 兜底。
+     * 路径不存在：API 请求返回 40401 而不是落进 50001 兜底；
+     * 非 API 路径且打包了前端资源时转发到 index.html（SPA history 路由刷新支持）。
      *
      * <p>背景（2026-10-27 实测发现）：Spring Boot 3.2+ 对未匹配路径抛
      * {@link NoResourceFoundException}，此前它被下面的 Exception 兜底吞掉，
      * 访问不存在的接口得到 50001"系统内部错误"——既误导排障方向，
      * 又会让前端把"调错地址"当成"服务挂了"。</p>
+     *
+     * <p>2026-10-29 扩展：前后端合并部署（阿里云 FC 单函数方案）时，
+     * Vue 用的是 history 路由，直接刷新 /attendance/records 这类深链接会
+     * 先抛 NoResourceFoundException。约定：路径以 /api 开头才算接口 404，
+     * 其余转发给前端入口页；classpath 里没有前端产物（static/index.html）
+     * 时保持原 JSON 行为，避免 forward 循环。</p>
      */
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
-    public R<Void> handleNotFound(Exception e) {
+    public Object handleNotFound(HttpServletRequest request, Exception e) {
+        String path = request.getRequestURI();
+        boolean isApiPath = path.startsWith("/api/") || path.equals("/api");
+        boolean frontendBundled = new ClassPathResource("static/index.html").exists();
+        if (!isApiPath && frontendBundled && e instanceof NoResourceFoundException) {
+            return new ModelAndView("forward:/index.html");
+        }
         return R.fail(ResultCode.NOT_FOUND, "接口不存在：" + e.getMessage());
     }
 

@@ -9,6 +9,8 @@ node_modules/
 dist/
 .vite/
 *.local
+# FC 单体部署：vite 产物打进 jar 的 static 目录（由 scripts/build-fc-bundle.mjs 生成，不入库）
+server/lz-app/src/main/resources/static/
 
 # ===== IDE =====
 .idea/

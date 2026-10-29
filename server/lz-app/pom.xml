@@ -55,10 +55,13 @@
 
     <build>
         <finalName>lz-app</finalName>
-        <!-- Maven 默认会复制 src/main/resources 下的全部文件。这里显式排除 *.bak：
-             改本地配置时习惯性留一个 .bak 备份，而它可能含明文口令（MySQL/Redis/JWT 等），
-             一旦被打进 BOOT-INF/classes 就会随 jar 一起外泄。
-             2026-10-27 实测踩过：application-local.yml.mysql.bak 被打包进 lz-app.jar。
+        <!-- Maven 默认会复制 src/main/resources 下的全部文件。这里显式排除两类：
+             1. *.bak：改本地配置时习惯性留的备份，可能含明文口令
+                （2026-10-27 实测踩过：application-local.yml.mysql.bak 被打包进 lz-app.jar）
+             2. application-local.yml / application-cloud.yml：私密口令文件（数据库密码、
+                JWT/二维码签名密钥），由启动脚本用 spring.config.additional-location
+                参数从源码目录以"外部文件"方式加载（见 scripts/start-backend.cmd），
+                绝不进 jar——镜像/产物分发给任何人也不泄露密钥。
              注意 directory/filtering 必须显式写出，否则会覆盖 Maven 的默认资源行为。 -->
         <resources>
             <resource>
@@ -66,6 +69,8 @@
                 <filtering>false</filtering>
                 <excludes>
                     <exclude>**/*.bak</exclude>
+                    <exclude>application-local.yml</exclude>
+                    <exclude>application-cloud.yml</exclude>
                 </excludes>
             </resource>
         </resources>

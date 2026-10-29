@@ -1,0 +1,33 @@
+# 阿里云函数计算（FC）自定义容器镜像
+# =============================================================
+# FC 要求：容器必须监听 0.0.0.0:9000（通过环境变量 FC 处理）。
+# 构建前提：先跑 node scripts/build-fc-bundle.mjs 产出含前端产物的 lz-app.jar
+#
+# 构建与推送（<区域> 换成如 cn-hangzhou，<命名空间>/<仓库> 换成你自己的）：
+#   docker build -f Dockerfile.fc -t lianzhi-backend:fc .
+#   docker tag lianzhi-backend:fc registry.<区域>.aliyuncs.com/<命名空间>/lianzhi-backend:fc
+#   docker push registry.<区域>.aliyuncs.com/<命名空间>/lianzhi-backend:fc
+#
+# 本地验证（连真实 Supabase 时带上环境变量，见 docs/deploy-aliyun-fc.md）：
+#   docker run --rm -p 9000:9000 lianzhi-backend:fc
+# =============================================================
+FROM eclipse-temurin:17-jre
+
+WORKDIR /app
+
+# 分层优化：依赖不变时只有最后一步的 jar 层会重建（可选优化，当前直接 COPY）
+COPY server/lz-app/target/lz-app.jar /app/lz-app.jar
+
+# 日志与上传文件目录（容器可写层；FC 重启会丢失，见部署文档"已知限制"）
+RUN mkdir -p /app/data/files && chmod -R u+rw /app/data
+
+# FC 固定要求监听 9000；profile 由部署平台环境变量/启动参数控制
+ENV TZ=Asia/Shanghai \
+    LZ_SERVER_PORT=9000
+
+EXPOSE 9000
+
+# 密钥类配置（数据库口令/JWT/LLM/地图 Key）一律通过 FC 环境变量注入：
+# Spring Boot 环境变量天然覆盖 yml（如 SPRING_DATASOURCE_PASSWORD 覆盖 spring.datasource.password），
+# 镜像内不含任何明文密钥，可安全推送私有仓库。
+ENTRYPOINT ["java", "-jar", "/app/lz-app.jar", "--server.port=9000"]

@@ -34,6 +34,13 @@ if not exist "%JAR%" (
 set "LOCAL_CFG=%~dp0..\server\lz-app\src\main\resources\application-local.yml"
 set "CLOUD_CFG=%~dp0..\server\lz-app\src\main\resources\application-cloud.yml"
 
+REM --- 私密配置走"外部文件"加载（jar 内已由 pom 排除，防密钥进产物）----
+REM 把 resources 目录注册为额外配置目录：local/cloud yml 均从该目录按文件读取。
+REM 反斜杠替换成正斜杠，避免 file: URL 在 Windows 下被当转义序列。
+set "RES_DIR=%~dp0..\server\lz-app\src\main\resources\"
+set "RES_URL=file:%RES_DIR:\=/%"
+set "LOCATION_ARG=--spring.config.additional-location=%RES_URL%"
+
 REM --- 自动激活 local profile（私密配置存在时）--------------
 if exist "%LOCAL_CFG%" (
   set "PROFILE_ARG=--spring.profiles.active=local"
@@ -61,6 +68,6 @@ echo [INFO ] Starting backend on port %APP_PORT% ...
 echo [INFO ] Jar: %JAR%
 echo.
 
-java -jar "%JAR%" --server.port=%APP_PORT% %PROFILE_ARG%
+java -jar "%JAR%" --server.port=%APP_PORT% %PROFILE_ARG% %LOCATION_ARG%
 
 endlocal
