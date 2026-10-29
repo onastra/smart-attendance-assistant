@@ -118,9 +118,14 @@
         DELETE FROM hr_employee_place WHERE employee_id = #{id}
     </delete>
 
-    <delete id="unlinkUserByEmployeeId">
-        UPDATE sys_user SET employee_id = NULL, updated_at = CURRENT_TIMESTAMP
-        WHERE employee_id = #{id}
+    <!-- 员工离职即物理删除，其登录账号不再有意义，一并清除（先删角色关联再删账号） -->
+    <delete id="deleteUserRolesByEmployeeId">
+        DELETE FROM sys_user_role
+        WHERE user_id IN (SELECT id FROM sys_user WHERE employee_id = #{id})
+    </delete>
+
+    <delete id="deleteUserByEmployeeId">
+        DELETE FROM sys_user WHERE employee_id = #{id}
     </delete>
 
     <delete id="clearDeptLeaderByEmployeeId">

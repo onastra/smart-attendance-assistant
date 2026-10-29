@@ -107,6 +107,8 @@ done
 | `manager01` | `Admin@123` | 部门主管 |
 | `emp01` ~ `emp03` | `Emp@123` | 普通员工 |
 
+**员工账号自动分配**：新建员工时系统自动开通登录账号——账号 = 工号（如 `LZ0004`），初始密码统一 `Emp@123`，角色 = 普通员工；创建成功的弹窗里会显示账号密码（明文仅此一次）。员工离职删除时其登录账号一并删除。
+
 **本地私密配置**：复制 `server/lz-app/src/main/resources/application-local.yml.example` 为 `application-local.yml`，填入自己的数据库口令与 JWT 密钥。该文件已被 `.gitignore` 忽略（可用 `git check-ignore -v` 验证），仓库里只保留不含真实凭据的模板。
 
 ## 5. 后端启动

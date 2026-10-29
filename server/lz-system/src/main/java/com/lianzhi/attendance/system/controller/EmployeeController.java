@@ -48,11 +48,18 @@ public class EmployeeController {
         return R.ok(employeeService.detail(id));
     }
 
-    @Operation(summary = "新建员工", description = "empNo 留空时由系统自动生成")
+    @Operation(summary = "新建员工", description = "empNo 留空时由系统自动生成；建档成功后自动开通登录账号（账号=工号，初始密码 Emp@123，角色=普通员工）")
     @PostMapping
     @RequirePermission("hr:employee:create")
     public R<Map<String, Object>> create(@Valid @RequestBody Employee employee) {
-        return R.ok(Map.of("id", employeeService.create(employee)));
+        EmployeeService.CreateResult result = employeeService.create(employee);
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("id", result.id());
+        if (result.username() != null) {
+            data.put("username", result.username());
+            data.put("initialPassword", result.initialPassword());
+        }
+        return R.ok(data);
     }
 
     @Operation(summary = "编辑员工")

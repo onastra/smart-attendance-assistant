@@ -34,8 +34,11 @@ public interface EmployeeMapper {
 
     int deleteEmployeePlaceByEmployeeId(@Param("id") Long id);
 
-    /** 员工删除后，其登录账号不再指向任何档案（账号本身保留） */
-    int unlinkUserByEmployeeId(@Param("id") Long id);
+    /** 员工删除后，一并删除其登录账号的角色关联（账号与档案同生共死） */
+    int deleteUserRolesByEmployeeId(@Param("id") Long id);
+
+    /** 员工删除后，一并删除其登录账号 */
+    int deleteUserByEmployeeId(@Param("id") Long id);
 
     /** 员工删除后，不再担任任何部门的负责人 */
     int clearDeptLeaderByEmployeeId(@Param("id") Long id);

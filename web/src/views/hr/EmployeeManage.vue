@@ -196,8 +196,16 @@ const submit = async () => {
       await updateEmployee(form.id, form)
       ElMessage.success('员工信息已更新')
     } else {
-      await createEmployee(form)
-      ElMessage.success('员工已建档')
+      const data = await createEmployee(form)
+      if (data?.username) {
+        ElMessageBox.alert(
+          `登录账号：${data.username}，初始密码：${data.initialPassword}。员工可用该账号登录小程序打卡，或登录 Web 端查看个人信息，请提醒员工尽快修改密码。`,
+          '已自动分配登录账号',
+          { type: 'success', confirmButtonText: '知道了' }
+        )
+      } else {
+        ElMessage.success('员工已建档（未能自动分配账号，请在「账号管理」手动创建）')
+      }
     }
     dialogVisible.value = false
     loadList()
