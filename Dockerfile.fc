@@ -3,10 +3,13 @@
 # FC 要求：容器必须监听 0.0.0.0:9000（通过环境变量 FC 处理）。
 # 构建前提：先跑 node scripts/build-fc-bundle.mjs 产出含前端产物的 lz-app.jar
 #
-# 构建与推送（<区域> 换成如 cn-hangzhou，<命名空间>/<仓库> 换成你自己的）：
-#   docker build -f Dockerfile.fc -t lianzhi-backend:fc .
-#   docker tag lianzhi-backend:fc registry.<区域>.aliyuncs.com/<命名空间>/lianzhi-backend:fc
-#   docker push registry.<区域>.aliyuncs.com/<命名空间>/lianzhi-backend:fc
+# 构建与推送（<区域> 换成如 cn-hongkong，<命名空间>/<仓库> 换成你自己的）：
+#   ⚠️ 必须带 --provenance=false --sbom=false：Docker 29 默认给镜像加 OCI 空层
+#      （provenance/sbom attestation），ACR 个人版会报
+#      "unknown manifest class for application/vnd.oci.empty.v1+json" 拒收。
+#   docker buildx build --platform linux/amd64 --provenance=false --sbom=false \
+#     -f Dockerfile.fc -t lianzhi-backend:fc --load .
+#   docker push ...
 #
 # 本地验证（连真实 Supabase 时带上环境变量，见 docs/deploy-aliyun-fc.md）：
 #   docker run --rm -p 9000:9000 lianzhi-backend:fc
