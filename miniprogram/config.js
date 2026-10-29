@@ -21,7 +21,7 @@
 //        把这个域名加进「request 合法域名」并保存（每月只能改几次，谨慎）
 //    也就是说：小程序能发布 ≠ 能用，后端还得先部署到公网 HTTPS 上。
 // ============================================================
-const BASE_URL = 'http://localhost:8080'
+const BASE_URL = 'http://172.20.10.2:8080'
 
 module.exports = {
   BASE_URL: BASE_URL
