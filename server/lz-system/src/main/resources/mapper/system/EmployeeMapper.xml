@@ -81,6 +81,9 @@
     <update id="updateById" parameterType="com.lianzhi.attendance.system.entity.Employee">
         UPDATE hr_employee
         <set>
+            <!-- emp_no：空串视为"不修改"（前端编辑留空 = 保持原工号）；
+                 必须同时判 ''，否则留空提交会把工号清空 -->
+            <if test="empNo != null and empNo != ''">emp_no = #{empNo},</if>
             <if test="name != null">name = #{name},</if>
             <if test="gender != null">gender = #{gender},</if>
             <if test="phone != null">phone = #{phone},</if>

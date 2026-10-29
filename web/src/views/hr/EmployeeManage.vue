@@ -194,7 +194,7 @@ const openCreate = () => {
 const openEdit = (row) => {
   editing.value = true
   Object.assign(form, {
-    id: row.id, empNo: '', name: row.name, gender: row.gender ?? 0, phone: row.phone || '',
+    id: row.id, empNo: row.empNo || '', name: row.name, gender: row.gender ?? 0, phone: row.phone || '',
     companyId: row.companyId, deptId: row.deptId, positionId: row.positionId, hireDate: row.hireDate || ''
   })
   dialogVisible.value = true
