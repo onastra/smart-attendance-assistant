@@ -184,13 +184,13 @@
       </div>
     </el-drawer>
 
-    <!-- 绑定员工 -->
-    <el-dialog v-model="bindVisible" :title="`绑定员工 — ${current.placeName || ''}`" width="700px">
-      <el-alert type="warning" :closable="false" class="dialog-tip"
-                title="未接入地图服务"
-                description="因此无法按地理位置自动推荐员工，请从下方名单手动勾选。这是真实能力边界，不做假装。"/>
-      <el-transfer v-model="boundIds" :data="allEmployees" :titles="['未绑定员工', '已绑定员工']"
-                   filterable :filter-method="filterEmployee" filter-placeholder="输入姓名或工号"
+    <!-- 绑定员工：穿梭框，勾选后点中间按钮完成绑定/解绑 -->
+    <el-dialog v-model="bindVisible" :title="`绑定员工 — ${current.placeName || ''}`" width="820px">
+      <el-alert type="info" :closable="false" class="dialog-tip" show-icon
+                title="在左侧勾选员工，点「绑定」加入右侧；在右侧勾选已绑定员工，点「解绑」移除。"/>
+      <el-transfer v-model="boundIds" :data="allEmployees" class="bind-transfer"
+                   filterable :filter-method="filterEmployee" filter-placeholder="搜索姓名或工号"
+                   :titles="['待绑定员工', '已绑定员工']" :button-texts="['解绑', '绑定']"
                    :props="{ key: 'id', label: 'label' }" @change="handleTransferChange"/>
       <p v-if="!allEmployees.length" class="empty-tip">暂无可选员工，请先在「员工管理」建档。</p>
     </el-dialog>
@@ -343,12 +343,12 @@ const handleTransferChange = async (newTargetKeys, direction, movedKeys) => {
   try {
     if (direction === 'right') {
       await bindEmployees(current.id, movedKeys)
-      ElMessage.success('已绑定')
+      ElMessage.success(`已绑定 ${movedKeys.length} 名员工`)
     } else {
       for (const id of movedKeys) {
         await unbindEmployee(current.id, id)
       }
-      ElMessage.success('已解绑')
+      ElMessage.success(`已解绑 ${movedKeys.length} 名员工`)
     }
     loadList()
   } catch (e) {
@@ -614,6 +614,43 @@ onMounted(() => {
 
 .dialog-tip {
   margin-bottom: 16px;
+}
+
+/* ---- 绑定员工穿梭框 ---- */
+.bind-transfer {
+  display: flex;
+  justify-content: center;
+  --el-transfer-panel-width: 320px;
+}
+
+/* 中间按钮竖排、带文字，宽度一致，替代默认的窄箭头 */
+.bind-transfer :deep(.el-transfer__buttons) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 18px;
+}
+
+.bind-transfer :deep(.el-transfer__button) {
+  width: 90px;
+  margin: 0 0 14px;
+}
+
+.bind-transfer :deep(.el-transfer__button:nth-child(2)) {
+  margin: 0;
+}
+
+.bind-transfer :deep(.el-transfer__button .el-icon) {
+  margin: 0 4px 0 0;
+}
+
+/* 列表加高，减少滚动；左侧未绑定多时可一屏看完 */
+.bind-transfer :deep(.el-transfer-panel__list) {
+  height: 360px;
+}
+
+.bind-transfer :deep(.el-transfer-panel__body) {
+  height: 410px;
 }
 
 .empty-tip {

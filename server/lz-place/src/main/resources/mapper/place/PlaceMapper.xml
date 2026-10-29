@@ -106,9 +106,13 @@
         SELECT COUNT(*) FROM hr_employee_place WHERE place_id = #{placeId} AND status = 1
     </select>
 
+    <!-- 唯一索引 uk_employee_place(employee_id, place_id) 下，解绑只是把旧行置 0（保留历史），
+         重绑不能简单 INSERT，否则违反唯一约束报 500；这里用 upsert：有历史行就重新激活并刷新绑定时间 -->
     <insert id="insertBinding">
         INSERT INTO hr_employee_place (employee_id, place_id, status)
         VALUES (#{employeeId}, #{placeId}, 1)
+        ON CONFLICT (employee_id, place_id)
+        DO UPDATE SET status = 1, bind_time = CURRENT_TIMESTAMP
     </insert>
 
     <!-- 解绑时保留历史行（置 0），不做物理删除，便于追溯"某人曾隶属于某场所" -->
