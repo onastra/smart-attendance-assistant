@@ -3,7 +3,7 @@
     <el-card shadow="never">
       <template #header>
         <div class="card-header">
-          <span>提交请假 / 加班申请</span>
+          <span>提交请假 / 加班 / 调休申请</span>
           <el-tag size="small" type="info">提交后进入待审批，可随时撤回</el-tag>
         </div>
       </template>
@@ -13,6 +13,7 @@
           <el-select v-model="form.type" style="width: 160px" @change="onTypeChange">
             <el-option label="请假" value="LEAVE"/>
             <el-option label="加班" value="OVERTIME"/>
+            <el-option label="调休" value="COMPENS"/>
           </el-select>
         </el-form-item>
         <el-form-item v-if="form.type === 'LEAVE'" label="假别">
@@ -20,7 +21,7 @@
             <el-option label="年假" value="年假"/>
             <el-option label="事假" value="事假"/>
             <el-option label="病假" value="病假"/>
-            <el-option label="调休" value="调休"/>
+            <el-option label="婚丧假" value="婚丧假"/>
           </el-select>
         </el-form-item>
         <el-form-item label="开始时间" prop="startTime">
@@ -47,13 +48,21 @@
       </el-form>
 
       <el-alert v-if="form.type === 'OVERTIME'" type="info" :closable="false" show-icon
-                title="加班核算：审批通过后，加班时长按 1:1 自动折算为调休额度（可后续提交「调休」假别使用）"/>
+                title="加班核算：审批通过后，加班时长按 1:1 自动折算为调休额度（可后续提交「调休」使用）"/>
+      <el-alert v-else-if="form.type === 'COMPENS'" type="warning" :closable="false" show-icon>
+        <template #title>
+          调休余额
+          <b>{{ balances ? balances.compensAvailable : '-' }}</b> 小时
+          <span v-if="compensOver">，本次申请 {{ formHours }} 小时已超出余额，审批时将无法通过</span>
+          <span v-else>（加班审批通过后自动增加，申请调休按实际时长扣减）</span>
+        </template>
+      </el-alert>
       <el-alert v-else-if="balances" type="info" :closable="false" show-icon>
         <template #title>
           我的额度：年假剩余
           <b>{{ balances.leaveAvailable ?? balances.leaveQuotaHours - balances.leaveUsedHours }}</b> 小时，
           调休可用
-          <b>{{ balances.compensAvailable }}</b> 小时（选「调休」假别将从调休余额中扣减）
+          <b>{{ balances.compensAvailable }}</b> 小时（如需用调休抵扣，类型请选「调休」）
         </template>
       </el-alert>
     </el-card>
@@ -65,7 +74,8 @@
         <el-table-column prop="applicationNo" label="单号" width="190" show-overflow-tooltip/>
         <el-table-column label="类型" width="100">
           <template #default="{ row }">
-            <el-tag size="small" :type="row.type === 'LEAVE' ? 'primary' : 'warning'">
+            <el-tag v-if="row.type === 'LEAVE' && row.subType === '调休'" size="small" type="success">调休</el-tag>
+            <el-tag v-else size="small" :type="row.type === 'LEAVE' ? 'primary' : 'warning'">
               {{ row.type === 'LEAVE' ? '请假' : '加班' }}
             </el-tag>
           </template>
@@ -97,7 +107,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   cancelApplication,
@@ -175,11 +185,24 @@ function clearAttachment() {
 }
 
 function onTypeChange() {
-  // 切到加班时清掉假别，避免把"年假"当成加班子类提交
-  if (form.type === 'OVERTIME') {
+  // 切到加班/调休时清掉假别，避免把"年假"当子类提交（调休的子类由提交时固定注入）
+  if (form.type !== 'LEAVE') {
     form.subType = ''
   }
 }
+
+// 本次申请的时长（与后端 durationHours 同口径：分钟差 / 60，保留 2 位）
+const formHours = computed(() => {
+  if (!form.startTime || !form.endTime) return 0
+  const minutes = (new Date(form.endTime) - new Date(form.startTime)) / 60000
+  if (!isFinite(minutes) || minutes <= 0) return 0
+  return Math.round((minutes / 60) * 100) / 100
+})
+
+// 调休申请是否超出可用余额（仅前端提示，权威校验在审批环节）
+const compensOver = computed(() =>
+  form.type === 'COMPENS' && !!balances.value && formHours.value > Number(balances.value.compensAvailable || 0)
+)
 
 async function handleSubmit() {
   await formRef.value.validate()
@@ -189,13 +212,18 @@ async function handleSubmit() {
   }
   submitting.value = true
   try {
-    await submitApplication({ ...form })
+    // 「调休」在前端是独立类型，落库复用请假类型 + 固定子类，后端按子类扣调休余额
+    const payload = form.type === 'COMPENS'
+      ? { ...form, type: 'LEAVE', subType: '调休' }
+      : { ...form }
+    await submitApplication(payload)
     ElMessage.success('申请已提交')
     Object.assign(form, {
       subType: '', startTime: '', endTime: '', reason: '', attachmentFileId: null
     })
     attachmentName.value = ''
     await loadList()
+    await loadBalances()
   } finally {
     submitting.value = false
   }

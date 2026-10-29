@@ -18,7 +18,8 @@
         <el-table-column prop="employeeName" label="申请人" width="110"/>
         <el-table-column label="类型" width="100">
           <template #default="{ row }">
-            <el-tag size="small" :type="row.type === 'LEAVE' ? 'primary' : 'warning'">
+            <el-tag v-if="row.type === 'LEAVE' && row.subType === '调休'" size="small" type="success">调休</el-tag>
+            <el-tag v-else size="small" :type="row.type === 'LEAVE' ? 'primary' : 'warning'">
               {{ row.type === 'LEAVE' ? '请假' : '加班' }}
             </el-tag>
           </template>

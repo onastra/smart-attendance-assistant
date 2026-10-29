@@ -32,6 +32,8 @@ Page({
     this.render()
     // 拉一次最新 profile，顺带验证 token 是否仍有效
     const that = this
+    // 额度不依赖 profile 请求结果，直接加载（上游失败不连累额度卡）
+    this.loadBalance()
     api.get('/api/auth/profile')
       .then(function (data) {
         auth.setProfile({
@@ -43,7 +45,6 @@ Page({
           permissions: data.permissions || []
         })
         that.render()
-        that.loadBalance()
       })
       .catch(function () { })
   },
@@ -52,12 +53,14 @@ Page({
   loadBalance: function () {
     const profile = auth.getProfile() || {}
     if (!profile.employeeId) {
+      console.warn('[profile] 额度卡隐藏：未绑定员工档案', profile)
       this.setData({ hasBalance: false })
       return
     }
     const that = this
     api.get('/api/applications/balances/my')
       .then(function (b) {
+        console.info('[profile] 额度接口返回', b)
         if (!b || !b.year) {
           that.setData({ hasBalance: false })
           return
@@ -75,7 +78,8 @@ Page({
           compensLeft: num(b.compensAvailable)
         })
       })
-      .catch(function () {
+      .catch(function (err) {
+        console.warn('[profile] 额度接口失败', err)
         that.setData({ hasBalance: false })
       })
   },
