@@ -28,3 +28,8 @@ export function pageAllApplications(params) {
 export function approveApplication(id, data) {
   return request.post(`/applications/${id}/approve`, data)
 }
+
+/** 本人当年请假/调休额度（阶段 F） */
+export function fetchMyBalances() {
+  return request.get('/applications/balances/my')
+}

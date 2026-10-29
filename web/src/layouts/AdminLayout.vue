@@ -23,7 +23,7 @@
           <el-tag v-if="userStore.roles.length" size="small" type="success">
             {{ userStore.roles.join(' / ') }}
           </el-tag>
-          <el-tag size="small" type="info">模块化单体</el-tag>
+          <el-tag size="small" type="info">AI Agent</el-tag>
           <span class="layout-user">{{ userStore.displayName }}</span>
           <el-button link type="primary" @click="handleLogout">退出</el-button>
         </div>
@@ -56,8 +56,8 @@ const userStore = useUserStore()
  * <code>router.getRoutes()</code> 返回的规范化记录里，<code>children</code>
  * 是<b>原始配置对象</b>，其 path 是相对路径（如 <code>attendance/qrcodes</code>，无前导斜杠）。
  * el-menu 的 router 模式会把 index 原样传给 <code>router.push()</code>，
- * vue-router 对无斜杠路径按「当前路由」做相对解析——
- * 从 /dashboard 点过去碰巧解析正确，但从 /kb/documents 点就成了 /kb/attendance/qrcodes，
+ * vue-router 对无斜杠路径按「当前路由」做相对解析——从统计看板点过去碰巧解析正确，
+ * 但从 /kb/documents 点就成了 /kb/attendance/qrcodes，
  * 白屏 + "No match found" 警告。这里统一补成绝对路径，同时修复菜单高亮失效问题。</p>
  */
 const menuGroups = computed(() => {

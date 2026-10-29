@@ -58,6 +58,51 @@
       </el-row>
 
       <el-row :gutter="16" class="chart-row">
+        <el-col :span="14">
+          <el-card shadow="never">
+            <template #header>
+              <div class="card-header">
+                <span>出勤趋势预测（未来 7 天）</span>
+                <el-tag size="small" type="info">{{ forecastMethod }}</el-tag>
+              </div>
+            </template>
+            <div ref="forecastRef" class="chart chart-sub"/>
+          </el-card>
+        </el-col>
+        <el-col :span="10">
+          <el-card shadow="never">
+            <template #header><span>今日未打卡 / 请假（{{ absentDate }}）</span></template>
+            <div class="absent-list">
+              <div class="absent-group">
+                <div class="absent-title">
+                  <span>今日未打卡</span>
+                  <el-tag size="small" type="danger">{{ absentData.absentCount }}</el-tag>
+                </div>
+                <template v-if="absentData.absent.length">
+                  <el-tag v-for="p in absentData.absent" :key="p.employeeId" class="absent-tag" type="danger">
+                    {{ p.employeeName }} · {{ p.deptName }}
+                  </el-tag>
+                </template>
+                <div v-else class="absent-empty">全员已打卡 ✓</div>
+              </div>
+              <div class="absent-group">
+                <div class="absent-title">
+                  <span>已批请假（合规离岗）</span>
+                  <el-tag size="small" type="warning">{{ absentData.leaveCount }}</el-tag>
+                </div>
+                <template v-if="absentData.leave.length">
+                  <el-tag v-for="p in absentData.leave" :key="p.employeeId" class="absent-tag" type="warning">
+                    {{ p.employeeName }} · {{ p.deptName }}
+                  </el-tag>
+                </template>
+                <div v-else class="absent-empty">今日无请假</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="16" class="chart-row">
         <el-col :span="12">
           <el-card shadow="never">
             <template #header><span>部门对比</span></template>
@@ -80,6 +125,38 @@
           </el-card>
         </el-col>
       </el-row>
+
+      <el-row :gutter="16" class="chart-row">
+        <el-col :span="12">
+          <el-card shadow="never">
+            <template #header><span>人均工时趋势（小时/人）</span></template>
+            <div ref="workRef" class="chart chart-sub"/>
+          </el-card>
+        </el-col>
+        <el-col :span="12">
+          <el-card shadow="never">
+            <template #header>
+              <div class="card-header">
+                <span>员工画像（近 30 天）</span>
+                <el-select v-model="profileEmployeeId" filterable placeholder="选择员工" size="small"
+                           style="width: 180px" @change="loadProfile">
+                  <el-option v-for="e in employeeOptions" :key="e.id" :label="e.name" :value="e.id"/>
+                </el-select>
+              </div>
+            </template>
+            <div v-if="profile" class="profile-grid">
+              <div class="profile-item"><span class="profile-num tone-primary">{{ profile.summary.attendanceRate }}%</span><span class="profile-label">出勤率</span></div>
+              <div class="profile-item"><span class="profile-num">{{ profile.summary.checkinCount }}</span><span class="profile-label">打卡次数</span></div>
+              <div class="profile-item"><span class="profile-num tone-warn">{{ profile.summary.lateDays }}</span><span class="profile-label">迟到（人天）</span></div>
+              <div class="profile-item"><span class="profile-num tone-danger">{{ profile.summary.absentDays }}</span><span class="profile-label">缺勤（人天）</span></div>
+              <div class="profile-item"><span class="profile-num">{{ profile.summary.leaveDays }}</span><span class="profile-label">请假（人天）</span></div>
+              <div class="profile-item"><span class="profile-num">{{ (profile.summary.avgWorkMinutes / 60).toFixed(1) }}</span><span class="profile-label">日均工时（h）</span></div>
+            </div>
+            <div v-else v-loading="true" class="profile-loading"/>
+            <div class="hint">画像窗口：{{ profileWindow }}</div>
+          </el-card>
+        </el-col>
+      </el-row>
     </template>
   </div>
 </template>
@@ -88,7 +165,9 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
-import { fetchDepartmentStat, fetchPlaceHeat, fetchSummary, fetchTrend, rebuildDailyStat } from '@/api/statistics'
+import { fetchDepartmentStat, fetchEmployeeProfile, fetchForecast, fetchPlaceHeat, fetchSummary,
+  fetchTodayAbsent, fetchTrend, fetchWorkHours, rebuildDailyStat } from '@/api/statistics'
+import { pageEmployees } from '@/api/employee'
 import { pagePlaces } from '@/api/place'
 import { useUserStore } from '@/stores/user'
 
@@ -98,10 +177,14 @@ const trendRef = ref(null)
 const pieRef = ref(null)
 const deptRef = ref(null)
 const placeRef = ref(null)
+const forecastRef = ref(null)
+const workRef = ref(null)
 let trendChart = null
 let pieChart = null
 let deptChart = null
 let placeChart = null
+let forecastChart = null
+let workChart = null
 
 const loading = ref(false)
 const rebuilding = ref(false)
@@ -112,9 +195,17 @@ const heatData = ref({ hours: [], places: [] })
 const dataScope = ref('ALL')
 const trendPoints = ref([])
 const deptItems = ref([])
+const forecastPoints = ref([])
+const forecastMethod = ref('')
+const absentData = ref({ absent: [], leave: [], absentCount: 0, leaveCount: 0, date: '' })
+const workPoints = ref([])
+const profile = ref(null)
+const profileEmployeeId = ref(null)
+const profileWindow = ref('')
+const employeeOptions = ref([])
 const summary = reactive({
   personDays: 0, attendanceRate: 0, checkinCount: 0, lateDays: 0, earlyDays: 0,
-  absentDays: 0, avgWorkMinutes: 0, normalDays: 0, dataSource: 'real', dataSourceNote: ''
+  absentDays: 0, leaveDays: 0, avgWorkMinutes: 0, normalDays: 0, dataSource: 'real', dataSourceNote: ''
 })
 
 const query = reactive({ type: 'day', placeId: null })
@@ -154,15 +245,22 @@ function params() {
 async function loadAll() {
   loading.value = true
   try {
-    const [sumData, trendData, deptData] = await Promise.all([
+    const [sumData, trendData, deptData, forecastData, absent, workData] = await Promise.all([
       fetchSummary(params()),
       fetchTrend(params()),
-      fetchDepartmentStat(params())
+      fetchDepartmentStat(params()),
+      fetchForecast(),
+      fetchTodayAbsent(),
+      fetchWorkHours(params())
     ])
     Object.assign(summary, sumData.summary || {})
     dataScope.value = sumData.dataScope || 'ALL'
     trendPoints.value = trendData.points || []
     deptItems.value = deptData.items || []
+    forecastPoints.value = forecastData.points || []
+    forecastMethod.value = forecastData.method || ''
+    absentData.value = absent || { absent: [], leave: [], absentCount: 0, leaveCount: 0, date: '' }
+    workPoints.value = workData.points || []
     await loadPlaceHeat()
     await nextTick()
     // 空态时图表 DOM 被 v-if 移除，此时没有可渲染的画布
@@ -222,6 +320,12 @@ function ensureCharts() {
   if (!placeChart || !placeChart.getDom()?.isConnected) {
     placeChart = placeRef.value ? echarts.init(placeRef.value) : null
   }
+  if (!forecastChart || !forecastChart.getDom()?.isConnected) {
+    forecastChart = forecastRef.value ? echarts.init(forecastRef.value) : null
+  }
+  if (!workChart || !workChart.getDom()?.isConnected) {
+    workChart = workRef.value ? echarts.init(workRef.value) : null
+  }
 }
 
 function renderCharts() {
@@ -229,6 +333,8 @@ function renderCharts() {
   renderTrend()
   renderPie()
   renderDept()
+  renderForecast()
+  renderWork()
 }
 
 function renderTrend() {
@@ -262,18 +368,87 @@ function renderPie() {
   if (!pieChart) {
     return
   }
+  // 请假（E-07）只在有数据时进图例：0 人天的"请假"切片只会让图例多一行噪音
+  const data = [
+    { name: '正常', value: summary.normalDays, itemStyle: { color: '#67c23a' } },
+    { name: '迟到', value: summary.lateDays, itemStyle: { color: '#e6a23c' } },
+    { name: '早退', value: summary.earlyDays, itemStyle: { color: '#f0a020' } },
+    { name: '缺勤', value: summary.absentDays, itemStyle: { color: '#f56c6c' } }
+  ]
+  if (summary.leaveDays > 0) {
+    data.push({ name: '请假', value: summary.leaveDays, itemStyle: { color: '#909399' } })
+  }
   pieChart.setOption({
     tooltip: { trigger: 'item', formatter: '{b}: {c} 人天 ({d}%)' },
     legend: { bottom: 0 },
     series: [{
       type: 'pie', radius: ['40%', '65%'], center: ['50%', '45%'],
-      data: [
-        { name: '正常', value: summary.normalDays, itemStyle: { color: '#67c23a' } },
-        { name: '迟到', value: summary.lateDays, itemStyle: { color: '#e6a23c' } },
-        { name: '早退', value: summary.earlyDays, itemStyle: { color: '#f0a020' } },
-        { name: '缺勤', value: summary.absentDays, itemStyle: { color: '#f56c6c' } }
-      ]
+      data
     }]
+  }, true)
+}
+
+/**
+ * 出勤趋势预测：历史实线（真实出勤率）+ 未来 7 天虚线（预测）。
+ * 两段 series 共用一个 xAxis，交界处用 connectNulls 拼起来更直观——
+ * 在最后一个历史点同时给 actual 与 predicted，避免两段线断开。
+ */
+function renderForecast() {
+  if (!forecastChart) {
+    return
+  }
+  const points = forecastPoints.value
+  const actual = points.map((p) => p.actualRate ?? null)
+  const predicted = points.map((p, i) => {
+    if (p.predictedRate == null) return null
+    // 与前一个历史点相连：让虚线从实线末端接出去
+    if (i > 0 && points[i - 1].actualRate != null && p.predictedRate != null) {
+      return p.predictedRate
+    }
+    return p.predictedRate
+  })
+  // 把预测线往回补一个历史点的位置（值取该点的预测或实际），保证折线不断
+  const lastHistoryIndex = points.findIndex((p) => p.predictedRate != null) - 1
+  if (lastHistoryIndex >= 0) {
+    predicted[lastHistoryIndex] = points[lastHistoryIndex].actualRate
+  }
+  forecastChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['实际出勤率', '预测出勤率'], bottom: 0 },
+    grid: { left: 48, right: 24, top: 24, bottom: 48 },
+    xAxis: { type: 'category', data: points.map((p) => p.date.slice(5)) },
+    yAxis: { type: 'value', name: '出勤率', axisLabel: { formatter: '{value}%' }, max: 100 },
+    series: [
+      {
+        name: '实际出勤率', type: 'line', smooth: true, data: actual,
+        itemStyle: { color: '#409eff' }
+      },
+      {
+        name: '预测出勤率', type: 'line', smooth: true, data: predicted,
+        lineStyle: { type: 'dashed' }, itemStyle: { color: '#e6a23c' }
+      }
+    ]
+  }, true)
+}
+
+function renderWork() {
+  if (!workChart) {
+    return
+  }
+  const points = workPoints.value
+  workChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['人均工时'], bottom: 0 },
+    grid: { left: 48, right: 24, top: 24, bottom: 48 },
+    xAxis: { type: 'category', data: points.map((p) => String(p.date).slice(5)) },
+    yAxis: { type: 'value', name: '小时' },
+    series: [
+      {
+        name: '人均工时', type: 'bar', data: points.map((p) => p.avgHours),
+        itemStyle: { color: '#409eff' },
+        tooltip: { valueFormatter: (v) => `${v} 小时` }
+      }
+    ]
   }, true)
 }
 
@@ -334,6 +509,32 @@ function onResize() {
   pieChart?.resize()
   deptChart?.resize()
   placeChart?.resize()
+  forecastChart?.resize()
+  workChart?.resize()
+}
+
+const absentDate = computed(() => absentData.value.date || '')
+
+/** 员工画像：优先看选择的员工；接口按数据范围收敛（SELF 强制本人 / DEPT 限本部门） */
+async function loadProfile() {
+  try {
+    const params = profileEmployeeId.value ? { employeeId: profileEmployeeId.value } : {}
+    const data = await fetchEmployeeProfile(params)
+    profile.value = data
+    profileWindow.value = data.window || ''
+  } catch (e) {
+    profile.value = null
+  }
+}
+
+async function loadEmployees() {
+  try {
+    const data = await pageEmployees({ pageNum: 1, pageSize: 200 })
+    employeeOptions.value = (data.list || []).map((e) => ({ id: e.id, name: e.name }))
+  } catch (e) {
+    // 普通员工没有 hr:employee:list 权限：选择器置空，画像默认展示本人
+    employeeOptions.value = []
+  }
 }
 
 onMounted(async () => {
@@ -352,7 +553,7 @@ onMounted(async () => {
   } catch {
     places.value = []
   }
-  await loadAll()
+  await Promise.all([loadAll(), loadEmployees(), loadProfile()])
 })
 
 onBeforeUnmount(() => {
@@ -361,6 +562,8 @@ onBeforeUnmount(() => {
   pieChart?.dispose()
   deptChart?.dispose()
   placeChart?.dispose()
+  forecastChart?.dispose()
+  workChart?.dispose()
 })
 </script>
 
@@ -446,5 +649,57 @@ onBeforeUnmount(() => {
   margin-top: 6px;
   font-size: 12px;
   color: #909399;
+}
+
+.absent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.absent-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.absent-tag {
+  margin: 0 8px 8px 0;
+}
+
+.absent-empty {
+  font-size: 13px;
+  color: #67c23a;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px 8px;
+  padding: 8px 0;
+}
+
+.profile-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.profile-num {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.profile-label {
+  font-size: 12px;
+  color: #909399;
+}
+
+.profile-loading {
+  height: 120px;
 }
 </style>

@@ -78,7 +78,7 @@ const handleLogin = async () => {
     })
     ElMessage.success(`欢迎回来，${data.nickname || data.username}`)
     const redirect = route.query.redirect
-    router.push(redirect ? String(redirect) : '/dashboard')
+    router.push(redirect ? String(redirect) : homePath())
   } catch (e) {
     // request 拦截器已做统一提示；这里把后端原始原因再展示一次，
     // 便于演示时看清是"口令错误"还是"服务未启动"

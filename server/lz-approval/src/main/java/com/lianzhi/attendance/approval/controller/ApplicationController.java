@@ -3,8 +3,10 @@ package com.lianzhi.attendance.approval.controller;
 import com.lianzhi.attendance.approval.dto.ApplicationApproveRequest;
 import com.lianzhi.attendance.approval.dto.ApplicationSubmitRequest;
 import com.lianzhi.attendance.approval.entity.BizApplication;
+import com.lianzhi.attendance.approval.entity.LeaveBalance;
 import com.lianzhi.attendance.approval.query.ApplicationQuery;
 import com.lianzhi.attendance.approval.service.ApplicationService;
+import com.lianzhi.attendance.approval.service.LeaveBalanceService;
 import com.lianzhi.attendance.common.page.PageResult;
 import com.lianzhi.attendance.common.result.R;
 import com.lianzhi.attendance.framework.auth.AuthContext;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -32,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApplicationController {
 
     private final ApplicationService applicationService;
+    private final LeaveBalanceService leaveBalanceService;
 
     @Operation(summary = "提交申请", description = "员工提交请假/加班申请")
     @PostMapping
@@ -77,6 +81,36 @@ public class ApplicationController {
                            @Valid @RequestBody ApplicationApproveRequest request) {
         applicationService.approve(id, request, AuthContext.currentUserId());
         return R.ok();
+    }
+
+    /**
+     * 阶段 F：本人当年请假/调休额度。
+     * 未绑定员工档案时返回全零额度行，前端按空态展示。
+     */
+    @Operation(summary = "我的额度", description = "本人当年的年假额度、已用请假与调休余额")
+    @GetMapping("/balances/my")
+    @RequirePermission("application:submit")
+    public R<LeaveBalance> myBalance() {
+        Long employeeId = currentEmployeeId();
+        if (employeeId == null) {
+            // 未绑定员工档案：返回空额度行（year 填当前年份，前端按空态展示）
+            LeaveBalance empty = new LeaveBalance();
+            empty.setYear(java.time.LocalDate.now().getYear());
+            return R.ok(empty);
+        }
+        return R.ok(leaveBalanceService.myBalance(employeeId));
+    }
+
+    /**
+     * 阶段 F：查看指定员工的额度（审批人在批调休/请假前核对余额用）。
+     */
+    @Operation(summary = "员工额度", description = "查看指定员工当年的请假/调休额度与余额")
+    @GetMapping("/balances/{employeeId}")
+    @RequirePermission("application:approve")
+    public R<LeaveBalance> balanceOf(@PathVariable Long employeeId,
+                                     @RequestParam(required = false) Integer year) {
+        int y = year != null ? year : java.time.LocalDate.now().getYear();
+        return R.ok(leaveBalanceService.balanceOf(employeeId, y));
     }
 
     private Long currentEmployeeId() {

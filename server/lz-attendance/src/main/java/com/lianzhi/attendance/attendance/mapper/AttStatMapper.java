@@ -29,6 +29,17 @@ public interface AttStatMapper {
     List<DailyStatRow> selectDailyRows(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     /**
+     * 查询某时间段内已通过请假的员工 ID（E-07 审批联动）。
+     *
+     * <p>直接读 biz_application 表（同一数据库，跨模块表级只读），
+     * 不引入 lz-approval 的类依赖，保持模块单向依赖。</p>
+     *
+     * @param from 日期起点（含）
+     * @param to   日期终点（不含）
+     */
+    List<Long> selectLeaveEmployeeIds(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /**
      * 写入或更新一行汇总。
      *
      * <p>依赖 <code>uk_employee_date</code> 唯一键：重复重算同一天不会产生第二行，

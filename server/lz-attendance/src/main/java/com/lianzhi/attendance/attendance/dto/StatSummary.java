@@ -31,6 +31,8 @@ public class StatSummary {
     private long lateDays;
     private long earlyDays;
     private long absentDays;
+    /** 请假人天（E-07：已批请假单覆盖且当天无打卡，不算缺勤也不算出勤） */
+    private long leaveDays;
     private long restDays;
 
     /** 打卡总次数（来自 att_daily_stat.checkin_count 累加） */

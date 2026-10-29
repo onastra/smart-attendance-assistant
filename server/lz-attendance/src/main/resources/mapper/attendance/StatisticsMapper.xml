@@ -7,6 +7,7 @@
       统计概览。
       出勤率的分母是"应出勤人天"= 人天数 - 休息日人天：
       如果把休息日算进分母，双休日的存在会让出勤率天然偏低，看起来像考勤很差。
+      E-07 联动后请假(LEAVE)也不进缺勤口径：它单独成列，出勤率分母同样排除。
     -->
     <select id="selectSummary" resultType="com.lianzhi.attendance.attendance.dto.StatSummary">
         SELECT
@@ -17,6 +18,7 @@
             SUM(CASE WHEN s.status = 'LATE'   THEN 1 ELSE 0 END)              AS lateDays,
             SUM(CASE WHEN s.status = 'EARLY'  THEN 1 ELSE 0 END)              AS earlyDays,
             SUM(CASE WHEN s.status = 'ABSENT' THEN 1 ELSE 0 END)              AS absentDays,
+            SUM(CASE WHEN s.status = 'LEAVE'  THEN 1 ELSE 0 END)              AS leaveDays,
             SUM(CASE WHEN s.status = 'REST'   THEN 1 ELSE 0 END)              AS restDays,
             SUM(CASE WHEN s.source = 'SAMPLE' THEN 1 ELSE 0 END)              AS sampleDays,
             COALESCE(SUM(s.checkin_count), 0)                                   AS checkinCount,
@@ -54,10 +56,11 @@
             SUM(CASE WHEN s.status = 'LATE'   THEN 1 ELSE 0 END)                AS lateDays,
             SUM(CASE WHEN s.status = 'EARLY'  THEN 1 ELSE 0 END)                AS earlyDays,
             SUM(CASE WHEN s.status = 'ABSENT' THEN 1 ELSE 0 END)                AS absentDays,
+            SUM(CASE WHEN s.status = 'LEAVE'  THEN 1 ELSE 0 END)                AS leaveDays,
             COALESCE(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes,
-            -- 出勤率的分母排除休息日：周末没人打卡不是考勤问题
+            -- 出勤率的分母排除休息日与请假：周末没人打卡不是考勤问题，请假也不是
             COALESCE(ROUND(SUM(CASE WHEN s.status IN ('NORMAL', 'LATE', 'EARLY') THEN 1 ELSE 0 END) * 100.0
-                   / NULLIF(SUM(CASE WHEN s.status &lt;&gt; 'REST' THEN 1 ELSE 0 END), 0), 1), 0) AS attendanceRate,
+                   / NULLIF(SUM(CASE WHEN s.status NOT IN ('REST', 'LEAVE') THEN 1 ELSE 0 END), 0), 1), 0) AS attendanceRate,
             MAX(CASE WHEN s.source = 'SAMPLE' THEN 1 ELSE 0 END)                AS sample
         FROM att_daily_stat s
         JOIN hr_employee e ON e.id = s.employee_id
@@ -81,9 +84,10 @@
             SUM(CASE WHEN s.status = 'LATE'   THEN 1 ELSE 0 END)                 AS lateDays,
             SUM(CASE WHEN s.status = 'EARLY'  THEN 1 ELSE 0 END)                 AS earlyDays,
             SUM(CASE WHEN s.status = 'ABSENT' THEN 1 ELSE 0 END)                 AS absentDays,
+            SUM(CASE WHEN s.status = 'LEAVE'  THEN 1 ELSE 0 END)                 AS leaveDays,
             COALESCE(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END)), 0) AS avgWorkMinutes,
             COALESCE(ROUND(SUM(CASE WHEN s.status IN ('NORMAL', 'LATE', 'EARLY') THEN 1 ELSE 0 END) * 100.0
-                   / NULLIF(SUM(CASE WHEN s.status &lt;&gt; 'REST' THEN 1 ELSE 0 END), 0), 1), 0) AS attendanceRate
+                   / NULLIF(SUM(CASE WHEN s.status NOT IN ('REST', 'LEAVE') THEN 1 ELSE 0 END), 0), 1), 0) AS attendanceRate
         FROM att_daily_stat s
         JOIN hr_employee e ON e.id = s.employee_id
         LEFT JOIN org_department d ON d.id = e.dept_id
@@ -139,5 +143,58 @@
         </where>
         GROUP BY p.id, p.place_name
         ORDER BY count DESC
+    </select>
+
+    <!--
+      今日未打卡/请假名单（"离岗员工数据分布"）：在职员工逐人判定，
+      已打卡 → 不返回；覆盖已批请假 → LEAVE；其余 → ABSENT。
+      数据范围由 deptId / employeeId 条件收敛，与 summary 同口径。
+    -->
+    <select id="selectTodayAbsent" resultType="com.lianzhi.attendance.attendance.dto.AbsentEmployee">
+        SELECT
+            e.id          AS employeeId,
+            e.name        AS employeeName,
+            COALESCE(d.dept_name, '未分配部门') AS deptName,
+            CASE
+                WHEN EXISTS (SELECT 1 FROM att_record r
+                             WHERE r.employee_id = e.id
+                               AND r.checkin_time &gt;= #{dayStart}
+                               AND r.checkin_time &lt; #{dayEnd}) THEN 'CHECKED'
+                WHEN EXISTS (SELECT 1 FROM biz_application a
+                             WHERE a.employee_id = e.id AND a.type = 'LEAVE' AND a.status = 'APPROVED'
+                               AND a.start_time &lt;= #{dayEnd}
+                               AND a.end_time &gt;= #{dayStart}) THEN 'LEAVE'
+                ELSE 'ABSENT'
+            END           AS status
+        FROM hr_employee e
+        LEFT JOIN org_department d ON d.id = e.dept_id
+        <where>
+            e.status = 1
+            <if test="deptId != null">AND e.dept_id = #{deptId}</if>
+            <if test="employeeId != null">AND e.id = #{employeeId}</if>
+        </where>
+        ORDER BY e.id
+    </select>
+
+    <!-- 人均工时趋势：avgHours 按有工时的行平均（漏卡的人天记 0 不拉低均值） -->
+    <select id="selectWorkHours" resultType="com.lianzhi.attendance.attendance.dto.WorkHourPoint">
+        SELECT
+            s.stat_date                                                       AS date,
+            COALESCE(ROUND(AVG(CASE WHEN s.work_minutes &gt; 0 THEN s.work_minutes END) / 60.0, 1), 0) AS avgHours,
+            COUNT(CASE WHEN s.work_minutes &gt; 0 THEN 1 END)                    AS coveredEmployees
+        FROM att_daily_stat s
+        JOIN hr_employee e ON e.id = s.employee_id
+        <where>
+            s.stat_date BETWEEN CAST(#{dateFrom} AS date) AND CAST(#{dateTo} AS date)
+            <if test="deptId != null">AND e.dept_id = #{deptId}</if>
+            <if test="employeeId != null">AND s.employee_id = #{employeeId}</if>
+        </where>
+        GROUP BY s.stat_date
+        ORDER BY s.stat_date
+    </select>
+
+    <!-- 员工画像越权校验：取员工部门 -->
+    <select id="selectEmployeeDeptId" resultType="long">
+        SELECT dept_id FROM hr_employee WHERE id = #{employeeId} AND status = 1
     </select>
 </mapper>

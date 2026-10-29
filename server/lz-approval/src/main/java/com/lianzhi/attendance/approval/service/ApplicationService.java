@@ -37,6 +37,7 @@ public class ApplicationService {
     private final Random random = new Random();
 
     private final ApplicationMapper mapper;
+    private final LeaveBalanceService leaveBalanceService;
 
     /**
      * 提交申请（REQ-E-01）。
@@ -139,6 +140,15 @@ public class ApplicationService {
         approval.setAction(action);
         approval.setComment(req.getComment() == null ? null : req.getComment().trim());
         mapper.insertApproval(approval);
+
+        /*
+         * 阶段 F：审批通过即联动额度核算（加班折调休 / 请假扣额度 / 调休校验余额）。
+         * 放在同一个事务里：调休余额不足时抛业务异常，上面的状态变更一并回滚，
+         * 不会出现"申请单已通过但额度没扣"的中间态。
+         */
+        if (BizApplication.STATUS_APPROVED.equals(newStatus)) {
+            leaveBalanceService.applyApproved(mapper.selectById(id));
+        }
 
         log.info("[APP] 审批 id={} action={} approver={}", id, action, approverId);
     }

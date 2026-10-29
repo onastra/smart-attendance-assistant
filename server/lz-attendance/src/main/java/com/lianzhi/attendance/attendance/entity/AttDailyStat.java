@@ -26,6 +26,8 @@ public class AttDailyStat {
     public static final String STATUS_EARLY = "EARLY";
     /** 缺勤（工作日无任何打卡） */
     public static final String STATUS_ABSENT = "ABSENT";
+    /** 已批请假（E-07：当天无打卡但覆盖了已通过的请假单，不算缺勤） */
+    public static final String STATUS_LEAVE = "LEAVE";
     /** 休息日 */
     public static final String STATUS_REST = "REST";
 

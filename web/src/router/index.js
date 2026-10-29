@@ -20,20 +20,8 @@ const routes = [
   {
     path: '/',
     component: () => import('@/layouts/AdminLayout.vue'),
-    redirect: '/dashboard',
+    redirect: '/statistics/dashboard',
     children: [
-      {
-        path: 'dashboard',
-        name: 'dashboard',
-        component: () => import('@/views/Dashboard.vue'),
-        meta: { title: '概要看板', icon: 'DataLine', group: '概况' }
-      },
-      {
-        path: 'system/health',
-        name: 'health',
-        component: () => import('@/views/system/Health.vue'),
-        meta: { title: '系统与依赖状态', icon: 'Monitor', group: '系统' }
-      },
       {
         path: 'employees',
         name: 'employees',
@@ -146,6 +134,17 @@ const router = createRouter({
   routes
 })
 
+/**
+ * 登录后的默认首页：按权限选择落脚页。
+ *
+ * - 有 statistics:view（管理员/经理）→ 数据看板
+ * - 普通员工 → 我的考勤
+ */
+export const homePath = () => {
+  const permissions = JSON.parse(localStorage.getItem('lz_permissions') || '[]')
+  return permissions.includes('statistics:view') ? '/statistics/dashboard' : '/my/records'
+}
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('lz_token')
   if (!to.meta.public && !token) {
@@ -154,7 +153,7 @@ router.beforeEach((to, from, next) => {
   }
   // 已登录用户访问登录页时直接回首页，避免登录后还能看到登录框的割裂感
   if (to.name === 'login' && token) {
-    next('/dashboard')
+    next(homePath())
     return
   }
   // 前端侧的权限展示控制；后端仍会在接口层再做一次校验
@@ -162,7 +161,7 @@ router.beforeEach((to, from, next) => {
     const permissions = JSON.parse(localStorage.getItem('lz_permissions') || '[]')
     if (!permissions.includes(to.meta.permission)) {
       ElMessage.warning('当前账号没有该页面的访问权限')
-      next('/dashboard')
+      next(homePath())
       return
     }
   }

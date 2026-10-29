@@ -28,7 +28,8 @@ import java.util.stream.Collectors;
  * 重算前清理已不在职员工的残留行。</p>
  *
  * <p>状态判定口径（与打卡时的即时判定保持一致，都读同一份 AttendanceProperties）：
- * 休息日 REST → 无打卡 ABSENT → 上班晚于宽限 LATE → 下班早于下班时间 EARLY → 否则 NORMAL。
+ * 已批请假 LEAVE（无打卡且覆盖请假单）→ 休息日 REST → 无打卡 ABSENT →
+ * 上班晚于宽限 LATE → 下班早于下班时间 EARLY → 否则 NORMAL。
  * 迟到优先于早退：一天只有一个 status 字段，两者同时发生时记更严重的迟到。</p>
  */
 @Slf4j
@@ -57,12 +58,14 @@ public class DailyStatService {
 
         List<DailyStatRow> rows = statMapper.selectDailyRows(from, to);
         boolean weekend = isWeekend(date);
+        // E-07 审批联动：当天覆盖了已批请假的员工集合（当天无打卡时状态记 LEAVE 而不是 ABSENT）
+        java.util.Set<Long> leaveEmployeeIds = new java.util.HashSet<>(statMapper.selectLeaveEmployeeIds(from, to));
 
         int sampleRows = 0;
         int absentRows = 0;
 
         for (DailyStatRow row : rows) {
-            AttDailyStat stat = buildStat(row, date, weekend);
+            AttDailyStat stat = buildStat(row, date, weekend, leaveEmployeeIds);
             statMapper.upsertStat(stat);
             if (AttDailyStat.SOURCE_SAMPLE.equals(stat.getSource())) {
                 sampleRows++;
@@ -120,7 +123,8 @@ public class DailyStatService {
                 .collect(Collectors.toList());
     }
 
-    private AttDailyStat buildStat(DailyStatRow row, LocalDate date, boolean weekend) {
+    private AttDailyStat buildStat(DailyStatRow row, LocalDate date, boolean weekend,
+                                   java.util.Set<Long> leaveEmployeeIds) {
         AttDailyStat stat = new AttDailyStat();
         stat.setEmployeeId(row.getEmployeeId());
         stat.setStatDate(date);
@@ -131,6 +135,17 @@ public class DailyStatService {
 
         long recordCount = row.getRecordCount();
         if (recordCount == 0) {
+            /*
+             * E-07 审批联动：无打卡时优先看请假——
+             * 当天被已批请假单覆盖 → LEAVE（请假不算缺勤，也不算出勤）；
+             * 请假单与打卡并存时以打卡为准（上了半天班的实际情况比请假标记更有信息量）。
+             */
+            if (leaveEmployeeIds.contains(row.getEmployeeId())) {
+                stat.setWorkMinutes(0);
+                stat.setStatus(AttDailyStat.STATUS_LEAVE);
+                stat.setSource(AttDailyStat.SOURCE_REAL);
+                return stat;
+            }
             // 没来就是没来：休息日算 REST，工作日算 ABSENT，工时 0
             stat.setWorkMinutes(0);
             stat.setStatus(weekend ? AttDailyStat.STATUS_REST : AttDailyStat.STATUS_ABSENT);

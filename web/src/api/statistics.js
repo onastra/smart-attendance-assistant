@@ -32,3 +32,23 @@ export function fetchPlaceHeat(params) {
 export function rebuildDailyStat(payload) {
   return request({ url: '/statistics/daily-rebuild', method: 'post', params: payload })
 }
+
+/** 出勤趋势预测：近 28 天同星期均值外推未来 7 天 */
+export function fetchForecast() {
+  return request({ url: '/statistics/forecast', method: 'get' })
+}
+
+/** 今日未打卡 / 请假名单 */
+export function fetchTodayAbsent() {
+  return request({ url: '/statistics/today-absent', method: 'get' })
+}
+
+/** 人均工时趋势 */
+export function fetchWorkHours(params) {
+  return request({ url: '/statistics/work-hours', method: 'get', params })
+}
+
+/** 员工画像（不传 employeeId 默认本人） */
+export function fetchEmployeeProfile(params) {
+  return request({ url: '/statistics/employee-profile', method: 'get', params })
+}

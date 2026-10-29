@@ -98,6 +98,40 @@ public class StatisticsController {
         return R.ok(heat);
     }
 
+    @Operation(summary = "出勤趋势预测", description = "近 28 天同星期均值外推未来 7 天出勤率（历史为实线，未来为预测）")
+    @GetMapping("/api/statistics/forecast")
+    @RequirePermission("statistics:view")
+    public R<Map<String, Object>> forecast() {
+        return R.ok(statisticsService.forecast(AuthContext.get()));
+    }
+
+    @Operation(summary = "今日未打卡/请假名单", description = "在职员工逐人判定：已打卡不返回；覆盖已批请假记 LEAVE；其余记 ABSENT")
+    @GetMapping("/api/statistics/today-absent")
+    @RequirePermission("statistics:view")
+    public R<Map<String, Object>> todayAbsent() {
+        return R.ok(statisticsService.todayAbsent(AuthContext.get()));
+    }
+
+    @Operation(summary = "人均工时趋势", description = "按日的人均工时（小时）与有工时人数，供工时分析")
+    @GetMapping("/api/statistics/work-hours")
+    @RequirePermission("statistics:view")
+    public R<Map<String, Object>> workHours(StatisticsQuery query) {
+        AuthUser user = AuthContext.get();
+        List<com.lianzhi.attendance.attendance.dto.WorkHourPoint> points =
+                statisticsService.workHours(query, user);
+        Map<String, Object> data = new HashMap<>();
+        data.put("points", points);
+        data.put("dataScope", describeScope(user));
+        return R.ok(data);
+    }
+
+    @Operation(summary = "员工画像", description = "近 30 天出勤构成与每日出勤率；SELF 范围强制本人，DEPT 范围限本部门")
+    @GetMapping("/api/statistics/employee-profile")
+    @RequirePermission("statistics:view")
+    public R<Map<String, Object>> employeeProfile(StatisticsQuery query) {
+        return R.ok(statisticsService.employeeProfile(query, AuthContext.get()));
+    }
+
     /**
      * 手动重算日汇总。
      *

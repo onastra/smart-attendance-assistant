@@ -28,6 +28,19 @@
     </select>
 
     <!--
+      E-07 审批联动：时间段内已通过的请假单覆盖的员工。
+      类型限定 LEAVE（加班单不算），状态必须是 APPROVED。
+    -->
+    <select id="selectLeaveEmployeeIds" resultType="long">
+        SELECT DISTINCT a.employee_id
+        FROM biz_application a
+        WHERE a.type = 'LEAVE'
+          AND a.status = 'APPROVED'
+          AND a.start_time &lt; #{to}
+          AND a.end_time &gt;= #{from}
+    </select>
+
+    <!--
       幂等写入：uk_employee_date 冲突时刷新除主键外的全部字段。
       注意 stat_date 不参与 UPDATE（它是唯一键的一部分，刷新没有意义）。
     -->

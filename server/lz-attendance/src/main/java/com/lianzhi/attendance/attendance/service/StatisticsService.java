@@ -1,9 +1,12 @@
 package com.lianzhi.attendance.attendance.service;
 
+import com.lianzhi.attendance.attendance.dto.AbsentEmployee;
 import com.lianzhi.attendance.attendance.dto.DeptStatItem;
+import com.lianzhi.attendance.attendance.dto.ForecastPoint;
 import com.lianzhi.attendance.attendance.dto.PlaceHourItem;
 import com.lianzhi.attendance.attendance.dto.StatSummary;
 import com.lianzhi.attendance.attendance.dto.TrendPoint;
+import com.lianzhi.attendance.attendance.dto.WorkHourPoint;
 import com.lianzhi.attendance.attendance.mapper.StatisticsMapper;
 import com.lianzhi.attendance.attendance.query.StatisticsQuery;
 import com.lianzhi.attendance.common.exception.BusinessException;
@@ -91,7 +94,9 @@ public class StatisticsService {
         long workdayPersonDays = summary.getPersonDays() - summary.getRestDays();
         summary.setWorkdayPersonDays(workdayPersonDays);
         long presentDays = summary.getNormalDays() + summary.getLateDays() + summary.getEarlyDays();
-        summary.setAttendanceRate(rate(presentDays, workdayPersonDays));
+        // 出勤率分母排除请假人天（E-07）：请假是合规缺勤，不该拉低出勤率
+        long denominator = workdayPersonDays - summary.getLeaveDays();
+        summary.setAttendanceRate(rate(presentDays, denominator));
 
         applyDataSource(summary);
         return summary;
@@ -148,12 +153,151 @@ public class StatisticsService {
             throw new BusinessException(ResultCode.PARAM_ERROR, "开始日期不能晚于结束日期");
         }
 
+        applyScope(query, user);
+    }
+
+    /** 只收敛数据范围，不动日期（员工画像等自带日期窗口的接口用） */
+    private void applyScope(StatisticsQuery query, AuthUser user) {
         String scope = dataScopeResolver.resolve(user);
         if (DataScopeResolver.SCOPE_DEPT.equals(scope)) {
             query.setDeptId(dataScopeResolver.deptIdOf(user));
         } else if (DataScopeResolver.SCOPE_SELF.equals(scope)) {
             query.setEmployeeId(dataScopeResolver.selfEmployeeId(user));
         }
+    }
+
+    /**
+     * 出勤趋势预测（需求书"数据预测"）。
+     *
+     * <p>算法刻意取"同星期均值"而不是线性回归：出勤率以周为周期波动，
+     * 周末天然是 0，直接回归会把工作日的预测拖向周末，数字没法看。
+     * 取近 28 天里同一个星期几的出勤率平均，外推未来 7 天，方法简单且可解释。</p>
+     */
+    public Map<String, Object> forecast(AuthUser user) {
+        LocalDate today = LocalDate.now();
+        StatisticsQuery query = new StatisticsQuery();
+        query.setType(TYPE_DAY);
+        query.setDateFrom(today.minusDays(27).format(DATE_FORMATTER));
+        query.setDateTo(today.format(DATE_FORMATTER));
+        applyScope(query, user);
+
+        List<TrendPoint> history = statisticsMapper.selectTrend(query, TYPE_DAY);
+
+        // 同星期均值：key=DayOfWeek，value=近4周该星期几的平均出勤率
+        Map<java.time.DayOfWeek, double[]> weekdaySum = new LinkedHashMap<>();
+        for (TrendPoint p : history) {
+            LocalDate d = LocalDate.parse(p.getPeriod(), DATE_FORMATTER);
+            double[] acc = weekdaySum.computeIfAbsent(d.getDayOfWeek(), k -> new double[2]);
+            acc[0] += p.getAttendanceRate();
+            acc[1] += 1;
+        }
+        double overallAvg = history.stream().mapToDouble(TrendPoint::getAttendanceRate).average().orElse(0);
+
+        List<ForecastPoint> points = new java.util.ArrayList<>();
+        for (TrendPoint p : history) {
+            ForecastPoint fp = new ForecastPoint();
+            fp.setDate(p.getPeriod());
+            fp.setActualRate(p.getAttendanceRate());
+            points.add(fp);
+        }
+        for (int i = 1; i <= 7; i++) {
+            LocalDate future = today.plusDays(i);
+            double[] acc = weekdaySum.get(future.getDayOfWeek());
+            ForecastPoint fp = new ForecastPoint();
+            fp.setDate(future.format(DATE_FORMATTER));
+            // 某星期几一次都没出现过（如新系统刚上线不满一周）时退回整体均值
+            fp.setPredictedRate(acc != null && acc[1] > 0
+                    ? Math.round(acc[0] / acc[1] * 10.0) / 10.0
+                    : Math.round(overallAvg * 10.0) / 10.0);
+            points.add(fp);
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("points", points);
+        data.put("method", "同星期均值（近 28 天）外推未来 7 天");
+        data.put("historyDays", history.size());
+        return data;
+    }
+
+    /**
+     * 今日未打卡 / 请假名单（需求书"离岗员工数据分布"）。
+     *
+     * <p>已打卡的员工不返回；返回的名单分两组：ABSENT（今日未打卡）与 LEAVE（已批请假）。</p>
+     */
+    public Map<String, Object> todayAbsent(AuthUser user) {
+        LocalDate today = LocalDate.now();
+        StatisticsQuery scopeQuery = new StatisticsQuery();
+        applyScope(scopeQuery, user);
+
+        List<AbsentEmployee> all = statisticsMapper.selectTodayAbsent(
+                today.atStartOfDay(), today.plusDays(1).atStartOfDay(),
+                scopeQuery.getDeptId(), scopeQuery.getEmployeeId());
+
+        List<AbsentEmployee> absent = new java.util.ArrayList<>();
+        List<AbsentEmployee> leave = new java.util.ArrayList<>();
+        for (AbsentEmployee item : all) {
+            if (AbsentEmployee.STATUS_LEAVE.equals(item.getStatus())) {
+                leave.add(item);
+            } else if (AbsentEmployee.STATUS_ABSENT.equals(item.getStatus())) {
+                absent.add(item);
+            }
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("date", today.format(DATE_FORMATTER));
+        data.put("absent", absent);
+        data.put("leave", leave);
+        data.put("absentCount", absent.size());
+        data.put("leaveCount", leave.size());
+        return data;
+    }
+
+    /** 人均工时趋势（需求书"员工工时分析"） */
+    public List<WorkHourPoint> workHours(StatisticsQuery query, AuthUser user) {
+        normalize(query, user);
+        return statisticsMapper.selectWorkHours(query);
+    }
+
+    /**
+     * 员工画像（需求书"局部画像"）：近 30 天出勤构成 + 每日出勤率走势。
+     *
+     * <p>越权控制：SELF 范围强制看自己；DEPT 范围只允许看本部门员工；
+     * 目标员工不存在或不在范围内时直接 403，不泄漏存在性。</p>
+     */
+    public Map<String, Object> employeeProfile(StatisticsQuery query, AuthUser user) {
+        String scope = dataScopeResolver.resolve(user);
+        Long target = query.getEmployeeId();
+
+        if (DataScopeResolver.SCOPE_SELF.equals(scope)) {
+            target = dataScopeResolver.selfEmployeeId(user);
+        } else if (DataScopeResolver.SCOPE_DEPT.equals(scope) && target != null) {
+            Long targetDept = statisticsMapper.selectEmployeeDeptId(target);
+            if (targetDept == null || !targetDept.equals(dataScopeResolver.deptIdOf(user))) {
+                throw new BusinessException(ResultCode.FORBIDDEN, "只能查看本部门员工的画像");
+            }
+        }
+        if (target == null) {
+            target = dataScopeResolver.selfEmployeeId(user);
+        }
+        if (target == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "当前账号未绑定员工档案，无法生成画像");
+        }
+
+        LocalDate today = LocalDate.now();
+        StatisticsQuery window = new StatisticsQuery();
+        window.setEmployeeId(target);
+        window.setDateFrom(today.minusDays(29).format(DATE_FORMATTER));
+        window.setDateTo(today.format(DATE_FORMATTER));
+
+        StatSummary summary = loadSummary(window);
+        List<TrendPoint> trend = statisticsMapper.selectTrend(window, TYPE_DAY);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("employeeId", target);
+        data.put("summary", summary);
+        data.put("trend", trend);
+        data.put("window", window.getDateFrom() + "~" + window.getDateTo());
+        return data;
     }
 
     private void applyDataSource(StatSummary summary) {

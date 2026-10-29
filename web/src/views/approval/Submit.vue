@@ -10,13 +10,18 @@
 
       <el-form :model="form" :rules="rules" ref="formRef" inline label-width="90px">
         <el-form-item label="类型" prop="type">
-          <el-select v-model="form.type" style="width: 160px">
+          <el-select v-model="form.type" style="width: 160px" @change="onTypeChange">
             <el-option label="请假" value="LEAVE"/>
             <el-option label="加班" value="OVERTIME"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="子类">
-          <el-input v-model="form.subType" placeholder="事假 / 病假 / 年假 等（选填）" style="width: 200px"/>
+        <el-form-item v-if="form.type === 'LEAVE'" label="假别">
+          <el-select v-model="form.subType" style="width: 160px" placeholder="选择假别">
+            <el-option label="年假" value="年假"/>
+            <el-option label="事假" value="事假"/>
+            <el-option label="病假" value="病假"/>
+            <el-option label="调休" value="调休"/>
+          </el-select>
         </el-form-item>
         <el-form-item label="开始时间" prop="startTime">
           <el-date-picker v-model="form.startTime" type="datetime"
@@ -40,6 +45,17 @@
           <el-button type="primary" :loading="submitting" @click="handleSubmit">提交申请</el-button>
         </el-form-item>
       </el-form>
+
+      <el-alert v-if="form.type === 'OVERTIME'" type="info" :closable="false" show-icon
+                title="加班核算：审批通过后，加班时长按 1:1 自动折算为调休额度（可后续提交「调休」假别使用）"/>
+      <el-alert v-else-if="balances" type="info" :closable="false" show-icon>
+        <template #title>
+          我的额度：年假剩余
+          <b>{{ balances.leaveAvailable ?? balances.leaveQuotaHours - balances.leaveUsedHours }}</b> 小时，
+          调休可用
+          <b>{{ balances.compensAvailable }}</b> 小时（选「调休」假别将从调休余额中扣减）
+        </template>
+      </el-alert>
     </el-card>
 
     <el-card shadow="never">
@@ -85,10 +101,13 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   cancelApplication,
+  fetchMyBalances,
   pageMyApplications,
   submitApplication
 } from '@/api/approval'
 import { downloadFile, uploadFile } from '@/api/file'
+
+const balances = ref(null)
 
 const formRef = ref()
 const fileInput = ref()
@@ -155,6 +174,13 @@ function clearAttachment() {
   attachmentName.value = ''
 }
 
+function onTypeChange() {
+  // 切到加班时清掉假别，避免把"年假"当成加班子类提交
+  if (form.type === 'OVERTIME') {
+    form.subType = ''
+  }
+}
+
 async function handleSubmit() {
   await formRef.value.validate()
   if (!form.startTime || !form.endTime) {
@@ -203,12 +229,23 @@ async function loadList() {
   }
 }
 
+async function loadBalances() {
+  try {
+    balances.value = await fetchMyBalances()
+  } catch {
+    balances.value = null
+  }
+}
+
 function onPageChange(page) {
   query.pageNum = page
   loadList()
 }
 
-onMounted(loadList)
+onMounted(() => {
+  loadList()
+  loadBalances()
+})
 </script>
 
 <style scoped>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lianzhi.attendance.approval.mapper.LeaveBalanceMapper">
+
+    <!-- 带派生余额的查询：调休余额 = 折算额度 - 已用；年假余额 = 额度 - 已用 -->
+    <sql id="BalanceColumns">
+        b.id, b.employee_id, b.year, b.leave_quota_hours, b.leave_used_hours,
+        b.compens_earned_hours, b.compens_used_hours, b.updated_at,
+        e.name AS employeeName,
+        (b.compens_earned_hours - b.compens_used_hours) AS compensAvailable,
+        (b.leave_quota_hours - b.leave_used_hours)      AS leaveAvailable
+    </sql>
+
+    <select id="selectOne" resultType="com.lianzhi.attendance.approval.entity.LeaveBalance">
+        SELECT id, employee_id, year, leave_quota_hours, leave_used_hours,
+               compens_earned_hours, compens_used_hours, updated_at
+        FROM att_leave_balance
+        WHERE employee_id = #{employeeId} AND year = #{year}
+    </select>
+
+    <select id="selectWithBalance" resultType="com.lianzhi.attendance.approval.entity.LeaveBalance">
+        SELECT <include refid="BalanceColumns"/>
+        FROM att_leave_balance b
+        JOIN hr_employee e ON e.id = b.employee_id
+        WHERE b.employee_id = #{employeeId} AND b.year = #{year}
+    </select>
+
+    <insert id="insertDefault">
+        INSERT INTO att_leave_balance (employee_id, year, leave_quota_hours)
+        VALUES (#{employeeId}, #{year}, #{quotaHours})
+        ON CONFLICT (employee_id, year) DO NOTHING
+    </insert>
+
+    <!-- 用 SQL 侧自增而不是读-改-写，避免并发审批互相覆盖 -->
+    <update id="addLeaveUsed">
+        UPDATE att_leave_balance
+        SET leave_used_hours = leave_used_hours + #{hours}, updated_at = NOW()
+        WHERE employee_id = #{employeeId} AND year = #{year}
+    </update>
+
+    <update id="addCompensUsed">
+        UPDATE att_leave_balance
+        SET compens_used_hours = compens_used_hours + #{hours}, updated_at = NOW()
+        WHERE employee_id = #{employeeId} AND year = #{year}
+    </update>
+
+    <update id="addCompensEarned">
+        UPDATE att_leave_balance
+        SET compens_earned_hours = compens_earned_hours + #{hours}, updated_at = NOW()
+        WHERE employee_id = #{employeeId} AND year = #{year}
+    </update>
+
+    <update id="updateQuota">
+        UPDATE att_leave_balance
+        SET leave_quota_hours = #{quotaHours}, updated_at = NOW()
+        WHERE employee_id = #{employeeId} AND year = #{year}
+    </update>
+</mapper>
