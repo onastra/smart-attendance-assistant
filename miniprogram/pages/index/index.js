@@ -15,9 +15,7 @@ Page({
     isAdmin: false,
     lastRecord: null,
     lastRecordText: '',
-    lastResultMeta: null,
-    // 首页直扫的结果浮层
-    sheetResult: null
+    lastResultMeta: null
   },
 
   onShow: function () {
@@ -77,24 +75,9 @@ Page({
       })
   },
 
-  // 首页直扫：不跳二级页，摄像头直接拉起，结果用浮层展示
+  // 首页直扫：摄像头直接拉起 → 确认页 → 结果页（结果不再用浮层，统一走独立状态页）
   scanCheckin: function () {
-    const that = this
-    checkin.scanAndSubmit({
-      onResult: function (result) {
-        that.setData({ sheetResult: result })
-        that.loadLastRecord()
-      }
-    })
-  },
-
-  closeSheet: function () {
-    this.setData({ sheetResult: null })
-  },
-
-  sheetToRecords: function () {
-    this.setData({ sheetResult: null })
-    wx.switchTab({ url: '/pages/records/records' })
+    checkin.scanThenConfirm({})
   },
 
   // 摄像头不可用/二维码破损时的兜底入口

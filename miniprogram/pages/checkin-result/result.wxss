@@ -1,0 +1,91 @@
+/* 打卡结果页 */
+.result-page {
+  padding-bottom: 200rpx;
+}
+
+.status-hero {
+  margin: 24rpx 24rpx 8rpx;
+  padding: 60rpx 32rpx 54rpx;
+  border-radius: 32rpx;
+  text-align: center;
+  color: #ffffff;
+}
+
+.status-ok {
+  background: linear-gradient(150deg, #34C27A, #17803D);
+  box-shadow: 0 16rpx 34rpx rgba(23, 128, 61, 0.26);
+}
+
+.status-dup {
+  background: linear-gradient(150deg, #7E8CA6, #5B6472);
+  box-shadow: 0 16rpx 34rpx rgba(91, 100, 114, 0.24);
+}
+
+.status-fail {
+  background: linear-gradient(150deg, #F0716F, #C62A2F);
+  box-shadow: 0 16rpx 34rpx rgba(198, 42, 47, 0.24);
+}
+
+.status-icon {
+  width: 132rpx;
+  height: 132rpx;
+  margin: 0 auto 26rpx;
+  border-radius: 50%;
+  line-height: 128rpx;
+  font-size: 68rpx;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.2);
+  border: 4rpx solid rgba(255, 255, 255, 0.55);
+}
+
+.status-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.status-sub {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+.status-time {
+  margin-top: 22rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  opacity: 0.95;
+  letter-spacing: 1rpx;
+}
+
+.actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 20rpx;
+  padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -6rpx 24rpx rgba(22, 36, 72, 0.08);
+}
+
+.action-btn {
+  flex: 1;
+  height: 92rpx;
+  line-height: 92rpx;
+  font-size: 32rpx;
+  margin: 0;
+}
+
+.action-btn-ghost {
+  flex: 0 0 220rpx;
+}
+
+.rescan-link {
+  text-align: center;
+  margin-top: 30rpx;
+  color: var(--lz-primary);
+  font-size: 26rpx;
+}

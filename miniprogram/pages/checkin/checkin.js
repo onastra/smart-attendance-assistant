@@ -1,31 +1,20 @@
-// 打卡 tab：中央扫码大按钮已下沉到 tabBar，本页承担——
-// 1) 接收 tabBar/首页直扫的结果并展示  2) 类型选择  3) 手动输入兜底
+// 打卡 tab：类型选择 + 直扫（进确认页）+ 手动输入兜底（同样进确认页，校验链一致）
+// 打卡结果不在这里展示，统一由 pages/checkin-result/result 呈现
 const checkin = require('../../utils/checkin')
-
-const RESULT_KEY = 'lz_last_checkin_result'
+const auth = require('../../utils/auth')
 
 Page({
   data: {
     typeIndex: 0,
-    typeLabels: checkin.TYPE_OPTIONS.map(function (o) { return o.label }),
-    manualContent: '',
-    submitting: false,
-    // 最近一次打卡结果（已格式化，供 WXML 直接展示）
-    result: null
+    typeLabels: checkin.TYPE_OPTIONS.map(function (o) { return o.short }),
+    typeFullLabels: checkin.TYPE_OPTIONS.map(function (o) { return o.label }),
+    manualContent: ''
   },
 
   onShow: function () {
-    const token = require('../../utils/auth').getToken()
-    if (!token) {
+    if (!auth.isLoggedIn()) {
       wx.reLaunch({ url: '/pages/login/login' })
       return
-    }
-    // tabBar/首页直扫的结果通过 storage 转交（switchTab 不能带参数）
-    let pending = null
-    try { pending = wx.getStorageSync(RESULT_KEY) } catch (e) { }
-    if (pending && pending.title) {
-      try { wx.removeStorageSync(RESULT_KEY) } catch (e) { }
-      this.setData({ result: pending })
     }
     // 同步 tabBar 高亮（索引 2 = 打卡）
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -34,44 +23,26 @@ Page({
   },
 
   onTypeChange: function (e) {
-    this.setData({ typeIndex: Number(e.detail.value) })
+    this.setData({ typeIndex: Number(e.currentTarget.dataset.index) })
+  },
+
+  // 扫码：直接进确认页，选好的类型会带过去
+  scanAndCheckin: function () {
+    checkin.scanThenConfirm({ typeIndex: this.data.typeIndex })
   },
 
   onManualInput: function (e) {
     this.setData({ manualContent: e.detail.value })
   },
 
-  scanAndCheckin: function () {
-    const that = this
-    checkin.scanAndSubmit({
-      checkinType: checkin.TYPE_OPTIONS[this.data.typeIndex].value,
-      onResult: function (result) {
-        that.setData({ result: result })
-      }
-    })
-  },
-
+  // 手动粘贴：同样先预校验再确认，不跳过校验链
   submitManual: function () {
-    const that = this
     const content = (this.data.manualContent || '').trim()
     if (!content) {
       wx.showToast({ title: '请粘贴二维码内容', icon: 'none' })
       return
     }
-    if (this.data.submitting) return
-    this.setData({ submitting: true })
-    wx.showLoading({ title: '提交中…', mask: true })
-    checkin.submit(content, checkin.TYPE_OPTIONS[this.data.typeIndex].value)
-      .then(function (result) {
-        that.setData({ result: result, manualContent: '' })
-      })
-      .catch(function () {
-        // 错误提示已由 request 统一弹出
-      })
-      .then(function () {
-        wx.hideLoading()
-        that.setData({ submitting: false })
-      })
+    checkin.openConfirm(content, this.data.typeIndex)
   },
 
   goRecords: function () {

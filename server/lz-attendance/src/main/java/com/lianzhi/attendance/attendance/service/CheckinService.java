@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -60,6 +61,100 @@ public class CheckinService {
         String requestId = "CK" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
         log.debug("[CHECKIN] 签发 requestId userId={}", userId);
         return requestId;
+    }
+
+    /**
+     * 扫码预校验：只读校验二维码真伪/时效/场所/人员归属，返回确认页需要的信息。
+     *
+     * <p>为什么要单独开一个只读接口：小程序希望"扫完码先给用户看一眼将要打卡的场所再确认"，
+     * 但员工账号没有场所查询权限（/api/places/{id} 需要 place 权限），
+     * 前端拿不到场所名称；直接提交又会让"确认打卡"变成既成事实。
+     * 因此这里复用与 {@link #checkin} 完全相同的校验链，只做读操作——不落流水、不写操作日志。</p>
+     *
+     * <p>注意：预校验通过不代表提交必然成功（重复打卡窗口、围栏等仍在提交时判定），
+     * 前端不能据此跳过错误处理。</p>
+     */
+    public Map<String, Object> preview(String content, BigDecimal lng, BigDecimal lat, Long employeeId) {
+        // ---------- 1. 二维码真伪 ----------
+        QrPayload payload;
+        try {
+            payload = QrPayload.parse(content);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, e.getMessage(), reason("QR_FORMAT_INVALID"));
+        }
+        AttQrcode qrcode = qrcodeMapper.selectByBizId(payload.getBizId());
+        if (qrcode == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "二维码不是本系统签发的", reason("QR_NOT_FOUND"));
+        }
+        if (!qrSigner.matches(payload.canonical(), payload.getSign())) {
+            throw new BusinessException(ResultCode.CONFLICT, "二维码校验失败，可能已被篡改", reason("QR_SIGN_INVALID"));
+        }
+        if (!qrcode.getPlaceId().equals(payload.getPlaceId())) {
+            throw new BusinessException(ResultCode.CONFLICT, "二维码与签发记录不一致", reason("QR_PAYLOAD_MISMATCH"));
+        }
+
+        // ---------- 2. 时效与状态（只读：这里不修正库内状态，避免用户只是扫一眼就把码改成过期）----------
+        LocalDateTime now = LocalDateTime.now();
+        String status = qrcode.getStatus();
+        if (AttQrcode.STATUS_VALID.equals(status) && qrcode.getExpireTime().isBefore(now)) {
+            status = AttQrcode.STATUS_EXPIRED;
+        }
+        if (AttQrcode.STATUS_EXPIRED.equals(status)) {
+            throw new BusinessException(ResultCode.CONFLICT, "该二维码已过期，请向管理员获取最新二维码", reason("QR_EXPIRED"));
+        }
+        if (AttQrcode.STATUS_INVALID.equals(status)) {
+            throw new BusinessException(ResultCode.CONFLICT, "该二维码已被管理员作废", reason("QR_INVALID"));
+        }
+        if (AttQrcode.STATUS_USED.equals(status)) {
+            throw new BusinessException(ResultCode.CONFLICT, "这是一次性二维码且已被使用过", reason("QR_USED"));
+        }
+
+        // ---------- 3. 场所与人 ----------
+        PlaceBrief place = supportMapper.selectPlaceBrief(qrcode.getPlaceId());
+        if (place == null || place.getStatus() == null || place.getStatus() != 1) {
+            throw new BusinessException(ResultCode.CONFLICT, "该办公场所已停用，无法打卡", reason("PLACE_DISABLED"));
+        }
+        if (employeeId == null) {
+            throw new BusinessException(ResultCode.CONFLICT, "当前账号未关联员工档案，无法打卡", reason("EMPLOYEE_NOT_BOUND"));
+        }
+        if (supportMapper.countActiveEmployee(employeeId) == 0) {
+            throw new BusinessException(ResultCode.CONFLICT, "员工档案不存在或已停用，无法打卡", reason("EMPLOYEE_INACTIVE"));
+        }
+        if (supportMapper.countBinding(employeeId, qrcode.getPlaceId()) == 0) {
+            throw new BusinessException(ResultCode.CONFLICT, "你不属于该办公场所，无法在此打卡", reason("PLACE_NOT_BOUND"));
+        }
+
+        // ---------- 4. 围栏预判（仅提示，最终仍由提交时判定）----------
+        Integer radiusMeters = place.getCoverRadiusM() == null ? 200 : place.getCoverRadiusM();
+        boolean locationChecked = false;
+        boolean inRange = true;
+        BigDecimal distanceMeters = null;
+        if (properties.isLocationCheckEnabled() && lng != null && lat != null) {
+            Double distance = GeoDistanceUtil.distanceMeters(place.getLng(), place.getLat(), lng, lat);
+            if (distance != null) {
+                locationChecked = true;
+                distanceMeters = BigDecimal.valueOf(distance).setScale(1, RoundingMode.HALF_UP);
+                inRange = distance <= radiusMeters;
+            }
+        }
+
+        // ---------- 5. 组装确认页所需信息 ----------
+        String suggestedType = now.toLocalTime().isBefore(LocalTime.NOON)
+                ? AttRecord.TYPE_ON_DUTY : AttRecord.TYPE_OFF_DUTY;
+        Map<String, Object> data = new HashMap<>();
+        data.put("placeId", place.getId());
+        data.put("placeName", place.getPlaceName());
+        data.put("expireTime", qrcode.getExpireTime());
+        data.put("remainingSeconds", Math.max(0, Duration.between(now, qrcode.getExpireTime()).getSeconds()));
+        data.put("onceOnly", qrcode.getOnceOnly() != null && qrcode.getOnceOnly() == 1);
+        data.put("radiusMeters", radiusMeters);
+        data.put("locationChecked", locationChecked);
+        data.put("inRange", inRange);
+        data.put("distanceMeters", distanceMeters);
+        data.put("serverTime", now);
+        data.put("suggestedType", suggestedType);
+        data.put("suggestedTypeText", typeText(suggestedType));
+        return data;
     }
 
     @Transactional

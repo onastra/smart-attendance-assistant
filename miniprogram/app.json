@@ -8,6 +8,8 @@
     "pages/login/login",
     "pages/apply/apply",
     "pages/applications/applications",
+    "pages/checkin-confirm/confirm",
+    "pages/checkin-result/result",
     "pages/dashboard/dashboard"
   ],
   "window": {

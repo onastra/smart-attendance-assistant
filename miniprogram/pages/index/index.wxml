@@ -61,21 +61,4 @@
       </view>
     </view>
   </view>
-
-  <!-- 打卡结果浮层 -->
-  <view class="sheet-mask" wx:if="{{sheetResult}}" bindtap="closeSheet"></view>
-  <view class="sheet" wx:if="{{sheetResult}}">
-    <view class="sheet-bar"></view>
-    <view class="sheet-title {{sheetResult.success ? 'sheet-ok' : 'sheet-idem'}}">{{sheetResult.title}}</view>
-    <view class="cell"><text class="cell-label">员工</text><text class="cell-value">{{sheetResult.employeeName}}</text></view>
-    <view class="cell"><text class="cell-label">场所</text><text class="cell-value">{{sheetResult.placeName}}</text></view>
-    <view class="cell"><text class="cell-label">类型</text><text class="cell-value">{{sheetResult.typeText}}</text></view>
-    <view class="cell"><text class="cell-label">结果</text><text class="cell-value">{{sheetResult.resultText}}</text></view>
-    <view class="cell"><text class="cell-label">时间</text><text class="cell-value">{{sheetResult.timeText}}</text></view>
-    <view class="cell"><text class="cell-label">围栏</text><text class="cell-value">{{sheetResult.distanceText}}</text></view>
-    <view class="sheet-actions">
-      <button class="btn-plain sheet-btn" bindtap="closeSheet">关闭</button>
-      <button class="btn-primary sheet-btn" bindtap="sheetToRecords">查看考勤</button>
-    </view>
-  </view>
 </view>

@@ -2,49 +2,32 @@
   padding-bottom: 160rpx;
 }
 
+/* 打卡类型胶囊 */
 .type-row {
-  margin-bottom: 24rpx;
-}
-
-/* 结果卡 */
-.result-card {
-  margin: 20rpx 24rpx;
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 30rpx;
-  box-shadow: 0 6rpx 24rpx rgba(22, 36, 72, 0.06);
-  border-top: 8rpx solid #34C077;
-}
-
-.result-head {
   display: flex;
-  align-items: center;
-  margin-bottom: 16rpx;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 18rpx;
 }
 
-.result-dot {
-  width: 16rpx;
-  height: 16rpx;
-  border-radius: 50%;
-  margin-right: 14rpx;
-  background: #34C077;
+.type-pill {
+  padding: 16rpx 32rpx;
+  border-radius: 999rpx;
+  background: #F1F4FA;
+  color: var(--lz-text-2);
+  font-size: 28rpx;
+  border: 2rpx solid transparent;
 }
 
-.result-ok .result-dot { background: #34C077; }
-.result-idem .result-dot { background: #E07A18; }
-
-.result-title {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: var(--lz-text);
-}
-
-.result-link {
-  margin-top: 20rpx;
-  text-align: center;
+.type-pill-on {
+  background: #E9F0FE;
   color: var(--lz-primary);
-  font-size: 27rpx;
-  font-weight: 500;
+  border-color: rgba(47, 111, 237, 0.55);
+  font-weight: 600;
+}
+
+.type-tip {
+  margin-bottom: 6rpx;
 }
 
 /* 大扫码按钮 */
@@ -94,4 +77,10 @@
 
 .manual-btn {
   margin-top: 24rpx;
+}
+
+.checkin-foot {
+  text-align: center;
+  margin-top: 30rpx;
+  color: var(--lz-primary);
 }

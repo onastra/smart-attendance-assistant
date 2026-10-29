@@ -1,0 +1,39 @@
+<view class="page result-page">
+  <!-- 顶部状态区 -->
+  <view class="status-hero status-{{theme}}">
+    <view class="status-icon">{{iconText}}</view>
+    <view class="status-title">{{r.title}}</view>
+    <view class="status-sub">{{r.subtitle}}</view>
+    <view class="status-time" wx:if="{{r.timeText}}">{{r.timeText}}</view>
+  </view>
+
+  <!-- 明细 -->
+  <view class="card">
+    <view class="cell">
+      <text class="cell-label">员工</text>
+      <text class="cell-value">{{r.employeeName || '-'}}</text>
+    </view>
+    <view class="cell">
+      <text class="cell-label">场所</text>
+      <text class="cell-value">{{r.placeName}}</text>
+    </view>
+    <view class="cell">
+      <text class="cell-label">类型</text>
+      <text class="cell-value">{{r.typeText}}</text>
+    </view>
+    <view class="cell" wx:if="{{r.ok}}">
+      <text class="cell-label">判定</text>
+      <text class="cell-value"><text class="tag {{resultCls}}">{{r.resultText}}</text></text>
+    </view>
+    <view class="cell" wx:if="{{r.distanceText}}">
+      <text class="cell-label">围栏</text>
+      <text class="cell-value">{{r.distanceText}}</text>
+    </view>
+  </view>
+
+  <view class="actions">
+    <button class="btn-plain action-btn action-btn-ghost" bindtap="goHome">返回首页</button>
+    <button class="btn-primary action-btn" bindtap="goRecords">查看考勤</button>
+  </view>
+  <view class="tip rescan-link" wx:if="{{theme === 'fail'}}" bindtap="rescan">重新扫码打卡 ›</view>
+</view>

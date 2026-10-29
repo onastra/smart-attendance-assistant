@@ -34,16 +34,9 @@ Component({
       const that = this
       if (this.data.scanning) return
       this.setData({ scanning: true })
-      checkin.scanAndSubmit({
-        onResult: function (result) {
-          // 结果统一落到"打卡"tab 展示（含成功卡片与失败 toast）
-          try {
-            wx.setStorageSync('lz_last_checkin_result', result)
-          } catch (e) { /* 存储异常不影响主流程 */ }
-          wx.switchTab({ url: '/pages/checkin/checkin' })
-        }
-      })
-      // scanCode 的相机页关闭后才会继续执行到这里（成功/取消都走 fail/success 回调）
+      // 扫码后不再弹二维码原文，直接进"确认打卡"页（预校验 → 确认 → 结果页）
+      checkin.scanThenConfirm({})
+      // scanCode 的相机页关闭后才会继续执行到这里（成功/取消都走 success/fail 回调）
       setTimeout(function () { that.setData({ scanning: false }) }, 1500)
     }
   }

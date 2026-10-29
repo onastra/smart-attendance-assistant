@@ -1,5 +1,6 @@
 package com.lianzhi.attendance.attendance.controller;
 
+import com.lianzhi.attendance.attendance.dto.CheckinPreviewRequest;
 import com.lianzhi.attendance.attendance.dto.CheckinRequest;
 import com.lianzhi.attendance.attendance.dto.CheckinResult;
 import com.lianzhi.attendance.attendance.service.CheckinService;
@@ -44,6 +45,16 @@ public class CheckinController {
         AuthUser user = AuthContext.get();
         String requestId = checkinService.issueRequestId(user == null ? null : user.getUserId());
         return R.ok(Map.of("requestId", requestId));
+    }
+
+    @Operation(summary = "扫码预校验（确认页）",
+            description = "只读校验二维码与人员归属，返回场所名称、剩余有效期、围栏预判，供小程序确认页展示；不落打卡流水")
+    @PostMapping("/preview")
+    @RequireLogin
+    public R<Map<String, Object>> preview(@Valid @RequestBody CheckinPreviewRequest request) {
+        AuthUser user = AuthContext.get();
+        return R.ok(checkinService.preview(request.getContent(), request.getLng(), request.getLat(),
+                user.getEmployeeId()));
     }
 
     @Operation(summary = "提交打卡",

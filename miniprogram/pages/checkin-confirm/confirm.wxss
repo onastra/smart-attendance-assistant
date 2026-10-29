@@ -1,0 +1,168 @@
+/* 打卡确认页 */
+.confirm-page {
+  padding: 24rpx 0 180rpx;
+}
+
+/* ===== 场所大卡片 ===== */
+.place-card {
+  margin: 20rpx 24rpx;
+  padding: 34rpx 32rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #4C8DFF, #2F6FED 60%, #1B4FD8);
+  box-shadow: 0 14rpx 32rpx rgba(47, 111, 237, 0.28);
+  color: #ffffff;
+}
+
+.place-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.place-label {
+  font-size: 25rpx;
+  opacity: 0.86;
+  letter-spacing: 2rpx;
+}
+
+.place-badge {
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.place-badge-bad {
+  background: rgba(255, 255, 255, 0.9);
+  color: #C62A2F;
+}
+
+.place-name {
+  margin-top: 18rpx;
+  font-size: 46rpx;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 1rpx;
+}
+
+.place-remain {
+  margin-top: 14rpx;
+  font-size: 25rpx;
+  opacity: 0.9;
+}
+
+.place-remain-bad {
+  color: #FFE1E1;
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* ===== 类型胶囊 ===== */
+.type-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.type-pill {
+  padding: 16rpx 30rpx;
+  border-radius: 999rpx;
+  background: #F1F4FA;
+  color: var(--lz-text-2);
+  font-size: 28rpx;
+  border: 2rpx solid transparent;
+}
+
+.type-pill-on {
+  background: #E9F0FE;
+  color: var(--lz-primary);
+  border-color: rgba(47, 111, 237, 0.55);
+  font-weight: 600;
+}
+
+.type-hint {
+  margin-top: 18rpx;
+}
+
+/* ===== 异常/加载态 ===== */
+.state-card {
+  text-align: center;
+  padding: 70rpx 40rpx;
+}
+
+.state-icon {
+  width: 108rpx;
+  height: 108rpx;
+  margin: 0 auto 26rpx;
+  border-radius: 50%;
+  line-height: 108rpx;
+  font-size: 56rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.state-icon-bad {
+  background: linear-gradient(135deg, #F0716F, #C62A2F);
+}
+
+.state-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--lz-text);
+}
+
+.state-sub {
+  margin-top: 14rpx;
+  font-size: 27rpx;
+  color: var(--lz-text-2);
+  line-height: 1.7;
+}
+
+.state-loading {
+  width: 64rpx;
+  height: 64rpx;
+  margin: 0 auto 26rpx;
+  border-radius: 50%;
+  border: 6rpx solid #E3EAF8;
+  border-top-color: var(--lz-primary);
+  animation: confirm-spin 0.9s linear infinite;
+}
+
+@keyframes confirm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== 底部操作区 ===== */
+.actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 20rpx;
+  padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -6rpx 24rpx rgba(22, 36, 72, 0.08);
+}
+
+.action-btn {
+  flex: 1;
+  height: 92rpx;
+  line-height: 92rpx;
+  font-size: 32rpx;
+  margin: 0;
+}
+
+.action-btn-ghost {
+  flex: 0 0 220rpx;
+}
+
+.foot-tip {
+  text-align: center;
+  margin: 26rpx 32rpx 0;
+}
+
+.cell-warn {
+  color: var(--lz-red);
+}

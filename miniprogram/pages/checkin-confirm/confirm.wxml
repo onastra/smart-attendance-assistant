@@ -1,0 +1,82 @@
+<view class="page confirm-page">
+  <!-- 预校验中 -->
+  <view class="card state-card" wx:if="{{loading}}">
+    <view class="state-loading"></view>
+    <view class="state-title">正在识别二维码</view>
+    <view class="state-sub">{{locationText}}</view>
+  </view>
+
+  <!-- 码有问题：伪造/过期/不属于该场所 -->
+  <block wx:elif="{{error}}">
+    <view class="card state-card">
+      <view class="state-icon state-icon-bad">!</view>
+      <view class="state-title">无法打卡</view>
+      <view class="state-sub">{{error}}</view>
+    </view>
+    <view class="actions">
+      <button class="btn-primary action-btn" bindtap="rescan">重新扫码</button>
+    </view>
+  </block>
+
+  <!-- 可确认 -->
+  <block wx:else>
+    <view class="place-card">
+      <view class="place-top">
+        <view class="place-label">打卡场所</view>
+        <view class="place-badge" wx:if="{{!expired}}">二维码有效</view>
+        <view class="place-badge place-badge-bad" wx:else>已过期</view>
+      </view>
+      <view class="place-name">{{placeName}}</view>
+      <view class="place-remain {{expired ? 'place-remain-bad' : ''}}">{{remainText}}</view>
+    </view>
+
+    <view class="card">
+      <view class="card-title">打卡类型</view>
+      <view class="type-grid">
+        <view
+          wx:for="{{typeLabels}}"
+          wx:key="*this"
+          class="type-pill {{typeIndex === index ? 'type-pill-on' : ''}}"
+          data-index="{{index}}"
+          bindtap="onTypeChange"
+        >{{item}}</view>
+      </view>
+      <view class="tip type-hint">{{typeHint}}</view>
+    </view>
+
+    <view class="card">
+      <view class="card-title">本次打卡信息</view>
+      <view class="cell">
+        <text class="cell-label">员工</text>
+        <text class="cell-value">{{employeeName || '-'}}</text>
+      </view>
+      <view class="cell">
+        <text class="cell-label">类型</text>
+        <text class="cell-value">{{typeLabels[typeIndex] === '自动' ? '自动判定（按时间）' : typeLabels[typeIndex]}}</text>
+      </view>
+      <view class="cell">
+        <text class="cell-label">定位</text>
+        <text class="cell-value">{{locationText}}</text>
+      </view>
+      <view class="cell">
+        <text class="cell-label">围栏</text>
+        <text class="cell-value {{fenceWarn ? 'cell-warn' : ''}}">{{fenceText}}</text>
+      </view>
+      <view class="cell" wx:if="{{onceOnly}}">
+        <text class="cell-label">提示</text>
+        <text class="cell-value cell-warn">这是一次性二维码，提交后立即失效</text>
+      </view>
+    </view>
+
+    <view class="actions">
+      <button class="btn-plain action-btn action-btn-ghost" bindtap="rescan">重新扫码</button>
+      <button
+        class="btn-primary action-btn"
+        disabled="{{submitting || expired}}"
+        loading="{{submitting}}"
+        bindtap="confirm"
+      >确认打卡</button>
+    </view>
+    <view class="tip foot-tip">确认后将生成考勤记录，不支持撤回。</view>
+  </block>
+</view>

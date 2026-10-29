@@ -1,34 +1,24 @@
 <view class="page">
-  <!-- 最近一次打卡结果 -->
-  <view class="result-card" wx:if="{{result}}">
-    <view class="result-head {{result.success ? 'result-ok' : 'result-idem'}}">
-      <view class="result-dot"></view>
-      <text class="result-title">{{result.title}}</text>
-    </view>
-    <view class="cell"><text class="cell-label">员工</text><text class="cell-value">{{result.employeeName}}</text></view>
-    <view class="cell"><text class="cell-label">场所</text><text class="cell-value">{{result.placeName}}</text></view>
-    <view class="cell"><text class="cell-label">类型</text><text class="cell-value">{{result.typeText}}</text></view>
-    <view class="cell"><text class="cell-label">结果</text><text class="cell-value">{{result.resultText}}</text></view>
-    <view class="cell"><text class="cell-label">时间</text><text class="cell-value">{{result.timeText}}</text></view>
-    <view class="cell"><text class="cell-label">围栏</text><text class="cell-value">{{result.distanceText}}</text></view>
-    <view class="result-link" bindtap="goRecords">查看我的考勤 ›</view>
-  </view>
-
   <!-- 打卡入口：直扫 -->
   <view class="card">
     <view class="card-title">扫码打卡</view>
     <view class="type-row">
-      <picker range="{{typeLabels}}" value="{{typeIndex}}" bindchange="onTypeChange">
-        <view class="picker-value">打卡类型：{{typeLabels[typeIndex]}}</view>
-      </picker>
+      <view
+        wx:for="{{typeLabels}}"
+        wx:key="*this"
+        class="type-pill {{typeIndex === index ? 'type-pill-on' : ''}}"
+        data-index="{{index}}"
+        bindtap="onTypeChange"
+      >{{item}}</view>
     </view>
+    <view class="tip type-tip">{{typeFullLabels[typeIndex]}}</view>
     <view class="scan-big" bindtap="scanAndCheckin">
       <view class="scan-big-icon">
         <image class="scan-big-img" src="/images/scan-white.png" mode="aspectFit" />
       </view>
       <view class="scan-big-text">点 击 扫 码</view>
     </view>
-    <view class="tip scan-tip">对准考勤二维码即可，定位与围栏校验自动完成。</view>
+    <view class="tip scan-tip">扫码后进入确认页，核对场所与围栏信息再提交。</view>
   </view>
 
   <!-- 手动输入兜底 -->
@@ -36,6 +26,8 @@
     <view class="card-title">手动输入（兜底）</view>
     <view class="tip">摄像头不可用或二维码破损时，把管理员发布的二维码内容粘贴到这里，校验链与扫码完全一致。</view>
     <textarea class="form-textarea manual-area" placeholder="粘贴二维码原文" value="{{manualContent}}" bindinput="onManualInput" maxlength="-1" />
-    <button class="btn-plain manual-btn" disabled="{{submitting}}" loading="{{submitting}}" bindtap="submitManual">提交手动打卡</button>
+    <button class="btn-plain manual-btn" bindtap="submitManual">去确认页</button>
   </view>
+
+  <view class="tip checkin-foot" bindtap="goRecords">查看我的考勤 ›</view>
 </view>
