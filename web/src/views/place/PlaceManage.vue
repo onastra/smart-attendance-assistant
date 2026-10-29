@@ -132,12 +132,21 @@
                append-to-body>
       <div class="picker-wrap">
         <div class="picker-search">
-          <el-input v-model="searchKeyword" placeholder="输入地点名称搜索，如：XX大厦" clearable
-                    @keyup.enter="doSearch">
+          <el-input v-model="searchKeyword" placeholder="输入地点名称，选择联想项或按回车搜索" clearable
+                    @input="onKeywordInput" @keyup.enter="onSearchEnter"
+                    @blur="hideSuggestLater" @clear="clearSuggest">
             <template #append>
               <el-button :icon="Search" @click="doSearch">搜索</el-button>
             </template>
           </el-input>
+          <!-- 地址联想：AutoComplete 的 tips 自渲染，不用高德默认面板（样式无法与本页统一） -->
+          <div v-if="suggestions.length" class="picker-suggest">
+            <div v-for="(tip, idx) in suggestions" :key="tip.id || idx"
+                 class="picker-suggest-item" @mousedown.prevent="chooseSuggestion(tip)">
+              <span class="poi-name">{{ tip.name }}</span>
+              <span class="poi-addr">{{ [tip.district, tip.address].filter(Boolean).join(' ') }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- 加载失败如实告知并保留手动录入兜底，不假装地图可用 -->
@@ -356,6 +365,7 @@ const mapLoading = ref(false)
 const mapError = ref('')
 const searchKeyword = ref('')
 const searchResults = ref([])
+const suggestions = ref([])
 /** 当前选中点，保持地图原始坐标系 GCJ-02；确认时才转 WGS84 存库 */
 const pickedGcj = ref(null)
 
@@ -364,6 +374,11 @@ let mapInstance = null
 let marker = null
 let circle = null
 let placeSearch = null
+/** 输入联想（高德 AutoComplete），与 PlaceSearch 分开实例：前者给候选词，后者给详细 POI */
+let autoComplete = null
+let suggestTimer = null
+/** 请求序号：丢弃过期响应，避免快速输入时旧结果覆盖新结果 */
+let suggestSeq = 0
 let AMapRef = null
 
 const pickedWgs84 = computed(() => {
@@ -405,6 +420,8 @@ const initMap = () => {
   marker.setMap(mapInstance)
   circle.setMap(mapInstance)
   placeSearch = new AMapRef.PlaceSearch({ pageSize: 10, pageIndex: 1 })
+  // 输入联想：citylimit=false 保证跨城市也能联想（选址不限于某一市）
+  autoComplete = new AMapRef.AutoComplete({ city: '全国', citylimit: false })
 
   mapInstance.on('click', (e) => setPick(e.lnglat.getLng(), e.lnglat.getLat(), ''))
   marker.on('dragend', () => {
@@ -436,7 +453,69 @@ const openMapPicker = async () => {
   }
 }
 
+/** 输入时防抖 250ms 拉联想词（边打字边请求太密会被高德限流） */
+const onKeywordInput = () => {
+  const kw = searchKeyword.value.trim()
+  clearTimeout(suggestTimer)
+  if (!kw) {
+    suggestions.value = []
+    return
+  }
+  suggestTimer = setTimeout(() => fetchSuggestions(kw), 250)
+}
+
+const fetchSuggestions = (kw) => {
+  if (!autoComplete) return
+  const seq = ++suggestSeq
+  // ⚠️ 与 PlaceSearch 相同：2.0 的 AutoComplete.search 也不返回 Promise，必须回调式；
+  // 候选词在 result.tips，部分 tip 的 location 是空串（只精确到区县）
+  autoComplete.search(kw, (status, result) => {
+    if (seq !== suggestSeq) return // 丢弃过期响应，避免旧结果覆盖新输入
+    suggestions.value = status === 'complete' && Array.isArray(result?.tips)
+      ? result.tips.filter((t) => t && t.name)
+      : []
+  })
+}
+
+const hideSuggestLater = () => {
+  // 延迟隐藏：让联想项的 mousedown 先于 blur 生效
+  setTimeout(() => { suggestions.value = [] }, 120)
+}
+
+const clearSuggest = () => {
+  clearTimeout(suggestTimer)
+  suggestSeq++
+  suggestions.value = []
+}
+
+/** 回车：有联想项时取第一条（更快），否则走全文 POI 搜索 */
+const onSearchEnter = () => {
+  if (suggestions.value.length) {
+    chooseSuggestion(suggestions.value[0])
+  } else {
+    doSearch()
+  }
+}
+
+const chooseSuggestion = (tip) => {
+  const loc = tip?.location
+  const lng = loc && (typeof loc.getLng === 'function' ? loc.getLng() : loc.lng)
+  const lat = loc && (typeof loc.getLat === 'function' ? loc.getLat() : loc.lat)
+  clearSuggest()
+  if (lng && lat) {
+    searchKeyword.value = tip.name
+    searchResults.value = []
+    setPick(lng, lat, tip.name)
+    mapInstance?.setZoomAndCenter(16, [lng, lat])
+  } else {
+    // 联想项没有坐标（如只精确到区县）：退回关键词搜索拿详细 POI
+    searchKeyword.value = tip.name
+    doSearch()
+  }
+}
+
 const doSearch = async () => {
+  clearSuggest()
   const kw = searchKeyword.value.trim()
   if (!kw || !placeSearch) return
   try {
@@ -556,6 +635,40 @@ onMounted(() => {
   flex-direction: column;
   gap: 12px;
   height: 100%;
+}
+
+/* 联想下拉以输入框为定位基准 */
+.picker-search {
+  position: relative;
+}
+
+.picker-suggest {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  margin-top: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.picker-suggest-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.picker-suggest-item:hover {
+  background: var(--el-fill-color-light);
+}
+
+.picker-suggest-item + .picker-suggest-item {
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 
 /* 地图容器必须有确定高度，否则 SDK 无法计算画布尺寸、地图不渲染 */
