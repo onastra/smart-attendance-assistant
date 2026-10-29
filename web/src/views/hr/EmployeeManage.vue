@@ -13,12 +13,6 @@
             <el-option v-for="d in departments" :key="d.id" :label="d.deptName" :value="d.id"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
-            <el-option label="在职" :value="1"/>
-            <el-option label="离职" :value="0"/>
-          </el-select>
-        </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="loadList">查询</el-button>
           <el-button :icon="Refresh" @click="resetQuery">重置</el-button>
@@ -46,20 +40,10 @@
         <el-table-column label="入职日期" width="120">
           <template #default="{ row }">{{ row.hireDate || '-' }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-              {{ row.status === 1 ? '在职' : '离职' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="110" fixed="right">
           <template #default="{ row }">
             <el-button v-if="canUpdate" link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button v-if="canUpdate" link :type="row.status === 1 ? 'danger' : 'success'"
-                       @click="toggleStatus(row)">
-              {{ row.status === 1 ? '离职' : '复职' }}
-            </el-button>
+            <el-button v-if="canUpdate" link type="danger" @click="handleDismiss(row)">离职</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -122,7 +106,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { pageEmployees, createEmployee, updateEmployee, changeEmployeeStatus } from '@/api/employee'
+import { pageEmployees, createEmployee, updateEmployee, deleteEmployee } from '@/api/employee'
 import { listCompanies, listDepartments, listPositions } from '@/api/org'
 
 const userStore = useUserStore()
@@ -140,7 +124,7 @@ const companies = ref([])
 const departments = ref([])
 const positions = ref([])
 
-const query = reactive({ pageNum: 1, pageSize: 10, name: '', empNo: '', deptId: null, status: null })
+const query = reactive({ pageNum: 1, pageSize: 10, name: '', empNo: '', deptId: null })
 const emptyForm = () => ({
   id: null, empNo: '', name: '', gender: 0, phone: '',
   companyId: null, deptId: null, positionId: null, hireDate: ''
@@ -179,7 +163,7 @@ const loadOptions = async () => {
 }
 
 const resetQuery = () => {
-  Object.assign(query, { pageNum: 1, pageSize: 10, name: '', empNo: '', deptId: null, status: null })
+  Object.assign(query, { pageNum: 1, pageSize: 10, name: '', empNo: '', deptId: null })
   loadList()
 }
 
@@ -224,17 +208,19 @@ const submit = async () => {
   }
 }
 
-const toggleStatus = async (row) => {
-  const next = row.status === 1 ? 0 : 1
-  const action = next === 0 ? '设为离职' : '恢复在职'
+const handleDismiss = async (row) => {
   try {
-    await ElMessageBox.confirm(`确认将「${row.name}」${action}？`, '提示', { type: 'warning' })
+    await ElMessageBox.confirm(
+      `确认将「${row.name}（${row.empNo}）」离职删除？其打卡流水、日统计、申请单等关联数据将一并删除，且不可恢复、无法复职。`,
+      '离职删除确认',
+      { type: 'warning', confirmButtonText: '确认删除', cancelButtonText: '取消' }
+    )
   } catch {
     return
   }
   try {
-    await changeEmployeeStatus(row.id, next)
-    ElMessage.success(`${action}成功`)
+    await deleteEmployee(row.id)
+    ElMessage.success(`${row.name} 已离职删除`)
     loadList()
   } catch (e) {
     ElMessage.error(e?.message || '操作失败')

@@ -96,4 +96,39 @@
         </set>
         WHERE id = #{id}
     </update>
+
+    <!-- ======== 离职 = 物理删除（全库无外键，关联数据必须在同一事务手动清） ======== -->
+    <delete id="deleteFaceByEmployeeId">
+        DELETE FROM face_feature WHERE employee_id = #{id}
+    </delete>
+
+    <delete id="deleteApplicationByEmployeeId">
+        DELETE FROM biz_application WHERE employee_id = #{id}
+    </delete>
+
+    <delete id="deleteDailyStatByEmployeeId">
+        DELETE FROM att_daily_stat WHERE employee_id = #{id}
+    </delete>
+
+    <delete id="deleteAttRecordByEmployeeId">
+        DELETE FROM att_record WHERE employee_id = #{id}
+    </delete>
+
+    <delete id="deleteEmployeePlaceByEmployeeId">
+        DELETE FROM hr_employee_place WHERE employee_id = #{id}
+    </delete>
+
+    <delete id="unlinkUserByEmployeeId">
+        UPDATE sys_user SET employee_id = NULL, updated_at = CURRENT_TIMESTAMP
+        WHERE employee_id = #{id}
+    </delete>
+
+    <delete id="clearDeptLeaderByEmployeeId">
+        UPDATE org_department SET leader_employee_id = NULL
+        WHERE leader_employee_id = #{id}
+    </delete>
+
+    <delete id="deleteById">
+        DELETE FROM hr_employee WHERE id = #{id}
+    </delete>
 </mapper>

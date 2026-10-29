@@ -2,7 +2,6 @@ package com.lianzhi.attendance.system.controller;
 
 import com.lianzhi.attendance.common.page.PageResult;
 import com.lianzhi.attendance.common.result.R;
-import com.lianzhi.attendance.common.result.ResultCode;
 import com.lianzhi.attendance.framework.auth.RequirePermission;
 import com.lianzhi.attendance.system.entity.Employee;
 import com.lianzhi.attendance.system.query.EmployeeQuery;
@@ -12,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -64,15 +64,11 @@ public class EmployeeController {
         return R.ok();
     }
 
-    @Operation(summary = "在职/离职状态变更", description = "0 离职 1 在职；不做物理删除以保留历史考勤数据")
-    @PostMapping("/{id}/status")
+    @Operation(summary = "离职（物理删除）", description = "删除员工档案及其关联数据（打卡流水/日统计/申请单/人脸特征/场所绑定）；不复留离职记录，误删需重新建档")
+    @DeleteMapping("/{id}")
     @RequirePermission("hr:employee:update")
-    public R<Void> changeStatus(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
-        Integer status = body.get("status");
-        if (status == null || (status != 0 && status != 1)) {
-            return R.fail(ResultCode.PARAM_ERROR, "status 只能为 0（离职）或 1（在职）");
-        }
-        employeeService.changeStatus(id, status);
+    public R<Void> delete(@PathVariable Long id) {
+        employeeService.delete(id);
         return R.ok();
     }
 }

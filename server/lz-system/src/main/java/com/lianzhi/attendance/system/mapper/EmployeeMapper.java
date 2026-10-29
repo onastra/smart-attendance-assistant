@@ -21,6 +21,25 @@ public interface EmployeeMapper {
 
     int updateById(Employee employee);
 
+    /** 离职 = 物理删除：先清关联数据再删档案行，全部在 Service 的事务里调用 */
+    int deleteById(@Param("id") Long id);
+
+    int deleteFaceByEmployeeId(@Param("id") Long id);
+
+    int deleteApplicationByEmployeeId(@Param("id") Long id);
+
+    int deleteDailyStatByEmployeeId(@Param("id") Long id);
+
+    int deleteAttRecordByEmployeeId(@Param("id") Long id);
+
+    int deleteEmployeePlaceByEmployeeId(@Param("id") Long id);
+
+    /** 员工删除后，其登录账号不再指向任何档案（账号本身保留） */
+    int unlinkUserByEmployeeId(@Param("id") Long id);
+
+    /** 员工删除后，不再担任任何部门的负责人 */
+    int clearDeptLeaderByEmployeeId(@Param("id") Long id);
+
     /** 工号唯一性校验，excludeId 用于排除自身（编辑场景） */
     long countByEmpNo(@Param("empNo") String empNo, @Param("excludeId") Long excludeId);
 

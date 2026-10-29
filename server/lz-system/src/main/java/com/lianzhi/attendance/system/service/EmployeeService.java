@@ -19,8 +19,9 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * 员工档案。
  *
- * <p>约定：员工的停用是"离职"，不做物理删除——打卡记录、统计汇总都以 employee_id 为外键，
- * 物理删除会让历史考勤数据变成孤儿，也会让统计口径失真。</p>
+ * <p>约定：员工"离职"即物理删除——档案行与其关联数据（打卡流水、日统计、申请单、
+ * 人脸特征、场所绑定）在同一个事务里一并清除，不留离职状态的历史行；
+ * 因而不存在"复职"操作，误删需重新建档。</p>
  */
 @Slf4j
 @Service
@@ -76,14 +77,23 @@ public class EmployeeService {
         log.info("[EMP] 编辑员工 id={}", employee.getId());
     }
 
+    /**
+     * 离职 = 物理删除。同一个事务里先清关联数据再删档案行，
+     * 全库无外键约束，必须手动清理，否则留下孤儿行污染统计。
+     */
     @Transactional
-    public void changeStatus(Long id, Integer status) {
-        requireEmployee(id);
-        Employee patch = new Employee();
-        patch.setId(id);
-        patch.setStatus(status);
-        employeeMapper.updateById(patch);
-        log.info("[EMP] 变更员工状态 id={} status={}", id, status);
+    public void delete(Long id) {
+        Employee employee = requireEmployee(id);
+        employeeMapper.deleteFaceByEmployeeId(id);
+        employeeMapper.deleteApplicationByEmployeeId(id);
+        employeeMapper.deleteDailyStatByEmployeeId(id);
+        employeeMapper.deleteAttRecordByEmployeeId(id);
+        employeeMapper.deleteEmployeePlaceByEmployeeId(id);
+        employeeMapper.unlinkUserByEmployeeId(id);
+        employeeMapper.clearDeptLeaderByEmployeeId(id);
+        employeeMapper.deleteById(id);
+        log.info("[EMP] 离职删除员工 id={} empNo={} name={}（含关联数据）",
+                id, employee.getEmpNo(), employee.getName());
     }
 
     /**

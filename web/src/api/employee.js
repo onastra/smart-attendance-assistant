@@ -19,6 +19,9 @@ export function updateEmployee(id, data) {
   return request.put(`/employees/${id}`, data)
 }
 
-export function changeEmployeeStatus(id, status) {
-  return request.post(`/employees/${id}/status`, { status })
+/**
+ * 离职（物理删除档案及其关联数据）。误删需重新建档，无复职。
+ */
+export function deleteEmployee(id) {
+  return request.delete(`/employees/${id}`)
 }
