@@ -43,6 +43,7 @@ import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import { login as loginApi } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
+import { homePath } from '@/router'
 
 const formRef = ref()
 const loading = ref(false)
