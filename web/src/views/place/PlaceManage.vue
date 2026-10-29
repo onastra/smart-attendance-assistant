@@ -440,8 +440,22 @@ const doSearch = async () => {
   const kw = searchKeyword.value.trim()
   if (!kw || !placeSearch) return
   try {
-    const res = await placeSearch.search(kw)
-    const pois = res?.pois || []
+    // ⚠️ 高德 JS API 2.0 的 PlaceSearch.search() **不返回 Promise**（返回 undefined），
+    // 必须用回调式，否则 await 拿到 undefined，永远提示"未搜索到相关地点"；
+    // 且 2.0 的结果在 res.poiList.pois（1.4 才是顶层 res.pois）。
+    // 2026-10-29 无头浏览器实测：await ps.search(kw) === undefined；
+    // 回调式 status=complete，"郑州轻工业大学"返回 61 条在 poiList.pois。
+    const result = await new Promise((resolve, reject) => {
+      placeSearch.search(kw, (status, res) => {
+        if (status === 'complete') {
+          resolve(res)
+        } else {
+          // error/complete 之外的状态：info 携带高德侧真实错误码（如 INVALID_USER_SCODE）
+          reject(new Error(res?.info || status || '搜索异常'))
+        }
+      })
+    })
+    const pois = result?.poiList?.pois || result?.pois || []
     if (pois.length) {
       searchResults.value = pois.map((p) => ({
         name: p.name,
