@@ -2,6 +2,7 @@ package com.lianzhi.attendance.system.service;
 
 import com.lianzhi.attendance.common.exception.BusinessException;
 import com.lianzhi.attendance.common.result.ResultCode;
+import com.lianzhi.attendance.framework.auth.AuthUser;
 import com.lianzhi.attendance.framework.auth.TokenService;
 import com.lianzhi.attendance.system.dto.LoginRequest;
 import com.lianzhi.attendance.system.dto.LoginVO;
@@ -48,6 +49,36 @@ public class AuthService {
     private final SysUserMapper sysUserMapper;
     private final SysRoleMapper sysRoleMapper;
     private final TokenService tokenService;
+
+    /**
+     * 当前登录者完整档案：与登录返回同构（无 token/expireSeconds）。
+     *
+     * <p>JWT 无状态，AuthUser 从 token 只能还原出身份标识（userId/username/employeeId），
+     * 不含权限码——此前 /auth/profile 直接透传 AuthUser 导致 permissions 恒为空数组，
+     * 小程序"我的"页一刷新就把登录时缓存的权限覆盖丢了（首页宫格随之消失）。
+     * 这里与登录同源回库补齐角色与权限码。</p>
+     */
+    @Transactional(readOnly = true)
+    public LoginVO profile(AuthUser user) {
+        List<SysRole> roles = sysRoleMapper.selectRolesByUserId(user.getUserId());
+        List<String> roleCodes = roles.stream()
+                .map(SysRole::getRoleCode)
+                .collect(Collectors.toList());
+        Set<String> permissions = Set.copyOf(
+                roles.isEmpty() ? Set.<String>of() : sysRoleMapper.selectPermCodesByUserId(user.getUserId()));
+
+        // nickname 以库内最新为准（AuthUser 里没有该字段）
+        SysUser dbUser = sysUserMapper.selectById(user.getUserId());
+
+        return LoginVO.builder()
+                .userId(user.getUserId())
+                .username(user.getUsername())
+                .nickname(dbUser != null ? dbUser.getNickname() : null)
+                .employeeId(user.getEmployeeId())
+                .roles(roleCodes)
+                .permissions(permissions)
+                .build();
+    }
 
     @Transactional
     public LoginVO login(LoginRequest request, String clientIp) {

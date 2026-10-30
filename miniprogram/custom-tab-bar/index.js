@@ -13,11 +13,25 @@ const ALL_TABS = [
   { pagePath: '/pages/profile/profile', text: '我的', icon: 'tab-me', iconOn: 'tab-me-on', originIndex: 4 }
 ]
 
-// 按档案绑定情况计算当前应展示的 tab 列表
+// 按档案绑定情况计算当前应展示的 tab 列表。
+// 未绑定档案（管理员等）：把「考勤」格替换为「看板」入口——
+// 始终保持 5 格布局，中央扫码按钮不偏移；看板页非 tab 页，点击走 navigateTo。
 function tabsForProfile() {
   const profile = auth.getProfile() || {}
   if (profile.employeeId) return ALL_TABS
-  return ALL_TABS.filter(function (t) { return t.pagePath !== '/pages/records/records' })
+  return ALL_TABS.map(function (t) {
+    if (t.pagePath === '/pages/records/records') {
+      return {
+        pagePath: '/pages/dashboard/dashboard',
+        text: '看板',
+        icon: 'tab-dash',
+        iconOn: 'tab-dash-on',
+        originIndex: 1,
+        navigate: true
+      }
+    }
+    return t
+  })
 }
 
 Component({
@@ -44,7 +58,12 @@ Component({
       const idx = Number(e.currentTarget.dataset.index)
       const item = this.data.list[idx]
       if (!item || item.scan) return
-      if (this.data.selected === idx) return
+      if (this.data.selected === idx && !item.navigate) return
+      // 看板等非 tab 页走页面导航（无底栏，页面内返回）
+      if (item.navigate) {
+        wx.navigateTo({ url: item.pagePath })
+        return
+      }
       wx.switchTab({ url: item.pagePath })
     },
 

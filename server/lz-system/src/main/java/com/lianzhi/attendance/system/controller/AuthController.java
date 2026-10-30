@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -38,17 +37,11 @@ public class AuthController {
         return R.ok(authService.login(request, resolveClientIp(httpRequest)));
     }
 
-    @Operation(summary = "当前登录者信息", description = "依据请求头中的 Token 返回身份与权限码")
+    @Operation(summary = "当前登录者信息", description = "依据请求头中的 Token 返回完整身份、角色与权限码（与登录返回同构，无 token）")
     @GetMapping("/profile")
     @RequireLogin
-    public R<Map<String, Object>> profile() {
-        AuthUser user = AuthContext.get();
-        Map<String, Object> profile = new HashMap<>();
-        profile.put("userId", user.getUserId());
-        profile.put("username", user.getUsername());
-        profile.put("employeeId", user.getEmployeeId());
-        profile.put("permissions", user.getPermissions());
-        return R.ok(profile);
+    public R<LoginVO> profile() {
+        return R.ok(authService.profile(AuthContext.get()));
     }
 
     /**

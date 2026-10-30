@@ -36,13 +36,15 @@ Page({
     this.loadBalance()
     api.get('/api/auth/profile')
       .then(function (data) {
+        // 合并式更新：profile 接口可能缺字段（旧后端/网络降级），不能覆盖丢登录时的完整缓存
+        const prev = auth.getProfile() || {}
         auth.setProfile({
-          userId: data.userId,
-          username: data.username,
-          nickname: data.nickname,
-          employeeId: data.employeeId,
-          roles: (auth.getProfile() || {}).roles || [],
-          permissions: data.permissions || []
+          userId: data.userId != null ? data.userId : prev.userId,
+          username: data.username != null ? data.username : prev.username,
+          nickname: data.nickname != null ? data.nickname : prev.nickname,
+          employeeId: data.employeeId != null ? data.employeeId : prev.employeeId,
+          roles: (data.roles && data.roles.length) ? data.roles : (prev.roles || []),
+          permissions: (data.permissions && data.permissions.length) ? data.permissions : (prev.permissions || [])
         })
         that.render()
       })
