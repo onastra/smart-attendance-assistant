@@ -3,13 +3,18 @@
 // 而是先调 /api/checkin/preview 拿到场所名/有效期/围栏预判，进确认页给人看清再打卡。
 const api = require('./request')
 
-// 打卡类型：'' 表示由服务端按当前时间自动判定
-const TYPE_OPTIONS = [
-  { label: '自动判定（按时间）', short: '自动', value: '' },
-  { label: '上班', short: '上班', value: 'ON_DUTY' },
-  { label: '下班', short: '下班', value: 'OFF_DUTY' },
-  { label: '外勤', short: '外勤', value: 'FIELD' }
-]
+// 打卡类型文案映射。注意：员工端不提供类型选择——
+// 类型由管理员/主管签发二维码时指定，码上为 AUTO 时后端按当前时间判定上班/下班。
+const TYPE_TEXT = {
+  AUTO: '自动判定',
+  ON_DUTY: '上班',
+  OFF_DUTY: '下班',
+  FIELD: '外勤'
+}
+
+function typeText(type) {
+  return TYPE_TEXT[String(type || '').toUpperCase()] || '自动判定'
+}
 
 const CONFIRM_PAGE = '/pages/checkin-confirm/confirm'
 const RESULT_PAGE = '/pages/checkin-result/result'
@@ -56,14 +61,14 @@ function preview(content, coords) {
   })
 }
 
-// 提交打卡：content = 二维码原文；checkinType = '' 表示自动判定
-function submit(content, checkinType, coords) {
+// 提交打卡：content = 二维码原文
+// 不传 checkinType：打卡类型以二维码签发时的指定为准（码上 AUTO 则由后端按时间判定）
+function submit(content, coords) {
   return api.post('/api/checkin/request-id', {})
     .then(function (data) {
       return api.post('/api/checkin', {
         content: content,
         requestId: data.requestId,
-        checkinType: checkinType || undefined,
         lng: coords ? coords.lng : undefined,
         lat: coords ? coords.lat : undefined
       })
@@ -89,9 +94,7 @@ function submit(content, checkinType, coords) {
 }
 
 // 扫码：不弹原始码，直接进确认页
-// opts: { typeIndex } 预设打卡类型（打卡 tab 里选的类型会带过去）
-function scanThenConfirm(opts) {
-  const options = opts || {}
+function scanThenConfirm() {
   wx.scanCode({
     onlyFromCamera: false,
     success: function (res) {
@@ -100,7 +103,7 @@ function scanThenConfirm(opts) {
         wx.showToast({ title: '二维码内容为空', icon: 'none' })
         return
       }
-      openConfirm(content, options.typeIndex)
+      openConfirm(content)
     },
     fail: function () {
       // 用户主动取消扫码，不打扰
@@ -109,12 +112,8 @@ function scanThenConfirm(opts) {
 }
 
 // 进确认页（手动输入兜底也走这里，保证校验链一致）
-function openConfirm(content, typeIndex) {
-  let url = CONFIRM_PAGE + '?content=' + encodeURIComponent(content)
-  if (typeof typeIndex === 'number' && typeIndex > 0) {
-    url += '&typeIndex=' + typeIndex
-  }
-  wx.navigateTo({ url: url })
+function openConfirm(content) {
+  wx.navigateTo({ url: CONFIRM_PAGE + '?content=' + encodeURIComponent(content) })
 }
 
 // 结果页数据交接：redirectTo 不能带复杂参数，用 storage 过渡
@@ -137,7 +136,7 @@ function takeResult() {
 }
 
 module.exports = {
-  TYPE_OPTIONS: TYPE_OPTIONS,
+  typeText: typeText,
   fetchLocation: fetchLocation,
   preview: preview,
   submit: submit,

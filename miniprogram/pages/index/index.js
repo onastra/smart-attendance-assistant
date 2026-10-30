@@ -85,7 +85,7 @@ Page({
 
   // 首页直扫：摄像头直接拉起 → 确认页 → 结果页（结果不再用浮层，统一走独立状态页）
   scanCheckin: function () {
-    checkin.scanThenConfirm({})
+    checkin.scanThenConfirm()
   },
 
   // 摄像头不可用/二维码破损时的兜底入口

@@ -58,26 +58,31 @@
   opacity: 1;
 }
 
-/* ===== 类型胶囊 ===== */
-.type-grid {
+/* ===== 打卡类型（只读，由二维码决定） ===== */
+.type-readonly {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 16rpx;
 }
 
-.type-pill {
-  padding: 16rpx 30rpx;
+.type-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--lz-text-1);
+  letter-spacing: 1rpx;
+}
+
+.type-badge {
+  font-size: 22rpx;
+  padding: 6rpx 18rpx;
   border-radius: 999rpx;
   background: #F1F4FA;
   color: var(--lz-text-2);
-  font-size: 28rpx;
-  border: 2rpx solid transparent;
 }
 
-.type-pill-on {
-  background: #E9F0FE;
-  color: var(--lz-primary);
-  border-color: rgba(47, 111, 237, 0.55);
+.type-badge-bound {
+  background: #E9F6EE;
+  color: #1F9254;
   font-weight: 600;
 }
 

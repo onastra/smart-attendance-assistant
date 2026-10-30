@@ -21,8 +21,8 @@ Page({
     expired: false,
     onceOnly: false,
 
-    typeLabels: checkin.TYPE_OPTIONS.map(function (o) { return o.short }),
-    typeIndex: 0,
+    typeText: '自动判定',
+    typeBound: false,
     typeHint: ''
   },
 
@@ -32,7 +32,6 @@ Page({
       return
     }
     const content = decodeURIComponent((options && options.content) || '')
-    const presetType = Number((options && options.typeIndex) || 0)
     if (!content) {
       this.setData({ loading: false, error: '没有拿到二维码内容，请重新扫码' })
       return
@@ -40,8 +39,7 @@ Page({
     const profile = auth.getProfile() || {}
     this.setData({
       content: content,
-      employeeName: profile.nickname || profile.username || '',
-      typeIndex: presetType >= 0 && presetType < checkin.TYPE_OPTIONS.length ? presetType : 0
+      employeeName: profile.nickname || profile.username || ''
     })
     this.prepare()
   },
@@ -64,6 +62,9 @@ Page({
       })
       .then(function (info) {
         that.info = info
+        // 打卡类型完全由二维码决定（签发时管理员/主管选择），员工端只做展示
+        const bound = !!info.typeBoundByQrcode
+        const text = info.suggestedTypeText || checkin.typeText(info.suggestedType)
         that.setData({
           loading: false,
           placeName: info.placeName || '-',
@@ -71,7 +72,11 @@ Page({
           expired: Number(info.remainingSeconds) <= 0,
           fenceText: that.fenceTextOf(info),
           fenceWarn: info.locationChecked && !info.inRange,
-          typeHint: '当前时间建议按「' + (info.suggestedTypeText || '自动') + '」打卡，可手动切换'
+          typeText: text,
+          typeBound: bound,
+          typeHint: bound
+            ? '该二维码签发时已指定为「' + text + '」，本次打卡按此类型记录。'
+            : '该二维码未指定类型，系统按当前时间自动判定上班 / 下班（当前为「' + text + '」）。'
         })
         that.startCountdown(Number(info.remainingSeconds) || 0)
       })
@@ -121,10 +126,6 @@ Page({
     }
   },
 
-  onTypeChange: function (e) {
-    this.setData({ typeIndex: Number(e.currentTarget.dataset.index) })
-  },
-
   // 确认打卡：无论成功失败都进结果页，绝不让请求结果悄无声息地消失
   confirm: function () {
     const that = this
@@ -133,10 +134,9 @@ Page({
       wx.showToast({ title: '二维码已过期，请重新扫码', icon: 'none' })
       return
     }
-    const type = checkin.TYPE_OPTIONS[this.data.typeIndex]
     this.setData({ submitting: true })
     wx.showLoading({ title: '打卡中…', mask: true })
-    checkin.submit(this.data.content, type.value, this.coords)
+    checkin.submit(this.data.content, this.coords)
       .then(function (result) {
         wx.hideLoading()
         that.setData({ submitting: false })
@@ -151,7 +151,7 @@ Page({
           subtitle: (err && err.message) || '请稍后重试',
           placeName: that.data.placeName || '-',
           employeeName: that.data.employeeName,
-          typeText: type.short,
+          typeText: that.data.typeText,
           resultText: '-',
           timeText: '',
           distanceText: that.data.fenceText

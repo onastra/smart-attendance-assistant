@@ -19,7 +19,11 @@ public class CheckinRequest {
     @NotBlank(message = "缺少幂等请求号，请刷新打卡页面")
     private String requestId;
 
-    /** ON_DUTY / OFF_DUTY / FIELD；不传时由服务端按当前时间自动判定 */
+    /**
+     * 仅作兼容保留，服务端不再采用：打卡类型以二维码签发时的选择为准
+     * （码上为 AUTO 时按当前时间自动判定上班/下班）。员工端无需、也不应该传该字段。
+     */
+    @Deprecated
     private String checkinType;
 
     /** 客户端上报的经度；浏览器未授权定位时可以不传 */

@@ -68,7 +68,7 @@ Component({
       if (this.data.scanning) return
       this.setData({ scanning: true })
       // 扫码后不再弹二维码原文，直接进"确认打卡"页（预校验 → 确认 → 结果页）
-      checkin.scanThenConfirm({})
+      checkin.scanThenConfirm()
       // scanCode 的相机页关闭后才会继续执行到这里（成功/取消都走 success/fail 回调）
       setTimeout(function () { that.setData({ scanning: false }) }, 1500)
     }

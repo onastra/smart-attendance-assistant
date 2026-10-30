@@ -2,30 +2,7 @@
   padding-bottom: 160rpx;
 }
 
-/* 打卡类型胶囊 */
-.type-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-  margin-bottom: 18rpx;
-}
-
-.type-pill {
-  padding: 16rpx 32rpx;
-  border-radius: 999rpx;
-  background: #F1F4FA;
-  color: var(--lz-text-2);
-  font-size: 28rpx;
-  border: 2rpx solid transparent;
-}
-
-.type-pill-on {
-  background: #E9F0FE;
-  color: var(--lz-primary);
-  border-color: rgba(47, 111, 237, 0.55);
-  font-weight: 600;
-}
-
+/* 打卡类型说明（类型由二维码签发时指定） */
 .type-tip {
   margin-bottom: 6rpx;
 }

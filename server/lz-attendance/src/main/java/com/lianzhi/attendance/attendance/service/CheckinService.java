@@ -246,10 +246,12 @@ public class CheckinService {
             return toResult(existing, true, null, place.getCoverRadiusM());
         }
 
-        // 码上绑定了打卡类型（签发时管理员选择）则以码为准，忽略客户端自选的类型
+        // 打卡类型完全由二维码签发时的选择决定，员工端不再参与选择：
+        // 码上指定了上班/下班/外勤就照码走；码上是 AUTO 才按当前时间自动判定。
+        // 客户端即使传了 checkinType 也一律忽略，避免"员工自选类型"绕过管理员的签发意图。
         String boundType = normalizeBoundType(qrcode.getCheckinType());
         String checkinType = AttRecord.TYPE_AUTO.equals(boundType)
-                ? resolveCheckinType(request.getCheckinType(), now)
+                ? autoCheckinType(now)
                 : boundType;
 
         // ---------- 5. 重复打卡窗口 ----------
@@ -323,17 +325,13 @@ public class CheckinService {
         return toResult(saved, false, distanceMeters, radiusMeters);
     }
 
-    /** 判定打卡类型：未显式指定时按当前时间自动判定 */
-    private String resolveCheckinType(String requested, LocalDateTime now) {
-        if (requested != null && !requested.isBlank()) {
-            String normalized = requested.trim().toUpperCase();
-            if (AttRecord.TYPE_ON_DUTY.equals(normalized)
-                    || AttRecord.TYPE_OFF_DUTY.equals(normalized)
-                    || AttRecord.TYPE_FIELD.equals(normalized)) {
-                return normalized;
-            }
-            throw new BusinessException(ResultCode.PARAM_ERROR, "打卡类型只能是 ON_DUTY / OFF_DUTY / FIELD");
-        }
+    /**
+     * 码上未指定类型（AUTO）时按当前时间自动判定：中午 12 点前记上班，之后记下班。
+     *
+     * <p>员工端不再参与类型选择——上班/下班/外勤必须由管理员签发二维码时指定，
+     * 这样"外勤"只能由有权签发的人授予，避免员工自选外勤规避迟到判定。</p>
+     */
+    private String autoCheckinType(LocalDateTime now) {
         return now.toLocalTime().isBefore(LocalTime.NOON) ? AttRecord.TYPE_ON_DUTY : AttRecord.TYPE_OFF_DUTY;
     }
 

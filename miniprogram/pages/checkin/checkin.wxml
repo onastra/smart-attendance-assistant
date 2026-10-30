@@ -1,17 +1,8 @@
 <view class="page">
-  <!-- 打卡入口：直扫 -->
+  <!-- 打卡入口：直扫。打卡类型由二维码签发时指定，员工端不提供选择 -->
   <view class="card">
     <view class="card-title">扫码打卡</view>
-    <view class="type-row">
-      <view
-        wx:for="{{typeLabels}}"
-        wx:key="*this"
-        class="type-pill {{typeIndex === index ? 'type-pill-on' : ''}}"
-        data-index="{{index}}"
-        bindtap="onTypeChange"
-      >{{item}}</view>
-    </view>
-    <view class="tip type-tip">{{typeFullLabels[typeIndex]}}</view>
+    <view class="tip type-tip">打卡类型（上班 / 下班 / 外勤）由管理员签发二维码时指定，扫码后自动按码上的类型打卡。</view>
     <view class="scan-big" bindtap="scanAndCheckin">
       <view class="scan-big-icon">
         <image class="scan-big-img" src="/images/scan-white.png" mode="aspectFit" />

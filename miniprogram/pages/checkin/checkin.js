@@ -1,13 +1,11 @@
-// 打卡 tab：类型选择 + 直扫（进确认页）+ 手动输入兜底（同样进确认页，校验链一致）
+// 打卡 tab：直扫（进确认页）+ 手动输入兜底（同样进确认页，校验链一致）
+// 打卡类型由二维码签发时指定，本页不再提供类型选择
 // 打卡结果不在这里展示，统一由 pages/checkin-result/result 呈现
 const checkin = require('../../utils/checkin')
 const auth = require('../../utils/auth')
 
 Page({
   data: {
-    typeIndex: 0,
-    typeLabels: checkin.TYPE_OPTIONS.map(function (o) { return o.short }),
-    typeFullLabels: checkin.TYPE_OPTIONS.map(function (o) { return o.label }),
     manualContent: ''
   },
 
@@ -28,13 +26,9 @@ Page({
     }
   },
 
-  onTypeChange: function (e) {
-    this.setData({ typeIndex: Number(e.currentTarget.dataset.index) })
-  },
-
-  // 扫码：直接进确认页，选好的类型会带过去
+  // 扫码：直接进确认页，打卡类型随二维码走
   scanAndCheckin: function () {
-    checkin.scanThenConfirm({ typeIndex: this.data.typeIndex })
+    checkin.scanThenConfirm()
   },
 
   onManualInput: function (e) {
@@ -48,7 +42,7 @@ Page({
       wx.showToast({ title: '请粘贴二维码内容', icon: 'none' })
       return
     }
-    checkin.openConfirm(content, this.data.typeIndex)
+    checkin.openConfirm(content)
   },
 
   goRecords: function () {

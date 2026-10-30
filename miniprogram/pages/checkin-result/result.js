@@ -42,6 +42,6 @@ Page({
 
   // 失败后直接再扫一次
   rescan: function () {
-    checkin.scanThenConfirm({})
+    checkin.scanThenConfirm()
   }
 })

@@ -59,17 +59,11 @@
         <div class="manual-box">
           <div class="manual-label">手动输入二维码原文</div>
           <el-input v-model="content" type="textarea" :rows="3" placeholder="粘贴管理员提供的二维码内容，形如 LZ1|p=1|b=..."/>
-          <el-select v-model="checkinType" class="type-select" size="small" placeholder="打卡类型">
-            <el-option label="自动判定（按时间）" value=""/>
-            <el-option label="上班" value="ON_DUTY"/>
-            <el-option label="下班" value="OFF_DUTY"/>
-            <el-option label="外勤" value="FIELD"/>
-          </el-select>
           <el-button type="primary" class="block-btn submit-btn" :loading="submitting" @click="handleSubmit">
             提交打卡
           </el-button>
           <div class="tip">幂等请求号：<code>{{ requestId || '获取中…' }}</code>（同一页面重复提交只记一次）</div>
-          <div class="tip">若该二维码签发时已指定打卡类型（上班/下班/外勤），以码上类型为准，此处选择将被忽略。</div>
+          <div class="tip">打卡类型（上班 / 下班 / 外勤）由管理员签发二维码时指定，提交时自动按码上的类型记录。</div>
         </div>
       </el-card>
 
@@ -125,7 +119,6 @@ const loginForm = ref({ username: '', password: '' })
 const loginLoading = ref(false)
 
 const content = ref('')
-const checkinType = ref('')
 const requestId = ref('')
 const submitting = ref(false)
 const result = ref(null)
@@ -276,7 +269,6 @@ async function handleSubmit() {
     result.value = await submitCheckin({
       content: content.value.trim(),
       requestId: requestId.value,
-      checkinType: checkinType.value || undefined,
       lng: locationReady.value ? currentCoords.lng : undefined,
       lat: locationReady.value ? currentCoords.lat : undefined
     })
@@ -388,10 +380,6 @@ if (userStore.isLogin) {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.type-select {
-  width: 100%;
 }
 
 .submit-btn {
