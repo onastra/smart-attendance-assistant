@@ -28,6 +28,12 @@ Page({
       wx.reLaunch({ url: '/pages/login/login' })
       return
     }
+    // 管理员等未绑定档案的账号没有个人考勤：入口已隐藏，这里兜底拦截直开 URL 的情况
+    if (!(auth.getProfile() || {}).employeeId) {
+      wx.showToast({ title: '管理员账号无个人考勤', icon: 'none' })
+      setTimeout(function () { wx.switchTab({ url: '/pages/index/index' }) }, 1200)
+      return
+    }
     // 同步 tabBar 高亮（索引 1 = 考勤）
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setSelected(1)

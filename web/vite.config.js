@@ -17,11 +17,11 @@ export default defineConfig({
     // 真机走局域网 HTTP 时这两项会被禁用，H5 页会自动降级到手动输入二维码原文。
     host: '0.0.0.0',
     // 开发期通过代理访问后端，避免浏览器跨域；生产环境由 Nginx 或同源部署处理。
-    // 后端默认端口为 8080（见 server/lz-app/src/main/resources/application.yml 与 scripts/start-backend.cmd）。
-    // 若后端改用其他端口，用环境变量覆盖：LZ_API_TARGET=http://localhost:8088
+    // 后端默认端口为 8088（见 server/lz-app/src/main/resources/application.yml；8080 被 tomcat9 占用）。
+    // 若后端改用其他端口，用环境变量覆盖：LZ_API_TARGET=http://localhost:8080
     proxy: {
       '/api': {
-        target: process.env.LZ_API_TARGET || 'http://localhost:8080',
+        target: process.env.LZ_API_TARGET || 'http://localhost:8088',
         changeOrigin: true
       }
     }

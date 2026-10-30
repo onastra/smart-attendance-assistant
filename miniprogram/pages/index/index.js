@@ -13,6 +13,7 @@ Page({
     avatarChar: '联',
     canApprove: false,
     isAdmin: false,
+    isEmployee: true,
     lastRecord: null,
     lastRecordText: '',
     lastResultMeta: null
@@ -49,11 +50,15 @@ Page({
       roleText: roles.length > 0 ? roles.join(' / ') : '员工',
       avatarChar: (nickname || '联').slice(0, 1),
       canApprove: auth.hasPermission('application:approve'),
-      isAdmin: auth.hasPermission('statistics:view')
+      isAdmin: auth.hasPermission('statistics:view'),
+      // 未绑定员工档案（管理员等）不打卡也没有个人考勤：隐藏扫码 CTA、状态条与"我的考勤"
+      isEmployee: !!profile.employeeId
     })
   },
 
   loadLastRecord: function () {
+    // 管理员等未绑定档案的账号没有"最近打卡"，不发无效请求
+    if (!(auth.getProfile() || {}).employeeId) return
     const that = this
     api.get('/api/my/attendance/records', { pageNum: 1, pageSize: 1 })
       .then(function (data) {

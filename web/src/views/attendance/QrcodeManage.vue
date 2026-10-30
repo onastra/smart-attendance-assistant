@@ -4,7 +4,10 @@
       <template #header>
         <div class="card-header">
           <span>签发考勤二维码</span>
-          <el-tag size="small" type="info">签名由服务端 HMAC-SHA256 生成，篡改即失效</el-tag>
+          <div class="header-tags">
+            <el-tag size="small" type="info">签名由服务端 HMAC-SHA256 生成，篡改即失效</el-tag>
+            <el-button size="small" type="primary" plain @click="openMobile">手机签发入口</el-button>
+          </div>
         </div>
       </template>
 
@@ -263,6 +266,11 @@ function openH5() {
   window.open('/h5/checkin', '_blank')
 }
 
+// 手机签发入口：同源打开 H5 签发页，登录态共享（localStorage 同域）
+function openMobile() {
+  window.open('/h5/qrcode', '_blank')
+}
+
 async function loadList() {
   loading.value = true
   try {
@@ -319,6 +327,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.header-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .preview-image {

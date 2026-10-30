@@ -130,6 +130,13 @@ const routes = [
         name: 'h5-face',
         component: () => import('@/views/h5/FaceCheckin.vue'),
         meta: { title: '人脸打卡（模拟）', public: true, hidden: true }
+      },
+      {
+        // 管理员/部门主管在手机上签发员工打卡二维码（页面内自带权限与登录兜底）
+        path: 'qrcode',
+        name: 'h5-qrcode',
+        component: () => import('@/views/h5/QrcodeIssue.vue'),
+        meta: { title: '签发考勤二维码', hidden: true }
       }
     ]
   }

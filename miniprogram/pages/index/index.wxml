@@ -9,8 +9,8 @@
       <view class="hero-avatar">{{avatarChar}}</view>
     </view>
 
-    <!-- 最近打卡状态条 -->
-    <view class="hero-status" bindtap="goRecords">
+    <!-- 最近打卡状态条（仅绑定了员工档案的账号显示） -->
+    <view class="hero-status" wx:if="{{isEmployee}}" bindtap="goRecords">
       <view class="hs-badge" wx:if="{{lastResultMeta}}">{{lastResultMeta.text}}</view>
       <view class="hs-badge hs-badge-idle" wx:else>待打卡</view>
       <view class="hs-text">{{lastRecordText || '暂无打卡记录，点击查看考勤'}}</view>
@@ -18,8 +18,8 @@
     </view>
   </view>
 
-  <!-- 主 CTA：扫码打卡 -->
-  <view class="scan-cta" bindtap="scanCheckin">
+  <!-- 主 CTA：扫码打卡（员工） / 数据看板（管理员等未绑定档案账号） -->
+  <view class="scan-cta" wx:if="{{isEmployee}}" bindtap="scanCheckin">
     <view class="scan-cta-icon">
       <image class="scan-cta-img" src="/images/scan-white.png" mode="aspectFit" />
     </view>
@@ -29,13 +29,23 @@
     </view>
     <view class="scan-cta-arrow">›</view>
   </view>
-  <view class="manual-link" bindtap="goManual">摄像头不可用？使用手动输入 ›</view>
+  <view class="scan-cta" wx:else bindtap="goDashboard">
+    <view class="scan-cta-icon">
+      <image class="scan-cta-img" src="/images/tab-dash-on.png" mode="aspectFit" />
+    </view>
+    <view class="scan-cta-main">
+      <view class="scan-cta-title">数据看板</view>
+      <view class="scan-cta-sub">考勤概况 · 出勤预测 · 待审动态</view>
+    </view>
+    <view class="scan-cta-arrow">›</view>
+  </view>
+  <view class="manual-link" wx:if="{{isEmployee}}" bindtap="goManual">摄像头不可用？使用手动输入 ›</view>
 
   <!-- 常用功能 -->
   <view class="section-title">常用功能</view>
   <view class="card grid-card">
     <view class="grid">
-      <view class="grid-item" bindtap="goRecords">
+      <view class="grid-item" wx:if="{{isEmployee}}" bindtap="goRecords">
         <view class="grid-icon gi-green">勤</view>
         <view class="grid-text">我的考勤</view>
       </view>
@@ -55,7 +65,7 @@
         <view class="grid-icon gi-blue">AI</view>
         <view class="grid-text">智能助手</view>
       </view>
-      <view class="grid-item" wx:if="{{isAdmin}}" bindtap="goDashboard">
+      <view class="grid-item" wx:if="{{isAdmin && isEmployee}}" bindtap="goDashboard">
         <view class="grid-icon gi-cyan">板</view>
         <view class="grid-text">管理看板</view>
       </view>
