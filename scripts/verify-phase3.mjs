@@ -149,10 +149,10 @@ async function main() {
 
   // ---------- 1. 登录 ----------
   const admin = await login('admin', 'Admin@123')
-  const emp = await login('emp01', 'Emp@123')
-  console.log(`1) 登录：admin 权限 ${admin.permissions.length} 项，emp01 权限 ${emp.permissions.length} 项，员工 ID=${emp.employeeId}`)
+  const emp = await login('LZ0001', 'Emp@123')
+  console.log(`1) 登录：admin 权限 ${admin.permissions.length} 项，LZ0001 权限 ${emp.permissions.length} 项，员工 ID=${emp.employeeId}`)
   check('admin 具备二维码签发权限', admin.permissions.includes('attendance:qrcode:create'))
-  check('emp01 具备打卡权限', emp.permissions.includes('attendance:checkin'))
+  check('LZ0001 具备打卡权限', emp.permissions.includes('attendance:checkin'))
   check('admin 具备失效权限（阶段3新增）', admin.permissions.includes('attendance:qrcode:invalidate'))
 
   // ---------- 2. 签发二维码 ----------

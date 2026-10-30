@@ -460,7 +460,7 @@ cd "D:/A_school_training/Project Document/server" && mvn -B package
 
 ### 10.1 H5 打卡页
 
-浏览器打开 `http://<电脑IP>:5173/h5/checkin`，页面内登录 `emp01 / Emp@123`。
+浏览器打开 `http://<电脑IP>:5173/h5/checkin`，页面内登录 `LZ0001 / Emp@123`。
 
 - 防火墙：首次启动 java / node 时 Windows 会弹窗，**必须点"允许访问"**，否则手机连不进来。
 - 手机只需能访问 5173：`/api` 由 Vite 代理转发到本机 8080。

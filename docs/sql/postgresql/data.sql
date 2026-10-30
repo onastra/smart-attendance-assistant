@@ -1,7 +1,7 @@
 -- =============================================================
 -- PostgreSQL 版演示数据（对应 MySQL 版 data.sql + patch-phase2~6 + patch-phaseE 的合并结果）
 -- 演示数据全部为虚构员工，不含任何真实个人信息
--- 口令：admin / manager01 使用 Admin@123；emp01~emp03 使用 Emp@123
+-- 口令：admin / manager01 使用 Admin@123；LZ0001~LZ0003 使用 Emp@123
 --      口令摘要为 BCrypt(strength=10)，应用侧用 BCryptPasswordEncoder 校验
 -- 幂等性：唯一键冲突走 ON CONFLICT DO NOTHING（等价 MySQL 的 INSERT IGNORE），可重复执行
 -- =============================================================
@@ -261,9 +261,9 @@ ON CONFLICT DO NOTHING;
 INSERT INTO sys_user (id, username, password_hash, nickname, employee_id, status) VALUES
     (1, 'admin',     '$2a$10$jSmPDuQCgvhOwZ3s892BgOwj.gRoKLZClFe5x.ap1vT.4dQgBXTNG', '系统管理员', NULL, 1),
     (2, 'manager01', '$2a$10$jSmPDuQCgvhOwZ3s892BgOwj.gRoKLZClFe5x.ap1vT.4dQgBXTNG', '部门主管-张明', 1, 1),
-    (3, 'emp01',     '$2a$10$PrQDUykWILhrxMSu.SnQWudWkcZ1SKBqncbBE7XhAAxJZxgJJzLo.', '张明', 1, 1),
-    (4, 'emp02',     '$2a$10$PrQDUykWILhrxMSu.SnQWudWkcZ1SKBqncbBE7XhAAxJZxgJJzLo.', '李慧', 2, 1),
-    (5, 'emp03',     '$2a$10$PrQDUykWILhrxMSu.SnQWudWkcZ1SKBqncbBE7XhAAxJZxgJJzLo.', '王强', 3, 1)
+    (3, 'LZ0001',     '$2a$10$PrQDUykWILhrxMSu.SnQWudWkcZ1SKBqncbBE7XhAAxJZxgJJzLo.', '张明', 1, 1),
+    (4, 'LZ0002',     '$2a$10$PrQDUykWILhrxMSu.SnQWudWkcZ1SKBqncbBE7XhAAxJZxgJJzLo.', '李慧', 2, 1),
+    (5, 'LZ0003',     '$2a$10$PrQDUykWILhrxMSu.SnQWudWkcZ1SKBqncbBE7XhAAxJZxgJJzLo.', '王强', 3, 1)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO sys_user_role (user_id, role_id) VALUES

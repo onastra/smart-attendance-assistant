@@ -15,8 +15,8 @@ const BASE = process.env.BASE_URL || 'http://127.0.0.1:8080'
 const ACCOUNTS = {
   admin: { username: 'admin', password: 'Admin@123' },
   manager: { username: 'manager01', password: 'Admin@123' },
-  empA: { username: 'emp01', password: 'Emp@123' },
-  empB: { username: 'emp02', password: 'Emp@123' }
+  empA: { username: 'LZ0001', password: 'Emp@123' },
+  empB: { username: 'LZ0002', password: 'Emp@123' }
 }
 
 let passed = 0
@@ -73,7 +73,7 @@ async function main() {
   for (const key of Object.keys(ACCOUNTS)) {
     token[key] = await login(key)
   }
-  console.log('登录：admin / manager01 / emp01 / emp02 全部成功\n')
+  console.log('登录：admin / manager01 / LZ0001 / LZ0002 全部成功\n')
 
   // 准备两个测试文件
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lz-file-'))

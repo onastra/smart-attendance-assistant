@@ -57,7 +57,7 @@ Page({
     } else if (role === 'manager') {
       this.setData({ username: 'manager01', password: 'Admin@123' })
     } else {
-      this.setData({ username: 'emp01', password: 'Emp@123' })
+      this.setData({ username: 'LZ0001', password: 'Emp@123' })
     }
   }
 })

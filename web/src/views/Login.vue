@@ -26,7 +26,7 @@
           <div class="login-accounts">
             <div><code>admin</code> / <code>Admin@123</code> — 系统管理员（全部权限）</div>
             <div><code>manager01</code> / <code>Admin@123</code> — 部门主管</div>
-            <div><code>emp01</code> / <code>Emp@123</code> — 普通员工（可见菜单更少）</div>
+            <div><code>LZ0001</code> / <code>Emp@123</code> — 普通员工（可见菜单更少）</div>
           </div>
         </template>
       </el-alert>

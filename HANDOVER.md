@@ -137,7 +137,7 @@ cp application-local.yml.example application-local.yml    # Windows: copy
 |---|---|---|
 | `admin` | `Admin@123` | 系统管理员（全权限） |
 | `manager01` | `Admin@123` | 部门主管 |
-| `emp01` ~ `emp03` | `Emp@123` | 普通员工 |
+| `LZ0001` ~ `LZ0003` | `Emp@123` | 普通员工 |
 
 > 这是演示数据，接手后**第一件事就是改掉 admin 口令**，别带到任何真实环境。
 

@@ -78,7 +78,7 @@ cd web && npm install && npm run dev   # http://localhost:5173
 |---|---|---|
 | `admin` | `Admin@123` | 系统管理员 |
 | `manager01` | `Admin@123` | 部门主管 |
-| `emp01` ~ `emp03` | `Emp@123` | 普通员工 |
+| `LZ0001` ~ `LZ0003` | `Emp@123` | 普通员工 |
 
 > AI 问答需要配置大模型 API Key（硅基流动注册即送额度，Qwen2.5-7B 与 bge 向量模型均免费）。未配置时系统自动降级为"检索-only"模式：只返回原文片段与来源，不伪造生成内容。
 

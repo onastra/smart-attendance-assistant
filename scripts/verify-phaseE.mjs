@@ -73,8 +73,8 @@ async function main() {
 
   const admin = await login('admin', 'Admin@123')
   const manager = await login('manager01', 'Admin@123')
-  const emp = await login('emp01', 'Emp@123')
-  const emp2 = await login('emp02', 'Emp@123')
+  const emp = await login('LZ0001', 'Emp@123')
+  const emp2 = await login('LZ0002', 'Emp@123')
 
   check('三个演示账号可登录',
     !!admin.token && !!manager.token && !!emp.token,
@@ -96,7 +96,7 @@ async function main() {
     type: 'LEAVE', subType: '事假', startTime: START, endTime: END, reason: '家中急事需要请一天假'
   })
   const appA = submitRes.json?.data
-  check('emp01 提交合法申请成功（code=0）',
+  check('LZ0001 提交合法申请成功（code=0）',
     submitRes.json?.code === 0 && appA?.id,
     `id=${appA?.id} no=${appA?.applicationNo} status=${appA?.status} dur=${appA?.durationHours}`)
   check('提交后状态为 SUBMITTED', appA?.status === 'SUBMITTED')
@@ -123,7 +123,7 @@ async function main() {
   console.log('\n[REQ-E-02] 我的申请（本人隔离）')
   const mine = await call('GET', '/applications/mine?pageNum=1&pageSize=20', emp.token)
   const mineList = mine.json?.data?.list || []
-  check('emp01 能看到自己刚提交的申请',
+  check('LZ0001 能看到自己刚提交的申请',
     mine.json?.code === 0 && mineList.some((a) => a.id === appA?.id),
     `total=${mine.json?.data?.total}`)
 
@@ -139,10 +139,10 @@ async function main() {
   console.log('\n[REQ-E-06] 越权守卫（权限码后端强制）')
   const empApprove = await call('POST', `/applications/${appA.id}/approve`, emp.token,
     { action: 'APPROVE', comment: '' })
-  check('emp01（无 approve 权）审批被拒（40301）', empApprove.json?.code === 40301, empApprove.json?.message)
+  check('LZ0001（无 approve 权）审批被拒（40301）', empApprove.json?.code === 40301, empApprove.json?.message)
 
   const empTodo = await call('GET', '/applications/todo?pageNum=1&pageSize=20', emp.token)
-  check('emp01（无 approve 权）访问待办被拒（40301）', empTodo.json?.code === 40301, empTodo.json?.message)
+  check('LZ0001（无 approve 权）访问待办被拒（40301）', empTodo.json?.code === 40301, empTodo.json?.message)
 
   const mgrList = await call('GET', '/applications?pageNum=1&pageSize=20', manager.token)
   check('manager01（无 list 权）查全部被拒（40301）', mgrList.json?.code === 40301, mgrList.json?.message)
@@ -179,7 +179,7 @@ async function main() {
     reason: '项目上线需要周末加班支持'
   })
   const appB = submitB.json?.data
-  check('emp01 提交加班申请成功', submitB.json?.code === 0 && appB?.id, `id=${appB?.id}`)
+  check('LZ0001 提交加班申请成功', submitB.json?.code === 0 && appB?.id, `id=${appB?.id}`)
   const reject = await call('POST', `/applications/${appB.id}/approve`, manager.token,
     { action: 'REJECT', comment: '本月加班额度已用尽' })
   check('manager01 驳回成功（code=0）', reject.json?.code === 0, reject.json?.message)
@@ -195,20 +195,20 @@ async function main() {
     reason: '感冒发烧需要休息一天'
   })
   const appC = submitC.json?.data
-  check('emp01 提交第三条申请待撤回测试', submitC.json?.code === 0 && appC?.id, `id=${appC?.id}`)
+  check('LZ0001 提交第三条申请待撤回测试', submitC.json?.code === 0 && appC?.id, `id=${appC?.id}`)
   const cancelC = await call('POST', `/applications/${appC.id}/cancel`, emp.token)
-  check('emp01 撤回本人 SUBMITTED 单据成功（code=0）', cancelC.json?.code === 0, cancelC.json?.message)
+  check('LZ0001 撤回本人 SUBMITTED 单据成功（code=0）', cancelC.json?.code === 0, cancelC.json?.message)
   const allAfterCancel = await call('GET', '/applications?pageNum=1&pageSize=20', admin.token)
   const appCAfter = (allAfterCancel.json?.data?.list || []).find((a) => a.id === appC.id)
   check('撤回后状态变为 CANCELLED', appCAfter?.status === 'CANCELLED', `status=${appCAfter?.status}`)
 
-  // 用 emp02（employeeId=2）提交一条，emp01（employeeId=1）试图撤回 —— 构成真正的跨人越权
+  // 用 LZ0002（employeeId=2）提交一条，LZ0001（employeeId=1）试图撤回 —— 构成真正的跨人越权
   const submitOther = await call('POST', '/applications', emp2.token, {
     type: 'LEAVE', subType: '年假', startTime: '2026-07-05T09:00:00', endTime: '2026-07-05T18:00:00',
-    reason: 'emp02 的年假申请'
+    reason: 'LZ0002 的年假申请'
   })
   const appOther = submitOther.json?.data
-  check('emp02 提交申请成功', submitOther.json?.code === 0 && appOther?.id, `id=${appOther?.id}`)
+  check('LZ0002 提交申请成功', submitOther.json?.code === 0 && appOther?.id, `id=${appOther?.id}`)
   const empCancelOther = await call('POST', `/applications/${appOther.id}/cancel`, emp.token)
   check('撤回他人单据被拒（40301 只能撤本人）', empCancelOther.json?.code === 40301, empCancelOther.json?.message)
 

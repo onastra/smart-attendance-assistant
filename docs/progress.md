@@ -53,7 +53,7 @@
 无未完成项。注意事项：
 - `start-backend.cmd` 会自动检测 `application-local.yml` 并激活 `local` profile；该文件也可被重新修改而无需重新打包。
 - **安全提醒**：当前使用 `root` 账号直连。演示/答辩环境建议改为专用账号（见下方 BK-1 的降级建议），目前风险仅限本机。
-- 演示数据口令：`admin` / `manager01` = `Admin@123`；`emp01` ~ `emp03` = `Emp@123`（BCrypt 真实摘要，非明文）。
+- 演示数据口令：`admin` / `manager01` = `Admin@123`；`LZ0001` ~ `LZ0003` = `Emp@123`（BCrypt 真实摘要，非明文）。
 
 ### 阶段 1 发现并修复的真实问题
 

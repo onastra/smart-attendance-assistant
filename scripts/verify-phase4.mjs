@@ -91,7 +91,7 @@ async function main() {
 
   const admin = await login('admin', 'Admin@123')
   const manager = await login('manager01', 'Admin@123')
-  const emp = await login('emp01', 'Emp@123')
+  const emp = await login('LZ0001', 'Emp@123')
   check('三个演示账号可登录', !!admin.token && !!manager.token && !!emp.token)
 
   // ---------- 1. 日汇总重算与幂等 ----------

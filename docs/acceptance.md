@@ -109,7 +109,7 @@
 # 3. 演示账号
 #    admin     / Admin@123   管理员（全量）
 #    manager01 / Admin@123   部门主管（本部门）
-#    emp01     / Emp@123     普通员工（仅本人）
+#    LZ0001     / Emp@123     普通员工（仅本人）
 # 4. 若刚重建过数据库，先重算一次日汇总
 curl -X POST http://localhost:8080/api/statistics/daily-rebuild \
   -H "Authorization: Bearer $(curl -s -X POST http://localhost:8080/api/auth/login \
@@ -173,7 +173,7 @@ curl -X POST http://localhost:8080/api/statistics/daily-rebuild \
 | 「数据看板」 | 统计卡 + 趋势 + 部门对比 + 出勤构成 + 场所时段 | "五个图表；注意这里有个徽标说明数据里混了演示补录数据" |
 | 指出数据源标注 | `mixed` / `sample` 徽标 | **重点**："演示数据和真实数据在接口里就是分开标注的，不做混淆" |
 | 点「重新计算」 | 数字刷新，响应里 `cached=false` | "重算会立刻让看板缓存失效，不会出现『点了没反应』" |
-| 退出，改用 `emp01 / Emp@123` 登录 | 菜单大幅减少，只能看「我的考勤」 | **重点**："数据范围收敛在服务端做，前端传什么都看不到别人的数据" |
+| 退出，改用 `LZ0001 / Emp@123` 登录 | 菜单大幅减少，只能看「我的考勤」 | **重点**："数据范围收敛在服务端做，前端传什么都看不到别人的数据" |
 
 ---
 

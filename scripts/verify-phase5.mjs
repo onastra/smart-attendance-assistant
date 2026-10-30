@@ -147,7 +147,7 @@ async function main() {
   cleanPreviousRuns()
 
   const admin = await login('admin', 'Admin@123')
-  const emp = await login('emp01', 'Emp@123')
+  const emp = await login('LZ0001', 'Emp@123')
   const manager = await login('manager01', 'Admin@123')
   check('三个演示账号可登录', !!admin.token && !!emp.token && !!manager.token)
 
@@ -199,7 +199,7 @@ async function main() {
   check('文档可见范围改为 PRIVATE', priv.json?.code === 0
     && priv.json?.data?.document?.visibility === 'PRIVATE')
 
-  // admin 是自己上传的，仍可读；emp01 不该读到
+  // admin 是自己上传的，仍可读；LZ0001 不该读到
   const adminHit = await call('POST', '/kb/ask', admin.token, { question: '迟到宽限是多少分钟' })
   const empHit = await call('POST', '/kb/ask', emp.token, { question: '迟到宽限是多少分钟' })
   const adminIds = (adminHit.json?.data?.sources || []).map((s) => s.documentId)
@@ -321,7 +321,7 @@ async function main() {
   const cross = await call('POST', '/face/enroll', emp.token, uploadImage(emp.token, photo))
   check('重复录入同一人不报错（覆盖更新）', cross.json?.code === 0)
 
-  // emp01 本人的 employeeId 就是 1，这里必须换一个别人的 ID 才构成越权
+  // LZ0001 本人的 employeeId 就是 1，这里必须换一个别人的 ID 才构成越权
   const otherEmpFd = uploadImage(emp.token, photo)
   otherEmpFd.append('employeeId', '2')
   const forbidden = await call('POST', '/face/enroll', emp.token, otherEmpFd)
