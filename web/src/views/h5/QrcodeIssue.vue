@@ -60,6 +60,14 @@
             </div>
           </div>
 
+          <div class="field-label">打卡类型</div>
+          <el-select v-model="form.checkinType" size="large" class="block-select">
+            <el-option label="自动判定（按打卡时间）" value="AUTO"/>
+            <el-option label="上班" value="ON_DUTY"/>
+            <el-option label="下班" value="OFF_DUTY"/>
+            <el-option label="外勤" value="FIELD"/>
+          </el-select>
+
           <div class="switch-row">
             <span>一次性（打卡一次即失效）</span>
             <el-switch v-model="form.onceOnly" :active-value="1" :inactive-value="0"/>
@@ -91,6 +99,12 @@
               {{ current.qrType === 'FIXED' ? '长期固定码' : '动态码' }}
               <el-tag size="small" :type="current.onceOnly === 1 ? 'warning' : 'info'">
                 {{ current.onceOnly === 1 ? '一次性' : '可重复' }}
+              </el-tag>
+            </div>
+            <div class="meta-line">
+              <span class="meta-label">打卡</span>
+              <el-tag size="small" :type="current.checkinType === 'AUTO' ? 'info' : 'success'">
+                {{ checkinTypeText(current.checkinType) }}
               </el-tag>
             </div>
             <div class="meta-line"><span class="meta-label">过期</span>{{ formatTime(current.expireTime) }}</div>
@@ -136,7 +150,7 @@ const loginForm = ref({ username: '', password: '' })
 const loginLoading = ref(false)
 
 const places = ref([])
-const form = ref({ placeId: null, qrType: 'DYNAMIC', ttlSeconds: DEFAULT_TTL.DYNAMIC, onceOnly: 0 })
+const form = ref({ placeId: null, qrType: 'DYNAMIC', checkinType: 'AUTO', ttlSeconds: DEFAULT_TTL.DYNAMIC, onceOnly: 0 })
 const current = ref({})
 const imageUrl = ref('')
 const remainSeconds = ref(0)
@@ -260,6 +274,10 @@ async function loadList() {
 
 function statusText(status) {
   return { VALID: '有效', INVALID: '已失效', EXPIRED: '已过期', USED: '已使用' }[status] || status
+}
+
+function checkinTypeText(type) {
+  return { AUTO: '自动判定', ON_DUTY: '上班', OFF_DUTY: '下班', FIELD: '外勤' }[type] || '自动判定'
 }
 
 function statusType(status) {
