@@ -56,14 +56,14 @@ const routes = [
         path: 'my/records',
         name: 'my-records',
         component: () => import('@/views/attendance/MyRecords.vue'),
-        meta: { title: '我的考勤', icon: 'Clock', group: '考勤' }
+        meta: { title: '我的考勤', icon: 'Clock', group: '考勤', requiresEmployee: true }
       },
       {
         // 与 H5 页共用同一组件：后台入口方便演示，手机端入口方便真机体验
         path: 'face/mock',
         name: 'face-mock',
         component: () => import('@/views/h5/FaceCheckin.vue'),
-        meta: { title: '人脸打卡（模拟）', icon: 'Camera', group: '考勤', permission: 'face:verify' }
+        meta: { title: '人脸打卡（模拟）', icon: 'Camera', group: '考勤', permission: 'face:verify', requiresEmployee: true }
       },
       {
         path: 'statistics/dashboard',
@@ -135,14 +135,16 @@ const router = createRouter({
 })
 
 /**
- * 登录后的默认首页：按权限选择落脚页。
+ * 登录后的默认首页：按权限与档案绑定情况选择落脚页。
  *
  * - 有 statistics:view（管理员/经理）→ 数据看板
- * - 普通员工 → 我的考勤
+ * - 普通员工且已绑定员工档案 → 我的考勤
+ * - 未绑定档案 → 数据看板（"我的考勤"对其无意义，管理员等账号不显示该入口）
  */
 export const homePath = () => {
   const permissions = JSON.parse(localStorage.getItem('lz_permissions') || '[]')
-  return permissions.includes('statistics:view') ? '/statistics/dashboard' : '/my/records'
+  if (permissions.includes('statistics:view')) return '/statistics/dashboard'
+  return localStorage.getItem('lz_employee_id') ? '/my/records' : '/statistics/dashboard'
 }
 
 router.beforeEach((to, from, next) => {
@@ -164,6 +166,12 @@ router.beforeEach((to, from, next) => {
       next(homePath())
       return
     }
+  }
+  // 个人考勤类页面需要员工档案：管理员等未绑定档案的账号直接访问 URL 时拦回首页
+  if (to.meta.requiresEmployee && !localStorage.getItem('lz_employee_id')) {
+    ElMessage.warning('当前账号未绑定员工档案，无个人考勤')
+    next(homePath())
+    return
   }
   next()
 })

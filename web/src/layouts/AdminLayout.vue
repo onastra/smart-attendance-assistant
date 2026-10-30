@@ -65,6 +65,10 @@ const menuGroups = computed(() => {
   const children = (mainRoute?.children || []).filter((r) => !r.meta?.hidden)
   const visible = children.filter(
     (r) => !r.meta?.permission || userStore.hasPermission(r.meta.permission)
+  ).filter(
+    // 个人考勤类菜单（我的考勤/人脸打卡）仅对绑定了员工档案的账号展示，
+    // 管理员等未绑定档案的账号看不到也进不去
+    (r) => !r.meta?.requiresEmployee || !!userStore.employeeId
   )
   // 原始 child.path 是相对路径，菜单跳转必须用绝对路径
   const toFullPath = (child) =>
