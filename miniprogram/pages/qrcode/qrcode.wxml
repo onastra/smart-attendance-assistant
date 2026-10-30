@@ -1,0 +1,59 @@
+<view class="page">
+  <view class="card">
+    <view class="card-title">签发考勤二维码</view>
+
+    <view class="form-item">
+      <text class="form-label">办公场所</text>
+      <picker range="{{placeNames}}" value="{{placeIndex}}" bindchange="onPlaceChange">
+        <view class="picker-value">{{placeNames[placeIndex] || '暂无场所，请联系管理员'}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">二维码类型</text>
+      <picker range="{{qrTypeLabels}}" value="{{qrTypeIndex}}" bindchange="onQrTypeChange">
+        <view class="picker-value">{{qrTypeLabels[qrTypeIndex]}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">打卡类型</text>
+      <picker range="{{checkinLabels}}" value="{{checkinIndex}}" bindchange="onCheckinChange">
+        <view class="picker-value">{{checkinLabels[checkinIndex]}}</view>
+      </picker>
+    </view>
+
+    <view class="switch-row">
+      <view>
+        <view class="switch-title">一次性</view>
+        <view class="switch-sub">打卡一次即失效</view>
+      </view>
+      <switch checked="{{onceOnly}}" color="#2F6FED" bindchange="onOnceChange" />
+    </view>
+
+    <button class="btn-primary" loading="{{issuing}}" disabled="{{issuing}}" bindtap="issue">
+      {{qr ? '重新签发' : '生成二维码'}}
+    </button>
+    <view class="tip">动态码到期后自动续发，避免被截图转发后长期使用；固定码用于张贴场景，需手动作废。</view>
+  </view>
+
+  <view class="card" wx:if="{{qr}}">
+    <view class="card-title">当前二维码</view>
+    <view class="qr-wrap">
+      <image wx:if="{{qrImage}}" class="qr-img" src="{{qrImage}}" mode="aspectFit" show-menu-by-longpress />
+      <view wx:else class="qr-loading">二维码加载中…</view>
+    </view>
+    <view class="qr-status {{remain > 0 ? 'ok' : 'expired'}}">
+      {{remain > 0 ? '剩余 ' + remain + ' 秒' : '已过期'}}
+    </view>
+
+    <view class="meta-row"><text class="meta-label">场所</text><text>{{qr.placeName}}</text></view>
+    <view class="meta-row"><text class="meta-label">类型</text><text>{{qr.qrType === 'FIXED' ? '长期固定码' : '动态码'}}</text></view>
+    <view class="meta-row"><text class="meta-label">打卡</text><text>{{checkinText}}</text></view>
+    <view class="meta-row"><text class="meta-label">过期</text><text>{{qr.expireTime}}</text></view>
+
+    <button class="btn-plain" bindtap="copyPayload">复制二维码原文（备用）</button>
+    <button class="btn-danger" bindtap="invalidate">作废该码</button>
+    <view class="tip">让员工用「打卡」页扫码即可；摄像头不可用时把原文粘贴到打卡页手动提交。</view>
+  </view>
+</view>

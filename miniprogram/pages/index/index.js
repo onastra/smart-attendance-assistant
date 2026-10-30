@@ -14,6 +14,7 @@ Page({
     canApprove: false,
     isAdmin: false,
     isEmployee: true,
+    canIssueQr: false,
     lastRecord: null,
     lastRecordText: '',
     lastResultMeta: null
@@ -52,7 +53,9 @@ Page({
       canApprove: auth.hasPermission('application:approve'),
       isAdmin: auth.hasPermission('statistics:view'),
       // 未绑定员工档案（管理员等）不打卡也没有个人考勤：隐藏扫码 CTA、状态条与"我的考勤"
-      isEmployee: !!profile.employeeId
+      isEmployee: !!profile.employeeId,
+      // 管理员与部门主管都有「生成二维码」权限，首页给出手机签发入口
+      canIssueQr: auth.hasPermission('attendance:qrcode:create')
     })
   },
 
@@ -108,6 +111,10 @@ Page({
 
   goAssistant: function () {
     wx.switchTab({ url: '/pages/assistant/assistant' })
+  },
+
+  goQrcode: function () {
+    wx.navigateTo({ url: '/pages/qrcode/qrcode' })
   },
 
   goDashboard: function () {

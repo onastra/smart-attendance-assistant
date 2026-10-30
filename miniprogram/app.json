@@ -10,7 +10,8 @@
     "pages/applications/applications",
     "pages/checkin-confirm/confirm",
     "pages/checkin-result/result",
-    "pages/dashboard/dashboard"
+    "pages/dashboard/dashboard",
+    "pages/qrcode/qrcode"
   ],
   "window": {
     "navigationBarBackgroundColor": "#2F6FED",

@@ -61,6 +61,10 @@
         <view class="grid-icon gi-red">批</view>
         <view class="grid-text">待我审批</view>
       </view>
+      <view class="grid-item" wx:if="{{canIssueQr}}" bindtap="goQrcode">
+        <view class="grid-icon gi-cyan">码</view>
+        <view class="grid-text">签发二维码</view>
+      </view>
       <view class="grid-item" bindtap="goAssistant">
         <view class="grid-icon gi-blue">AI</view>
         <view class="grid-text">智能助手</view>
