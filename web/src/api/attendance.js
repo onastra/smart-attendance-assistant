@@ -20,6 +20,17 @@ export function fetchAdminRecords(params) {
 }
 
 /**
+ * 全局考勤时间设置（管理员侧）：上下班时间与迟到/早退宽限分钟数。
+ */
+export function getAttendanceSettings() {
+  return request.get('/attendance/settings')
+}
+
+export function updateAttendanceSettings(data) {
+  return request.put('/attendance/settings', data)
+}
+
+/**
  * 打卡失败原因码 → 可读提示。
  *
  * <p>后端在失败的 data.reason 里给出机器可读的原因码（见 CheckinService），

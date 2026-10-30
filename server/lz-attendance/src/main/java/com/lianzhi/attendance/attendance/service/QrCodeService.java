@@ -10,6 +10,7 @@ import com.lianzhi.attendance.attendance.config.AttendanceProperties;
 import com.lianzhi.attendance.attendance.dto.QrcodeIssueRequest;
 import com.lianzhi.attendance.attendance.dto.QrcodeIssueResult;
 import com.lianzhi.attendance.attendance.entity.AttQrcode;
+import com.lianzhi.attendance.attendance.entity.AttRecord;
 import com.lianzhi.attendance.attendance.mapper.AttQrcodeMapper;
 import com.lianzhi.attendance.attendance.query.QrcodeQuery;
 import com.lianzhi.attendance.attendance.sign.QrPayload;
@@ -85,6 +86,7 @@ public class QrCodeService {
         }
 
         String qrType = normalizeType(request.getQrType());
+        String checkinType = normalizeCheckinType(request.getCheckinType());
         int ttlSeconds = resolveTtl(request.getTtlSeconds(), qrType);
         int onceOnly = request.getOnceOnly() == null ? 0 : (request.getOnceOnly() == 1 ? 1 : 0);
 
@@ -103,6 +105,7 @@ public class QrCodeService {
         qrcode.setPayload(payload);
         qrcode.setSign(sign);
         qrcode.setQrType(qrType);
+        qrcode.setCheckinType(checkinType);
         qrcode.setOnceOnly(onceOnly);
         qrcode.setStatus(AttQrcode.STATUS_VALID);
         qrcode.setIssueTime(now);
@@ -112,10 +115,11 @@ public class QrCodeService {
 
         operationLogService.log(operatorId, "attendance", "QRCODE_ISSUE",
                 String.valueOf(qrcode.getId()), clientIp, true,
-                "签发二维码 placeId=" + placeId + " type=" + qrType + " ttl=" + ttlSeconds + "s");
+                "签发二维码 placeId=" + placeId + " type=" + qrType + " checkinType=" + checkinType
+                        + " ttl=" + ttlSeconds + "s");
 
-        log.info("[QR] 签发二维码 id={} placeId={} type={} ttl={}s onceOnly={} operator={}",
-                qrcode.getId(), placeId, qrType, ttlSeconds, onceOnly, operatorId);
+        log.info("[QR] 签发二维码 id={} placeId={} type={} checkinType={} ttl={}s onceOnly={} operator={}",
+                qrcode.getId(), placeId, qrType, checkinType, ttlSeconds, onceOnly, operatorId);
 
         AttQrcode saved = qrcodeMapper.selectById(qrcode.getId());
         return QrcodeIssueResult.builder()
@@ -125,6 +129,7 @@ public class QrCodeService {
                 .bizId(nonce)
                 .payload(payload)
                 .qrType(qrType)
+                .checkinType(checkinType)
                 .onceOnly(onceOnly)
                 .issueTime(now)
                 .expireTime(expireTime)
@@ -199,6 +204,24 @@ public class QrCodeService {
             return AttQrcode.TYPE_DYNAMIC;
         }
         throw new BusinessException(ResultCode.PARAM_ERROR, "二维码类型只能是 DYNAMIC 或 FIXED");
+    }
+
+    /** 打卡类型绑定值归一化：默认 AUTO（按打卡时间自动判定），兼容补丁前未带该字段的调用方 */
+    private String normalizeCheckinType(String checkinType) {
+        if (checkinType == null || checkinType.isBlank()) {
+            return AttRecord.TYPE_AUTO;
+        }
+        String normalized = checkinType.trim().toUpperCase();
+        if (AttRecord.TYPE_ON_DUTY.equals(normalized)
+                || AttRecord.TYPE_OFF_DUTY.equals(normalized)
+                || AttRecord.TYPE_FIELD.equals(normalized)) {
+            return normalized;
+        }
+        if (AttRecord.TYPE_AUTO.equals(normalized)) {
+            return AttRecord.TYPE_AUTO;
+        }
+        throw new BusinessException(ResultCode.PARAM_ERROR,
+                "打卡类型只能是 AUTO / ON_DUTY / OFF_DUTY / FIELD");
     }
 
     private int resolveTtl(Integer requested, String qrType) {

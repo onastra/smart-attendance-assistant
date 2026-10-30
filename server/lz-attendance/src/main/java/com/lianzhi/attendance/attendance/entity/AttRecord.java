@@ -20,6 +20,8 @@ public class AttRecord {
     public static final String TYPE_OFF_DUTY = "OFF_DUTY";
     /** 打卡类型：外勤 */
     public static final String TYPE_FIELD = "FIELD";
+    /** 打卡类型绑定值：自动判定（二维码未绑定具体类型时的默认值） */
+    public static final String TYPE_AUTO = "AUTO";
 
     /** 结果：正常 */
     public static final String RESULT_NORMAL = "NORMAL";

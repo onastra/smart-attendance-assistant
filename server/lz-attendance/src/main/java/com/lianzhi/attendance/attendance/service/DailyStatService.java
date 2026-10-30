@@ -1,8 +1,8 @@
 package com.lianzhi.attendance.attendance.service;
 
-import com.lianzhi.attendance.attendance.config.AttendanceProperties;
 import com.lianzhi.attendance.attendance.dto.RebuildResult;
 import com.lianzhi.attendance.attendance.entity.AttDailyStat;
+import com.lianzhi.attendance.attendance.entity.AttWorkConfig;
 import com.lianzhi.attendance.attendance.entity.DailyStatRow;
 import com.lianzhi.attendance.attendance.mapper.AttStatMapper;
 import com.lianzhi.attendance.framework.cache.CacheService;
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  * 落在实现上是三件事——唯一键 upsert、状态判定只依赖流水（不依赖当前时间）、
  * 重算前清理已不在职员工的残留行。</p>
  *
- * <p>状态判定口径（与打卡时的即时判定保持一致，都读同一份 AttendanceProperties）：
+ * <p>状态判定口径（与打卡时的即时判定保持一致，都经由 WorkConfigService 读取同一份全局配置）：
  * 已批请假 LEAVE（无打卡且覆盖请假单）→ 休息日 REST → 无打卡 ABSENT →
  * 上班晚于宽限 LATE → 下班早于下班时间 EARLY → 否则 NORMAL。
  * 迟到优先于早退：一天只有一个 status 字段，两者同时发生时记更严重的迟到。</p>
@@ -37,12 +37,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DailyStatService {
 
-    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     /** 单次重算的日期区间上限，防止误传一个很大的范围把库跑死 */
     private static final int MAX_RANGE_DAYS = 400;
 
     private final AttStatMapper statMapper;
-    private final AttendanceProperties properties;
+    private final WorkConfigService workConfigService;
     private final CacheService cacheService;
 
     /**
@@ -58,6 +57,8 @@ public class DailyStatService {
 
         List<DailyStatRow> rows = statMapper.selectDailyRows(from, to);
         boolean weekend = isWeekend(date);
+        // 迟到/早退边界取全局配置（与打卡即时判定同源），一次重算只读一次
+        AttWorkConfig workConfig = workConfigService.get();
         // E-07 审批联动：当天覆盖了已批请假的员工集合（当天无打卡时状态记 LEAVE 而不是 ABSENT）
         java.util.Set<Long> leaveEmployeeIds = new java.util.HashSet<>(statMapper.selectLeaveEmployeeIds(from, to));
 
@@ -65,7 +66,7 @@ public class DailyStatService {
         int absentRows = 0;
 
         for (DailyStatRow row : rows) {
-            AttDailyStat stat = buildStat(row, date, weekend, leaveEmployeeIds);
+            AttDailyStat stat = buildStat(row, date, weekend, leaveEmployeeIds, workConfig);
             statMapper.upsertStat(stat);
             if (AttDailyStat.SOURCE_SAMPLE.equals(stat.getSource())) {
                 sampleRows++;
@@ -124,7 +125,7 @@ public class DailyStatService {
     }
 
     private AttDailyStat buildStat(DailyStatRow row, LocalDate date, boolean weekend,
-                                   java.util.Set<Long> leaveEmployeeIds) {
+                                   java.util.Set<Long> leaveEmployeeIds, AttWorkConfig workConfig) {
         AttDailyStat stat = new AttDailyStat();
         stat.setEmployeeId(row.getEmployeeId());
         stat.setStatDate(date);
@@ -162,8 +163,8 @@ public class DailyStatService {
             return stat;
         }
 
-        boolean late = isLate(row.getFirstCheckin());
-        boolean early = isEarly(row.getLastCheckout());
+        boolean late = isLate(row.getFirstCheckin(), workConfig);
+        boolean early = isEarly(row.getLastCheckout(), workConfig);
         if (late) {
             stat.setStatus(AttDailyStat.STATUS_LATE);
         } else if (early) {
@@ -188,21 +189,19 @@ public class DailyStatService {
         return minutes > 0 ? (int) minutes : 0;
     }
 
-    private boolean isLate(LocalDateTime firstCheckin) {
+    private boolean isLate(LocalDateTime firstCheckin, AttWorkConfig config) {
         if (firstCheckin == null) {
             return false;
         }
-        LocalTime limit = LocalTime.parse(properties.getWorkStartTime(), TIME_FORMATTER)
-                .plusMinutes(properties.getLateGraceMinutes());
+        LocalTime limit = config.getWorkStartTime().plusMinutes(config.getLateGraceMinutes());
         return firstCheckin.toLocalTime().isAfter(limit);
     }
 
-    private boolean isEarly(LocalDateTime lastCheckout) {
+    private boolean isEarly(LocalDateTime lastCheckout, AttWorkConfig config) {
         if (lastCheckout == null) {
             return false;
         }
-        LocalTime limit = LocalTime.parse(properties.getWorkEndTime(), TIME_FORMATTER)
-                .minusMinutes(properties.getEarlyLeaveGraceMinutes());
+        LocalTime limit = config.getWorkEndTime().minusMinutes(config.getEarlyLeaveGraceMinutes());
         return lastCheckout.toLocalTime().isBefore(limit);
     }
 

@@ -47,6 +47,12 @@ const routes = [
         meta: { title: '考勤二维码', icon: 'QrCode', group: '考勤', permission: 'attendance:qrcode:list' }
       },
       {
+        path: 'attendance/settings',
+        name: 'attendance-settings',
+        component: () => import('@/views/attendance/AttendanceSetting.vue'),
+        meta: { title: '考勤设置', icon: 'AlarmClock', group: '考勤', permission: 'attendance:record:admin' }
+      },
+      {
         path: 'attendance/records',
         name: 'attendance-records',
         component: () => import('@/views/attendance/AdminRecords.vue'),

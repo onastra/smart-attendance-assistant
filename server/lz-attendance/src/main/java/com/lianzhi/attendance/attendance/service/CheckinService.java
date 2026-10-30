@@ -6,6 +6,7 @@ import com.lianzhi.attendance.attendance.dto.CheckinResult;
 import com.lianzhi.attendance.attendance.entity.AttQrcode;
 import com.lianzhi.attendance.attendance.entity.AttRecord;
 import com.lianzhi.attendance.attendance.entity.AttRecordView;
+import com.lianzhi.attendance.attendance.entity.AttWorkConfig;
 import com.lianzhi.attendance.attendance.entity.PlaceBrief;
 import com.lianzhi.attendance.attendance.mapper.AttQrcodeMapper;
 import com.lianzhi.attendance.attendance.mapper.AttRecordMapper;
@@ -25,7 +26,6 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -42,13 +42,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CheckinService {
 
-    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
-
     private final AttQrcodeMapper qrcodeMapper;
     private final AttRecordMapper recordMapper;
     private final AttSupportMapper supportMapper;
     private final QrSigner qrSigner;
     private final AttendanceProperties properties;
+    private final WorkConfigService workConfigService;
     private final OperationLogService operationLogService;
 
     /**
@@ -139,8 +138,13 @@ public class CheckinService {
         }
 
         // ---------- 5. 组装确认页所需信息 ----------
-        String suggestedType = now.toLocalTime().isBefore(LocalTime.NOON)
-                ? AttRecord.TYPE_ON_DUTY : AttRecord.TYPE_OFF_DUTY;
+        // 码上绑定了打卡类型（签发时管理员选择）则以码为准；AUTO 才按时间自动判定
+        String boundType = normalizeBoundType(qrcode.getCheckinType());
+        String suggestedType = AttRecord.TYPE_AUTO.equals(boundType)
+                ? (now.toLocalTime().isBefore(LocalTime.NOON)
+                        ? AttRecord.TYPE_ON_DUTY : AttRecord.TYPE_OFF_DUTY)
+                : boundType;
+        AttWorkConfig workConfig = workConfigService.get();
         Map<String, Object> data = new HashMap<>();
         data.put("placeId", place.getId());
         data.put("placeName", place.getPlaceName());
@@ -154,6 +158,9 @@ public class CheckinService {
         data.put("serverTime", now);
         data.put("suggestedType", suggestedType);
         data.put("suggestedTypeText", typeText(suggestedType));
+        data.put("typeBoundByQrcode", !AttRecord.TYPE_AUTO.equals(boundType));
+        data.put("workStartTime", workConfig.getWorkStartTime().toString());
+        data.put("workEndTime", workConfig.getWorkEndTime().toString());
         return data;
     }
 
@@ -239,7 +246,11 @@ public class CheckinService {
             return toResult(existing, true, null, place.getCoverRadiusM());
         }
 
-        String checkinType = resolveCheckinType(request.getCheckinType(), now);
+        // 码上绑定了打卡类型（签发时管理员选择）则以码为准，忽略客户端自选的类型
+        String boundType = normalizeBoundType(qrcode.getCheckinType());
+        String checkinType = AttRecord.TYPE_AUTO.equals(boundType)
+                ? resolveCheckinType(request.getCheckinType(), now)
+                : boundType;
 
         // ---------- 5. 重复打卡窗口 ----------
         LocalDateTime windowStart = now.minusMinutes(properties.getDuplicateWindowMinutes());
@@ -329,24 +340,35 @@ public class CheckinService {
     /**
      * 迟到/早退判定（2026-10-26 确认的全局口径）。
      *
-     * <p>规则集中在 <code>lz.attendance.*</code> 配置，不写死在代码里：
-     * 上班晚于「上班时间 + 宽限分钟」记 LATE，下班早于「下班时间 - 宽限分钟」记 EARLY，外勤不判异常。</p>
+     * <p>上下班时间与宽限分钟数来自 att_work_config 全局配置（Web 端可改、立即生效），
+     * 表为空时回退 yml 默认值：上班晚于「上班时间 + 宽限分钟」记 LATE，
+     * 下班早于「下班时间 - 宽限分钟」记 EARLY，外勤不判异常。</p>
      */
     private String resolveResult(String checkinType, LocalDateTime checkinTime) {
         if (AttRecord.TYPE_FIELD.equals(checkinType)) {
             return AttRecord.RESULT_NORMAL;
         }
         LocalTime current = checkinTime.toLocalTime();
-        LocalTime workStart = LocalTime.parse(properties.getWorkStartTime(), TIME_FORMATTER);
-        LocalTime workEnd = LocalTime.parse(properties.getWorkEndTime(), TIME_FORMATTER);
+        AttWorkConfig config = workConfigService.get();
         if (AttRecord.TYPE_ON_DUTY.equals(checkinType)) {
-            return current.isAfter(workStart.plusMinutes(properties.getLateGraceMinutes()))
+            return current.isAfter(config.getWorkStartTime().plusMinutes(config.getLateGraceMinutes()))
                     ? AttRecord.RESULT_LATE
                     : AttRecord.RESULT_NORMAL;
         }
-        return current.isBefore(workEnd.minusMinutes(properties.getEarlyLeaveGraceMinutes()))
+        return current.isBefore(config.getWorkEndTime().minusMinutes(config.getEarlyLeaveGraceMinutes()))
                 ? AttRecord.RESULT_EARLY
                 : AttRecord.RESULT_NORMAL;
+    }
+
+    /** 二维码绑定的打卡类型归一化：空/非法值一律按 AUTO 处理，兼容补丁前的存量码 */
+    private String normalizeBoundType(String bound) {
+        if (bound == null || bound.isBlank()) {
+            return AttRecord.TYPE_AUTO;
+        }
+        return switch (bound.trim().toUpperCase()) {
+            case AttRecord.TYPE_ON_DUTY, AttRecord.TYPE_OFF_DUTY, AttRecord.TYPE_FIELD -> bound.trim().toUpperCase();
+            default -> AttRecord.TYPE_AUTO;
+        };
     }
 
     private CheckinResult toResult(AttRecordView view, boolean idempotent,

@@ -20,4 +20,10 @@ public class QrcodeIssueRequest {
 
     /** 是否一次性：1 用后即失效 0 有效期内可重复使用（默认） */
     private Integer onceOnly;
+
+    /**
+     * 该码绑定的打卡类型：AUTO（默认，按打卡时间自动判定）/ON_DUTY/OFF_DUTY/FIELD。
+     * 非 AUTO 时，扫此码打卡一律记为该类型。
+     */
+    private String checkinType;
 }

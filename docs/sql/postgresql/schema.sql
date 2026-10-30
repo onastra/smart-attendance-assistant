@@ -189,6 +189,7 @@ CREATE TABLE att_qrcode (
     sign        VARCHAR(128) NOT NULL,
     once_only   SMALLINT    NOT NULL DEFAULT 0,
     qr_type     VARCHAR(16) NOT NULL DEFAULT 'DYNAMIC',
+    checkin_type VARCHAR(16) NOT NULL DEFAULT 'AUTO',
     status      VARCHAR(16) NOT NULL DEFAULT 'VALID',
     issue_time  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expire_time TIMESTAMP   NOT NULL,
@@ -199,7 +200,21 @@ CREATE TABLE att_qrcode (
 CREATE UNIQUE INDEX uk_biz_id ON att_qrcode (biz_id);
 CREATE INDEX idx_qrcode_place_status ON att_qrcode (place_id, status);
 CREATE INDEX idx_expire_time ON att_qrcode (expire_time);
-COMMENT ON TABLE att_qrcode IS '考勤二维码（qr_type 由 patch-phase3 内联）';
+COMMENT ON TABLE att_qrcode IS '考勤二维码（qr_type 由 patch-phase3 内联；checkin_type 为该码绑定的打卡类型 AUTO/ON_DUTY/OFF_DUTY/FIELD）';
+
+-- 全局上下班时间配置（单行表，id 恒为 1）：迟到/早退判定口径，Web 端可在线修改
+CREATE TABLE IF NOT EXISTS att_work_config (
+    id                         INT         PRIMARY KEY DEFAULT 1,
+    work_start_time            TIME        NOT NULL DEFAULT '09:00',
+    work_end_time              TIME        NOT NULL DEFAULT '18:00',
+    late_grace_minutes         INT         NOT NULL DEFAULT 15,
+    early_leave_grace_minutes  INT         NOT NULL DEFAULT 0,
+    updated_at                 TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                 BIGINT               DEFAULT NULL,
+    CONSTRAINT ck_work_config_id CHECK (id = 1)
+);
+COMMENT ON TABLE att_work_config IS '全局上下班时间配置（单行）：迟到=晚于上班时间+迟到宽限，早退=早于下班时间-早退宽限';
+INSERT INTO att_work_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
 DROP TABLE IF EXISTS att_record CASCADE;
 CREATE TABLE att_record (

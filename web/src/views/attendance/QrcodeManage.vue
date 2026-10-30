@@ -20,6 +20,14 @@
             <el-option label="长期固定码（24 小时）" value="FIXED"/>
           </el-select>
         </el-form-item>
+        <el-form-item label="打卡类型">
+          <el-select v-model="issueForm.checkinType" style="width: 150px">
+            <el-option label="自动判定" value="AUTO"/>
+            <el-option label="上班" value="ON_DUTY"/>
+            <el-option label="下班" value="OFF_DUTY"/>
+            <el-option label="外勤" value="FIELD"/>
+          </el-select>
+        </el-form-item>
         <el-form-item label="有效期(秒)">
           <el-input-number v-model="issueForm.ttlSeconds" :min="10" :max="604800" :step="30"/>
         </el-form-item>
@@ -31,7 +39,7 @@
         </el-form-item>
       </el-form>
       <el-alert type="info" :closable="false" show-icon
-                title="动态码有效期很短，页面会在到期后自动续发，避免被截图转发后长期使用；长期固定码用于固定张贴场景，靠管理员手动失效。"/>
+                title="动态码有效期很短，页面会在到期后自动续发，避免被截图转发后长期使用；长期固定码用于固定张贴场景，靠管理员手动失效。打卡类型选「自动判定」时按打卡时间自动区分上/下班；选定具体类型后，员工扫此码一律按该类型记录。"/>
     </el-card>
 
     <el-card v-if="current.id" shadow="never" class="preview-card">
@@ -55,6 +63,9 @@
               {{ current.qrType === 'FIXED' ? '长期固定码' : '动态码' }}
               <el-tag size="small" :type="current.onceOnly === 1 ? 'warning' : 'info'">
                 {{ current.onceOnly === 1 ? '一次性' : '有效期内可重复' }}
+              </el-tag>
+              <el-tag size="small" :type="current.checkinType === 'AUTO' ? 'info' : 'success'">
+                {{ checkinTypeText(current.checkinType) }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="签发时间">{{ formatTime(current.issueTime) }}</el-descriptions-item>
@@ -105,6 +116,13 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="打卡类型" width="100">
+          <template #default="{ row }">
+            <el-tag size="small" :type="row.checkinType === 'AUTO' ? 'info' : 'success'">
+              {{ checkinTypeText(row.checkinType) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag size="small" :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
@@ -140,6 +158,7 @@ const places = ref([])
 const issueForm = reactive({
   placeId: null,
   qrType: 'DYNAMIC',
+  checkinType: 'AUTO',
   ttlSeconds: DEFAULT_TTL.DYNAMIC,
   onceOnly: 0
 })
@@ -262,6 +281,10 @@ function onPageChange(page) {
 
 function statusText(status) {
   return { VALID: '有效', INVALID: '已失效', EXPIRED: '已过期', USED: '已使用' }[status] || status
+}
+
+function checkinTypeText(type) {
+  return { AUTO: '自动判定', ON_DUTY: '上班', OFF_DUTY: '下班', FIELD: '外勤' }[type] || '自动判定'
 }
 
 function statusType(status) {

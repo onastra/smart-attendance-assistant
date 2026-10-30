@@ -22,6 +22,10 @@ public class QrcodeIssueResult {
     private String bizId;
     private String payload;
     private String qrType;
+
+    /** 码绑定的打卡类型：AUTO/ON_DUTY/OFF_DUTY/FIELD */
+    private String checkinType;
+
     private Integer onceOnly;
     private LocalDateTime issueTime;
     private LocalDateTime expireTime;

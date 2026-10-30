@@ -69,6 +69,7 @@
             提交打卡
           </el-button>
           <div class="tip">幂等请求号：<code>{{ requestId || '获取中…' }}</code>（同一页面重复提交只记一次）</div>
+          <div class="tip">若该二维码签发时已指定打卡类型（上班/下班/外勤），以码上类型为准，此处选择将被忽略。</div>
         </div>
       </el-card>
 

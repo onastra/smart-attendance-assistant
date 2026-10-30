@@ -43,6 +43,12 @@ public class AttQrcode {
 
     private String qrType;
 
+    /**
+     * 该码绑定的打卡类型：AUTO（默认，打卡时按时间自动判定）/ON_DUTY/OFF_DUTY/FIELD。
+     * 签发时由管理员选择；非 AUTO 时打卡一律以码上类型为准，忽略客户端自选。
+     */
+    private String checkinType;
+
     /** 1 一次性（用后即 USED） 0 可重复使用至过期 */
     private Integer onceOnly;
 

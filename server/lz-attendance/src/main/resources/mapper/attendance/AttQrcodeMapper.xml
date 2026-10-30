@@ -4,7 +4,7 @@
 <mapper namespace="com.lianzhi.attendance.attendance.mapper.AttQrcodeMapper">
 
     <sql id="QrcodeColumns">
-        q.id, q.place_id, q.biz_id, q.payload, q.sign, q.qr_type, q.once_only,
+        q.id, q.place_id, q.biz_id, q.payload, q.sign, q.qr_type, q.checkin_type, q.once_only,
         q.status, q.issue_time, q.expire_time, q.used_time, q.created_by, q.created_at
     </sql>
 
@@ -18,10 +18,10 @@
     <insert id="insert" useGeneratedKeys="true" keyProperty="id"
             parameterType="com.lianzhi.attendance.attendance.entity.AttQrcode">
         INSERT INTO att_qrcode
-        (place_id, biz_id, payload, sign, qr_type, once_only, status,
+        (place_id, biz_id, payload, sign, qr_type, checkin_type, once_only, status,
          issue_time, expire_time, created_by)
         VALUES
-        (#{placeId}, #{bizId}, #{payload}, #{sign}, #{qrType}, #{onceOnly}, #{status},
+        (#{placeId}, #{bizId}, #{payload}, #{sign}, #{qrType}, #{checkinType}, #{onceOnly}, #{status},
          #{issueTime}, #{expireTime}, #{createdBy})
     </insert>
 
