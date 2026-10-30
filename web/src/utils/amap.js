@@ -16,8 +16,8 @@
  */
 
 const AMAP_JS_URL = 'https://webapi.amap.com/maps?v=2.0'
-/** 选址抽屉需要的插件：POI 搜索 + 输入提示 */
-const AMAP_PLUGINS = 'AMap.PlaceSearch,AMap.AutoComplete'
+/** 选址抽屉需要的插件：POI 搜索 + 输入提示 + 比例尺（核对打卡半径的真实距离） */
+const AMAP_PLUGINS = 'AMap.PlaceSearch,AMap.AutoComplete,AMap.Scale'
 
 /** 单例 Promise：同一页面只允许注入一次 SDK script */
 let loadPromise = null

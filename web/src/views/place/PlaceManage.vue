@@ -180,6 +180,11 @@
                              controls-position="right" style="width: 140px"/>
             <el-button type="primary" :disabled="!pickedGcj" @click="confirmPick">使用该坐标</el-button>
           </div>
+          <div class="text-muted picked-sub">
+            蓝色圆即真实打卡范围（半径 {{ form.coverRadiusM || 200 }} 米，直径约
+            {{ ((form.coverRadiusM || 200) * 2 / 1000).toFixed(1) }} 公里），
+            距离以真实地面距离为准，可用左下角比例尺核对；圆顶部的文字标注随输入联动。
+          </div>
         </div>
       </div>
     </el-drawer>
@@ -435,6 +440,8 @@ const pickedGcj = ref(null)
 let mapInstance = null
 let marker = null
 let circle = null
+/** 圆顶部边缘的半径标注：让"真实距离"一目了然（随半径/圆心联动） */
+let radiusLabel = null
 let placeSearch = null
 /** 输入联想（高德 AutoComplete），与 PlaceSearch 分开实例：前者给候选词，后者给详细 POI */
 let autoComplete = null
@@ -449,10 +456,19 @@ const pickedWgs84 = computed(() => {
   return { lng: Number(w.lng.toFixed(7)), lat: Number(w.lat.toFixed(7)) }
 })
 
+/** 半径标注跟随圆心 + 半径联动（纬度 1 度 ≈ 110997 米） */
+const updateRadiusLabel = () => {
+  if (!radiusLabel || !pickedGcj.value) return
+  const r = form.coverRadiusM || 200
+  radiusLabel.setText(`半径 ${r} 米`)
+  radiusLabel.setPosition([pickedGcj.value.lng, pickedGcj.value.lat + r / 110997])
+}
+
 const setPick = (lng, lat, name) => {
   pickedGcj.value = { lng, lat, name: name || pickedGcj.value?.name || '' }
   marker.setPosition([lng, lat])
   circle.setCenter([lng, lat])
+  updateRadiusLabel()
 }
 
 /** 编辑已有场所时，把库里的 WGS84 坐标换算到 GCJ-02 并显示到地图 */
@@ -481,6 +497,27 @@ const initMap = () => {
   })
   marker.setMap(mapInstance)
   circle.setMap(mapInstance)
+  // 比例尺：直接核对圆覆盖的真实地面距离（用户反馈"圆看起来比设置的大"，有比例尺可自证）
+  mapInstance.addControl(new AMapRef.Scale({ position: { bottom: '28px', left: '12px' } }))
+  // 圆顶部边缘的半径文字标注
+  radiusLabel = new AMapRef.Text({
+    text: `半径 ${form.coverRadiusM || 200} 米`,
+    anchor: 'bottom-center',
+    position: [0, 0],
+    cursor: 'default',
+    style: {
+      'background-color': '#ffffff',
+      'border': '1px solid #409eff',
+      'border-radius': '4px',
+      'padding': '1px 6px',
+      'font-size': '12px',
+      'color': '#1f2d3d',
+      'white-space': 'nowrap'
+    }
+  })
+  radiusLabel.setMap(mapInstance)
+  // 调试句柄：便于无头浏览器测试与排查（不影响业务）
+  if (typeof window !== 'undefined') window.__placePicker = { map: mapInstance, circle, marker }
   placeSearch = new AMapRef.PlaceSearch({ pageSize: 10, pageIndex: 1 })
   // 输入联想：citylimit=false 保证跨城市也能联想（选址不限于某一市）
   autoComplete = new AMapRef.AutoComplete({ city: '全国', citylimit: false })
@@ -633,6 +670,7 @@ const confirmPick = () => {
 // 抽屉里调整半径时实时同步到围栏圆
 watch(() => form.coverRadiusM, (v) => {
   if (circle) circle.setRadius(v || 200)
+  updateRadiusLabel()
 })
 
 onMounted(() => {
