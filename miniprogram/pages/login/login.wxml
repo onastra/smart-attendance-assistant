@@ -26,7 +26,7 @@
       <text>部门主管</text><text class="demo-account">manager01 / Admin@123</text>
     </view>
     <view class="demo-row" bindtap="fillDemo" data-role="emp">
-      <text>普通员工</text><text class="demo-account">emp01 / Emp@123</text>
+      <text>普通员工</text><text class="demo-account">LZ0001 / Emp@123</text>
     </view>
   </view>
 </view>
