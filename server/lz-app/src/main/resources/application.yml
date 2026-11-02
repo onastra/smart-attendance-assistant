@@ -123,11 +123,19 @@ lz:
     enabled: ${LZ_FEIGN_ENABLED:false}
 
   face:
-    # noop = 明确标注的模拟实现；arcsoft = 真实 SDK（需授权，当前不可得）
+    # noop = 明确标注的模拟实现；arcsoft = 真实 SDK（虹软 ArcFace V3.0 Windows x64 Java）
     provider: ${LZ_FACE_PROVIDER:noop}
-    # 真实 SDK 授权参数；目前无论是否填写都拿不到 SDK，填了也不会"假装可用"
+    # 虹软授权参数（写进 application-local.yml 或环境变量，不要进仓库）
     app-id: ${LZ_FACE_APP_ID:}
     sdk-key: ${LZ_FACE_SDK_KEY:}
+    # 原生库目录：需含 libarcsoft_face.dll / libarcsoft_face_engine.dll / libarcsoft_face_engine_jni.dll
+    # 在线激活成功后，激活文件也会写在该目录下
+    sdk-lib-path: ${LZ_FACE_SDK_LIB_PATH:}
+    # 1:1 比对通过阈值；虹软官方建议 0.8，可按实测误识率微调
+    threshold: ${LZ_FACE_THRESHOLD:0.8}
+    # 人脸质量门槛：人脸框短边最小像素、占画面最小面积比例
+    min-face-pixels: ${LZ_FACE_MIN_FACE_PIXELS:80}
+    min-face-ratio: ${LZ_FACE_MIN_FACE_RATIO:0.01}
     # 最小化生物特征存储：默认不保存原始人脸图片
     store-image: ${LZ_FACE_STORE_IMAGE:false}
 

@@ -19,5 +19,19 @@
             <groupId>com.lianzhi.attendance</groupId>
             <artifactId>lz-framework</artifactId>
         </dependency>
+
+        <!-- 虹软 ArcFace SDK（V3.0 Windows x64 Java）。
+             不发布在 Maven 中央仓库，首次构建前需本地安装一次：
+               cd server/libs/arcface/libs
+               mvn install:install-file -Dfile=arcsoft-sdk-face-3.0.0.0.jar \
+                 -DgroupId=com.arcsoft -DartifactId=arcsoft-sdk-face \
+                 -Dversion=3.0.0.0 -Dpackaging=jar
+             该 jar 同时被 lz-app 打进可执行包（provider=arcsoft 时运行期必需）。
+             原生库（libs/WIN64/*.dll）不打进 jar，由 lz.face.sdk-lib-path 指定目录加载。 -->
+        <dependency>
+            <groupId>com.arcsoft</groupId>
+            <artifactId>arcsoft-sdk-face</artifactId>
+            <version>3.0.0.0</version>
+        </dependency>
     </dependencies>
 </project>

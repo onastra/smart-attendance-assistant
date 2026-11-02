@@ -59,3 +59,8 @@ web/vite.config.js.timestamp-*.mjs
 
 # Vite dev 临时产物
 web/vite.config.js.timestamp-*.mjs
+
+# ===== 虹软人脸 SDK（本地放置，体积大且需各自账号下载）=====
+/server/libs/arcface/
+# 虹软激活文件：与本机设备绑定，换机器必须重新激活，禁止入库共享
+ArcFace64.dat

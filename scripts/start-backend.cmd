@@ -68,6 +68,12 @@ echo [INFO ] Starting backend on port %APP_PORT% ...
 echo [INFO ] Jar: %JAR%
 echo.
 
+REM --- 工作目录必须固定为 server\lz-app -------------------------------
+REM 虹软人脸 SDK 把激活文件 ArcFace64.dat 写在「进程工作目录」，
+REM 后端启动目录不一致会导致每次都重新联网激活（并可能触发服务器限流 90130）。
+pushd "%~dp0..\server\lz-app"
+
 java -jar "%JAR%" --server.port=%APP_PORT% %PROFILE_ARG% %LOCATION_ARG%
 
+popd
 endlocal
