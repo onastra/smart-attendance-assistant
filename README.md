@@ -119,22 +119,26 @@ cd server
 mvn -U clean package -DskipTests
 cd ..
 
-# 2) 运行期配置一律走环境变量，禁止写入代码库
-export LZ_DB_URL="jdbc:mysql://127.0.0.1:3306/lianzhi?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false"
-export LZ_DB_USERNAME=root
-export LZ_DB_PASSWORD=<你的口令>
-export LZ_JWT_SECRET=<至少 32 字节的随机串>
-
-# 3) 启动，二选一
-java -jar server/lz-app/target/lz-app.jar --server.port=8080
-# Windows 推荐用脚本：会清掉可能污染的端口变量、并在检测到 application-local.yml 时自动激活 local profile
+# 2) 启动（Windows 强烈推荐脚本，双击或命令行均可）
 scripts\start-backend.cmd
 ```
 
-> ⚠️ **端口可能被环境变量改写（踩过）**：Spring 的宽松绑定会把 `SERVER_PORT`、`SERVER__PORT`、`PORT` 这类环境变量映射到 `server.port`，
-> shell、IDE、容器平台里若已存在这些变量，8080 会被静默覆盖。排错时先 `echo $SERVER_PORT`；
-> Windows 下用 `scripts\start-backend.cmd` 启动（脚本会先清空这三个变量再显式传 `--server.port`），
-> 或手动启动时始终显式带 `--server.port`。换端口用 `LZ_SERVER_PORT=8088 scripts\start-backend.cmd`。
+> ⚠️ **不要手动敲 `java -jar ... --server.port=8080` 了事（踩过多次）**：
+> 真实的 `application-local.yml` / `application-cloud.yml`（数据库/密钥）因含私密信息被 `.gitignore` 忽略，
+> **不会打进 jar**（包里只有 `.example` 模板）。手动启动必须带齐三个参数，缺一即登录报
+> `系统内部错误（50001）`：
+>
+> ```bash
+> java -jar server/lz-app/target/lz-app.jar --server.port=8080 \
+>   --spring.profiles.active=local,cloud \
+>   "--spring.config.additional-location=file:<仓库根>/server/lz-app/src/main/resources/"
+> ```
+>
+> `scripts\start-backend.cmd` 会自动完成上述全部动作（含清空可能污染端口的
+> `SERVER_PORT`/`SERVER__PORT`/`PORT` 环境变量、检测私密配置文件并激活对应 profile），
+> 换端口用 `set LZ_SERVER_PORT=8088 && scripts\start-backend.cmd`。
+>
+> 前端开发服务：`cd web && npm run dev`（或 `scripts\start-frontend.cmd`），代理目标默认 8080。
 >
 > 数据源配置了懒加载（`initial-size=0` + `fail-fast`），数据库暂不可用时应用仍会启动，
 > 由 `/api/system/health` 真实探测连通性并返回错误信息，**不会因为配不出库就崩，也不会假装连上了**。
