@@ -113,6 +113,23 @@
   height: 56rpx;
 }
 
+/* 刷脸打卡快捷卡片：复用 scan-cta 骨架，仅换图标配色与上边距 */
+.face-cta {
+  margin-top: 20rpx;
+}
+
+.face-cta-icon {
+  background: linear-gradient(135deg, #34C08B, #0F9E6E);
+  box-shadow: 0 8rpx 18rpx rgba(15, 158, 110, 0.35);
+}
+
+.face-cta-glyph {
+  color: #ffffff;
+  font-size: 44rpx;
+  font-weight: 500;
+  line-height: 1;
+}
+
 .scan-cta-main {
   flex: 1;
   margin-left: 24rpx;

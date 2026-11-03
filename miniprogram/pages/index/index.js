@@ -88,6 +88,11 @@ Page({
     checkin.scanThenConfirm()
   },
 
+  // 刷脸打卡：活体 + 1:1 核验，未注册时页面内一键注册
+  goFaceCheckin: function () {
+    wx.navigateTo({ url: '/pages/face-checkin/face-checkin' })
+  },
+
   // 摄像头不可用/二维码破损时的兜底入口
   goManual: function () {
     wx.switchTab({ url: '/pages/checkin/checkin' })

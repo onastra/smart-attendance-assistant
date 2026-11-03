@@ -39,6 +39,17 @@
     </view>
     <view class="scan-cta-arrow">›</view>
   </view>
+  <!-- 刷脸打卡快捷卡片：与扫码并列的身份校验通道，员工可从首页直达 -->
+  <view class="scan-cta face-cta" wx:if="{{isEmployee}}" bindtap="goFaceCheckin">
+    <view class="scan-cta-icon face-cta-icon">
+      <text class="face-cta-glyph">刷</text>
+    </view>
+    <view class="scan-cta-main">
+      <view class="scan-cta-title">刷脸打卡</view>
+      <view class="scan-cta-sub">活体检测 · 1:1 本人核验 · 无需扫码</view>
+    </view>
+    <view class="scan-cta-arrow">›</view>
+  </view>
   <view class="manual-link" wx:if="{{isEmployee}}" bindtap="goManual">摄像头不可用？使用手动输入 ›</view>
 
   <!-- 常用功能 -->
