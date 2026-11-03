@@ -6,12 +6,14 @@ import com.arcsoft.face.FaceFeature;
 import com.arcsoft.face.FaceInfo;
 import com.arcsoft.face.FaceSimilar;
 import com.arcsoft.face.FunctionConfiguration;
+import com.arcsoft.face.LivenessInfo;
 import com.arcsoft.face.Rect;
 import com.arcsoft.face.enums.DetectMode;
 import com.arcsoft.face.enums.DetectOrient;
 import com.arcsoft.face.enums.ErrorInfo;
 import com.arcsoft.face.toolkit.ImageFactory;
 import com.arcsoft.face.toolkit.ImageInfo;
+import com.arcsoft.face.toolkit.ImageInfoEx;
 import com.lianzhi.attendance.common.exception.BusinessException;
 import com.lianzhi.attendance.common.result.ResultCode;
 import jakarta.annotation.PreDestroy;
@@ -37,6 +39,8 @@ import java.util.List;
  *       可能比中别人，这是身份核验里最危险的行为。</li>
  *   <li><strong>人脸质量门槛</strong>：人脸框太小（距离远、画面糊）时拒绝并要求重拍，
  *       否则会把低质量特征存进库，之后永远核验不过。</li>
+ *   <li><strong>RGB 活体检测</strong>：免费版 SDK 已内置，拒绝照片/屏幕翻拍等假体攻击；
+ *       仅明确判定假体时拒绝，"无法判断"放行以免真人误伤。</li>
  *   <li><strong>特征只存向量</strong>：1032 字节特征 Base64 后存库，不落原始人脸图片。</li>
  * </ul>
  */
@@ -69,6 +73,10 @@ public class ArcSoftFaceRecognitionService implements FaceRecognitionService {
     /** 人脸框面积占画面最小比例（0.01 = 1%），兜底防止极端比例图片 */
     @Value("${lz.face.min-face-ratio:0.01}")
     private double minFaceRatio;
+
+    /** RGB 活体检测开关：开启后拒绝照片/屏幕翻拍等假体攻击（免费版人脸 SDK 已内置该能力） */
+    @Value("${lz.face.liveness-enabled:true}")
+    private boolean livenessEnabled;
 
     private volatile FaceEngine engine;
     private volatile String initError;
@@ -121,6 +129,9 @@ public class ArcSoftFaceRecognitionService implements FaceRecognitionService {
 
         FaceInfo face = faces.get(0);
         assertQuality(face, imageInfo.getWidth(), imageInfo.getHeight());
+        if (livenessEnabled) {
+            assertAlive(fe, imageInfo, face);
+        }
 
         FaceFeature feature = new FaceFeature();
         code = fe.extractFaceFeature(imageInfo.getImageData(), imageInfo.getWidth(), imageInfo.getHeight(),
@@ -207,8 +218,8 @@ public class ArcSoftFaceRecognitionService implements FaceRecognitionService {
         FunctionConfiguration function = new FunctionConfiguration();
         function.setSupportFaceDetect(true);
         function.setSupportFaceRecognition(true);
-        // 活体检测需单独授权「单目 RGB 活体」SDK；未授权时开启会导致初始化失败，故默认关闭
-        function.setSupportLiveness(false);
+        // 免费版人脸识别 SDK 已内置单目 RGB 活体检测，无需单独授权；仍可用配置显式关闭
+        function.setSupportLiveness(livenessEnabled);
         function.setSupportIRLiveness(false);
         config.setFunctionConfiguration(function);
 
@@ -216,7 +227,8 @@ public class ArcSoftFaceRecognitionService implements FaceRecognitionService {
         if (code != ErrorInfo.MOK.getValue()) {
             throw new IllegalStateException("引擎初始化失败，错误码=" + code);
         }
-        log.info("[FACE] 虹软引擎激活并初始化成功，provider=arcsoft，阈值={}", threshold);
+        log.info("[FACE] 虹软引擎激活并初始化成功，provider=arcsoft，阈值={}，活体检测={}", threshold,
+                livenessEnabled ? "开" : "关");
         return fe;
     }
 
@@ -266,6 +278,32 @@ public class ArcSoftFaceRecognitionService implements FaceRecognitionService {
         if (ratio < minFaceRatio) {
             throw new BusinessException(ResultCode.PARAM_ERROR,
                     "人脸占画面比例过小（" + String.format("%.2f%%", ratio * 100) + "），请靠近镜头重拍");
+        }
+    }
+
+    /**
+     * RGB 活体校验（V3.0 流程：detectFaces → process(开活体) → getLiveness）。
+     * isAlive：1=真人，0=照片/屏幕翻拍等假体，-1=无法判断（质量不足）。
+     * 策略：仅明确判定为假体时拒绝；-1 视为不确定放行，避免真人偶发误伤导致打不了卡。
+     */
+    private void assertAlive(FaceEngine fe, ImageInfo imageInfo, FaceInfo face) {
+        ImageInfoEx ex = new ImageInfoEx();
+        ex.setImageDataPlanes(new byte[][]{imageInfo.getImageData()});
+        ex.setImageStrides(new int[]{imageInfo.getWidth() * 3});
+        ex.setWidth(imageInfo.getWidth());
+        ex.setHeight(imageInfo.getHeight());
+        ex.setImageFormat(imageInfo.getImageFormat());
+
+        FunctionConfiguration livenessFunc = new FunctionConfiguration();
+        livenessFunc.setSupportLiveness(true);
+        checkCode(fe.process(ex, List.of(face), livenessFunc), "活体预处理");
+
+        List<LivenessInfo> liveness = new ArrayList<>();
+        checkCode(fe.getLiveness(liveness), "活体检测");
+        if (!liveness.isEmpty() && liveness.get(0).getLiveness() == 0) {
+            log.warn("[FACE] 活体检测判定为假体，拒绝");
+            throw new BusinessException(ResultCode.PARAM_ERROR,
+                    "检测到非真人（照片或屏幕翻拍），请本人正对镜头完成打卡");
         }
     }
 
