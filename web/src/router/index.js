@@ -75,7 +75,11 @@ const routes = [
         path: 'face/list',
         name: 'face-list',
         component: () => import('@/views/attendance/FaceEnrollList.vue'),
-        meta: { title: '人脸注册名单', icon: 'UserFilled', group: '考勤', permission: 'face:enroll' }
+        // 权限说明：face:enroll 已下放给普通员工（小程序自助录入人脸用），
+        // 因此名单页不能用它做菜单门槛，否则员工会看到入口再被后端 40301 拒绝。
+        // 后端 list/remove 接口正是以 system:user:list（仅系统管理员持有）作为管理员标记，
+        // 这里保持同一权限码，前端入口与后端边界一致。
+        meta: { title: '人脸注册名单', icon: 'UserFilled', group: '考勤', permission: 'system:user:list' }
       },
       {
         path: 'statistics/dashboard',

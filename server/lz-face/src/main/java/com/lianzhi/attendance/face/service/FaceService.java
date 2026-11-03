@@ -123,7 +123,8 @@ public class FaceService {
         result.setEnrolled(employeeId != null
                 && featureMapper.selectOne(employeeId, recognition.provider()) != null);
         result.setNotice(recognition.available() ? null : recognition.unavailableReason());
-        result.setPrivacyNote("默认只保存特征值的哈希，不保存原始人脸图片（lz.face.store-image="
+        // 注意：模拟实现存特征哈希，虹软实现存特征值 Base64，因此这里不能写死"哈希"
+        result.setPrivacyNote("默认只保存人脸特征值，不保存原始人脸图片（lz.face.store-image="
                 + storeImage + "）。生物特征不可更换，能不存就不存。");
         return result;
     }

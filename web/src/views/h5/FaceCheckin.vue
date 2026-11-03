@@ -19,8 +19,15 @@
     </el-card>
 
     <template v-else>
-      <!-- 模拟徽章放在页面最顶部：任何人打开这一页，第一眼就该看到它是模拟的 -->
-      <el-alert type="warning" :closable="false" class="mock-banner">
+      <!-- 状态徽章放在页面最顶部：按后端 status.mock 如实显示当前是模拟还是真实识别 -->
+      <el-alert v-if="status && !status.mock" type="success" :closable="false" class="mock-banner">
+        <template #title>
+          <strong>真实识别</strong>：当前人脸识别由虹软 ArcFace 本地 SDK 提供（provider={{ status.provider }}），
+          已启用 <strong>RGB 活体检测</strong>，照片、屏幕翻拍等非活体攻击会被拒绝；
+          比对仅在服务器本地完成，<strong>不具有对外身份凭证效力</strong>。
+        </template>
+      </el-alert>
+      <el-alert v-else type="warning" :closable="false" class="mock-banner">
         <template #title>
           <strong>模拟实现</strong>：当前人脸识别由模拟适配层提供（provider={{ status?.provider || 'noop' }}），
           只比对图片指纹的哈希，<strong>不是真实人脸检测，不具有任何身份凭证效力</strong>。
@@ -60,7 +67,9 @@
         <template #header>
           <div class="panel-header">
             <span>人脸核验</span>
-            <el-tag size="small" type="warning">模拟</el-tag>
+            <el-tag size="small" :type="status && !status.mock ? 'success' : 'warning'">
+              {{ status && !status.mock ? '真实识别' : '模拟' }}
+            </el-tag>
           </div>
         </template>
         <input ref="verifyInput" type="file" accept="image/*" class="file-input" @change="onVerifyFile" />
@@ -69,7 +78,7 @@
         </el-button>
         <div v-if="verifyResult" class="result-box" :class="verifyResult.passed ? 'ok' : 'warn-result'">
           <div class="result-title">
-            {{ verifyResult.passed ? '核验通过（模拟）' : '核验不通过（模拟）' }}
+            核验{{ verifyResult.passed ? '通过' : '不通过' }}（{{ verifyResult.mock ? '模拟' : '真实识别' }}）
           </div>
           <div class="result-line">相似度：{{ verifyResult.similarity }}（阈值 {{ verifyResult.threshold }}）</div>
           <div class="result-line">mock={{ verifyResult.mock }} · 原因码：{{ verifyResult.reason }}</div>
@@ -83,13 +92,18 @@
           {{ status?.privacyNote || '默认只保存特征值的哈希，不保存原始人脸图片。' }}
         </div>
         <div class="tip block">
-          考勤记录仍以<strong>场所二维码打卡</strong>为准：无虹软 SDK 授权的条件下，
-          人脸只能作为流程演示，不能作为唯一考勤凭证。
+          考勤身份校验中，人脸是与<strong>扫码并列的通道之一</strong>：打卡仍需同时满足
+          时间窗与场所围栏；外勤打卡只能由管理员签发二维码，人脸不能单独作为考勤凭证。
         </div>
-        <div class="tip block">
+        <div class="tip block" v-if="status && !status.mock">
+          当前接入虹软 ArcFace 本地 SDK（provider={{ status.provider }}），含单目 RGB 活体检测，
+          录入与比对均在服务器本地完成，不上传任何第三方；SDK 接入方式见
+          <code>docs/face-sdk-integration.md</code>。
+        </div>
+        <div class="tip block" v-else>
           真实 SDK 接入方式见 <code>docs/face-sdk-integration.md</code>；
           将 <code>lz.face.provider</code> 改为 <code>arcsoft</code> 后，
-          本页会转为提示"缺少 SDK 与授权"而不会崩溃。
+          本页会转为真实识别模式并启用活体检测。
         </div>
       </el-card>
     </template>
@@ -163,7 +177,7 @@ async function onEnrollFile(event) {
   enrolling.value = true
   try {
     enrollResult.value = await enrollFace(file)
-    ElMessage.success('录入完成（模拟实现）')
+    ElMessage.success(enrollResult.value.mock ? '录入完成（模拟实现）' : '录入完成')
     await loadStatus()
   } catch { /* 已提示 */ } finally {
     enrolling.value = false
