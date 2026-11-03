@@ -45,6 +45,10 @@ Page({
     checkin.openConfirm(content)
   },
 
+  goFaceCheckin: function () {
+    wx.navigateTo({ url: '/pages/face-checkin/face-checkin' })
+  },
+
   goRecords: function () {
     wx.switchTab({ url: '/pages/records/records' })
   }

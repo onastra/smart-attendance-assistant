@@ -1,0 +1,54 @@
+<view class="page">
+  <!-- 人脸注册状态 -->
+  <view class="card">
+    <view class="card-title">人脸状态</view>
+    <view class="status-row">
+      <view class="status-dot {{enrolled ? 'dot-ok' : 'dot-warn'}}"></view>
+      <text class="status-text">{{enrolled ? '已注册：可直接刷脸打卡' : '未注册：首次使用请先完成人脸注册'}}</text>
+    </view>
+    <view class="tip">注册只保存不可逆的人脸特征向量（不存照片），核验时含活体检测，照片 / 屏幕翻拍无法通过。</view>
+  </view>
+
+  <!-- 场所选择 -->
+  <view class="card">
+    <view class="card-title">打卡场所</view>
+    <view wx:if="{{places.length === 0}}" class="tip">你还没有绑定任何启用场所，请联系管理员在「场所管理」中绑定后再刷脸打卡。</view>
+    <picker wx:else mode="selector" range="{{places}}" range-key="placeName" value="{{placeIndex}}" bindchange="onPlaceChange">
+      <view class="picker-row">
+        <text class="picker-value">{{places[placeIndex].placeName || '请选择场所'}}</text>
+        <text class="picker-arrow">›</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 打卡类型 -->
+  <view class="card">
+    <view class="card-title">打卡类型</view>
+    <view class="type-row">
+      <view class="type-item {{typeIndex === index ? 'type-active' : ''}}"
+            wx:for="{{types}}" wx:key="value"
+            data-index="{{index}}" bindtap="onTypeChange">{{item.text}}</view>
+    </view>
+    <view class="tip">「自动判定」按全局上下班时间推断上班 / 下班；外勤打卡请使用管理员签发的外勤二维码。</view>
+  </view>
+
+  <!-- 拍照与提交 -->
+  <view class="card">
+    <view class="card-title">现场拍照</view>
+    <view class="photo-area" bindtap="takePhoto">
+      <image wx:if="{{photoPath}}" class="photo-img" src="{{photoPath}}" mode="aspectFill" />
+      <view wx:else class="photo-placeholder">
+        <view class="photo-icon">
+          <image class="photo-icon-img" src="/images/scan-white.png" mode="aspectFit" />
+        </view>
+        <view class="photo-text">点击拍摄正脸照</view>
+      </view>
+    </view>
+    <view class="tip photo-tip">请正对镜头、保证光线充足，摘下口罩后拍摄。</view>
+    <button class="btn-primary face-btn" bindtap="submitFace"
+            disabled="{{submitting || !photoPath || places.length === 0}}">
+      {{submitting ? '核验中…' : (enrolled ? '刷脸打卡' : '注册人脸')}}
+    </button>
+    <view wx:if="{{photoPath}}" class="btn-plain retake-btn" bindtap="takePhoto">重拍</view>
+  </view>
+</view>

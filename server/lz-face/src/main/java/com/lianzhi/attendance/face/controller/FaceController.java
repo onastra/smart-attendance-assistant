@@ -12,13 +12,16 @@ import com.lianzhi.attendance.framework.auth.RequirePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * 人脸识别接口（模块 G）。
@@ -63,6 +66,13 @@ public class FaceController {
                                                @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
                                                @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
         return R.ok(faceService.list(keyword, pageNum, pageSize, AuthContext.get()));
+    }
+
+    @Operation(summary = "删除人脸注册", description = "管理员将某员工的人脸特征置为停用；员工需重新注册才能刷脸打卡")
+    @DeleteMapping("/api/face/features/{employeeId}")
+    @RequirePermission("face:enroll")
+    public R<Map<String, Object>> remove(@PathVariable("employeeId") Long employeeId) {
+        return R.ok(faceService.remove(employeeId, AuthContext.get()));
     }
 
     private static byte[] bytesOf(MultipartFile file) {

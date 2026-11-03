@@ -44,3 +44,7 @@ export function fetchFaceStatus() {
 export function fetchFaceFeatures(params) {
   return request({ url: '/face/features', method: 'get', params })
 }
+
+export function deleteFaceFeature(employeeId) {
+  return request({ url: `/face/features/${employeeId}`, method: 'delete' })
+}

@@ -15,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 /**
  * 人脸业务服务：录入、校验、状态查询。
  *
@@ -136,6 +138,21 @@ public class FaceService {
         int offset = (query.getPageNum() - 1) * query.getPageSize();
         return PageResult.of(query, featureMapper.countPage(keyword),
                 featureMapper.selectPage(keyword, offset, query.getPageSize()));
+    }
+
+    /**
+     * 管理员删除某人的人脸注册（离职/换人等场景）。
+     * 实现=置 status=0 停用而非物理删除：保留审计痕迹，特征向量本身也不含可逆的原图。
+     */
+    public Map<String, Object> remove(Long employeeId, AuthUser user) {
+        if (user == null || !user.hasPermission(ADMIN_MARKER)) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "只有系统管理员可以删除人脸注册");
+        }
+        int rows = featureMapper.disable(employeeId, recognition.provider());
+        log.info("[FACE] 管理员删除人脸注册 employeeId={} provider={} rows={}",
+                employeeId, recognition.provider(), rows);
+        return Map.of("employeeId", employeeId, "disabled", rows > 0,
+                "notice", rows > 0 ? "该员工的人脸注册已删除，需重新注册才能刷脸打卡。" : "该员工本就没有有效的人脸注册。");
     }
 
     // ---------------- 内部实现 ----------------

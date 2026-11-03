@@ -10,6 +10,7 @@
     "pages/applications/applications",
     "pages/checkin-confirm/confirm",
     "pages/checkin-result/result",
+    "pages/face-checkin/face-checkin",
     "pages/dashboard/dashboard",
     "pages/qrcode/qrcode"
   ],
@@ -54,7 +55,9 @@
       "desc": "打卡时用于校验你与办公场所的距离，拒绝后可手动打卡"
     }
   },
-  "requiredPrivateInfos": ["getLocation"],
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
   "lazyCodeLoading": "requiredComponents",
   "sitemapLocation": "sitemap.json"
 }

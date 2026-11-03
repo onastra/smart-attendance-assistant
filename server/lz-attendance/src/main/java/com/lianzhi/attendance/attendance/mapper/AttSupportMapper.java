@@ -18,6 +18,9 @@ public interface AttSupportMapper {
     /** 员工-场所的有效绑定数量 */
     long countBinding(@Param("employeeId") Long employeeId, @Param("placeId") Long placeId);
 
+    /** 员工已绑定的启用场所列表（人脸打卡页的场所选择器数据源） */
+    java.util.List<PlaceBrief> selectBoundPlaces(@Param("employeeId") Long employeeId);
+
     /** 在职员工数量（status = 1） */
     long countActiveEmployee(@Param("employeeId") Long employeeId);
 

@@ -3,6 +3,7 @@ package com.lianzhi.attendance.attendance.service;
 import com.lianzhi.attendance.attendance.config.AttendanceProperties;
 import com.lianzhi.attendance.attendance.dto.CheckinRequest;
 import com.lianzhi.attendance.attendance.dto.CheckinResult;
+import com.lianzhi.attendance.attendance.dto.FaceCheckinRequest;
 import com.lianzhi.attendance.attendance.entity.AttQrcode;
 import com.lianzhi.attendance.attendance.entity.AttRecord;
 import com.lianzhi.attendance.attendance.entity.AttRecordView;
@@ -27,6 +28,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -323,6 +325,153 @@ public class CheckinService {
 
         AttRecordView saved = recordMapper.selectByRequestId(request.getRequestId());
         return toResult(saved, false, distanceMeters, radiusMeters);
+    }
+
+    /**
+     * 人脸打卡（刷脸通道）：身份由活体 + 1:1 比对保证，其余校验与扫码同一口径。
+     *
+     * <p>与扫码的差异：没有二维码承载"场所 + 类型"，改为员工在页面上声明，
+     * 后端复验场所绑定与围栏。类型只允许 上班/下班/自动——「外勤」仍然只能由
+     * 管理员签发的外勤二维码授予，否则员工可自选外勤规避迟到/早退判定。</p>
+     *
+     * <p>防重口径跨通道：同员工同类型在重复窗口内，无论扫码还是刷脸都算重复。</p>
+     */
+    @Transactional
+    public CheckinResult faceCheckin(FaceCheckinRequest request, Long userId, Long employeeId,
+                                     String clientIp, double similarity) {
+        LocalDateTime now = LocalDateTime.now();
+
+        // ---------- 1. 人 ----------
+        if (employeeId == null) {
+            fail(userId, employeeId, clientIp, "FACE_CHECKIN", request.getRequestId(), "账号未关联员工档案");
+            throw new BusinessException(ResultCode.CONFLICT, "当前账号未关联员工档案，无法打卡",
+                    reason("EMPLOYEE_NOT_BOUND"));
+        }
+        if (supportMapper.countActiveEmployee(employeeId) == 0) {
+            fail(userId, employeeId, clientIp, "FACE_CHECKIN", request.getRequestId(), "员工不存在或已停用");
+            throw new BusinessException(ResultCode.CONFLICT, "员工档案不存在或已停用，无法打卡",
+                    reason("EMPLOYEE_INACTIVE"));
+        }
+
+        // ---------- 2. 场所（必须为本人绑定的启用场所） ----------
+        PlaceBrief place = supportMapper.selectPlaceBrief(request.getPlaceId());
+        if (place == null || place.getStatus() == null || place.getStatus() != 1) {
+            fail(userId, employeeId, clientIp, "FACE_CHECKIN", request.getRequestId(), "场所不存在或已停用");
+            throw new BusinessException(ResultCode.CONFLICT, "该办公场所已停用，无法打卡", reason("PLACE_DISABLED"));
+        }
+        if (supportMapper.countBinding(employeeId, request.getPlaceId()) == 0) {
+            fail(userId, employeeId, clientIp, "FACE_CHECKIN", request.getRequestId(),
+                    "员工未绑定该场所 employeeId=" + employeeId + " placeId=" + request.getPlaceId());
+            throw new BusinessException(ResultCode.CONFLICT, "你不属于该办公场所，无法在此打卡",
+                    reason("PLACE_NOT_BOUND"));
+        }
+
+        // ---------- 3. 幂等：同一 requestId 直接返回首次结果 ----------
+        if (recordMapper.countByRequestId(request.getRequestId()) > 0) {
+            AttRecordView existing = recordMapper.selectByRequestId(request.getRequestId());
+            if (existing == null || !employeeId.equals(existing.getEmployeeId())) {
+                throw new BusinessException(ResultCode.CONFLICT, "幂等请求号已被使用，请刷新页面后重试",
+                        reason("REQUEST_ID_CONFLICT"));
+            }
+            log.info("[FACE-CHECKIN] 命中幂等 requestId={} recordId={}", request.getRequestId(), existing.getId());
+            return toResult(existing, true, null, place.getCoverRadiusM());
+        }
+
+        // ---------- 4. 打卡类型：仅 上班/下班/自动（自动=按当前时间推断，口径与扫码一致） ----------
+        String checkinType = normalizeFaceType(request.getCheckinType());
+        if (checkinType == null) {
+            fail(userId, employeeId, clientIp, "FACE_CHECKIN", request.getRequestId(),
+                    "人脸通道不接受类型 " + request.getCheckinType());
+            throw new BusinessException(ResultCode.PARAM_ERROR,
+                    "刷脸打卡只支持上班/下班/自动判定，外勤请使用管理员签发的外勤二维码",
+                    reason("FACE_TYPE_NOT_ALLOWED"));
+        }
+        if (AttRecord.TYPE_AUTO.equals(checkinType)) {
+            checkinType = autoCheckinType(now);
+        }
+
+        // ---------- 5. 重复打卡窗口（跨通道、跨场所） ----------
+        LocalDateTime windowStart = now.minusMinutes(properties.getDuplicateWindowMinutes());
+        if (recordMapper.countRecentAnyPlace(employeeId, checkinType, windowStart) > 0) {
+            fail(userId, employeeId, clientIp, "FACE_CHECKIN", request.getRequestId(),
+                    "窗口内重复打卡 " + properties.getDuplicateWindowMinutes() + " 分钟");
+            throw new BusinessException(ResultCode.CONFLICT,
+                    "你在 " + properties.getDuplicateWindowMinutes() + " 分钟内已经打过一次" + typeText(checkinType)
+                            + "卡，无需重复打卡",
+                    reason("DUPLICATE_CHECKIN"));
+        }
+
+        // ---------- 6. 围栏校验（可选，口径与扫码一致） ----------
+        boolean locationChecked = false;
+        BigDecimal distanceMeters = null;
+        Integer radiusMeters = place.getCoverRadiusM() == null ? 200 : place.getCoverRadiusM();
+        if (properties.isLocationCheckEnabled() && request.getLng() != null && request.getLat() != null) {
+            Double distance = GeoDistanceUtil.distanceMeters(
+                    place.getLng(), place.getLat(), request.getLng(), request.getLat());
+            if (distance != null) {
+                locationChecked = true;
+                distanceMeters = BigDecimal.valueOf(distance).setScale(1, RoundingMode.HALF_UP);
+                if (distance > radiusMeters) {
+                    fail(userId, employeeId, clientIp, "FACE_CHECKIN", request.getRequestId(),
+                            "超出围栏 distance=" + distanceMeters + "m radius=" + radiusMeters + "m");
+                    throw new BusinessException(ResultCode.CONFLICT,
+                            "你距该场所约 " + distanceMeters + " 米，超出允许的 " + radiusMeters + " 米范围",
+                            reason("OUT_OF_RANGE", Map.of(
+                                    "distanceMeters", distanceMeters,
+                                    "radiusMeters", radiusMeters)));
+                }
+            }
+        }
+
+        // ---------- 7. 判定结果并落库 ----------
+        String result = resolveResult(checkinType, now);
+        String remark = "人脸核验通过：相似度=" + String.format("%.4f", similarity)
+                + (locationChecked ? "，围栏校验通过" : "，未上报坐标未做围栏校验");
+
+        AttRecord record = new AttRecord();
+        record.setEmployeeId(employeeId);
+        record.setPlaceId(request.getPlaceId());
+        record.setQrcodeId(null);
+        record.setCheckinType(checkinType);
+        record.setCheckinTime(now);
+        record.setSource(AttRecord.SOURCE_FACE);
+        record.setResult(result);
+        record.setLng(request.getLng());
+        record.setLat(request.getLat());
+        record.setClientIp(clientIp);
+        record.setRequestId(request.getRequestId());
+        record.setRemark(remark);
+        recordMapper.insert(record);
+
+        operationLogService.log(userId, "attendance", "FACE_CHECKIN", String.valueOf(record.getId()),
+                clientIp, true, "刷脸打卡成功 placeId=" + request.getPlaceId() + " type=" + checkinType
+                        + " result=" + result + " similarity=" + String.format("%.4f", similarity)
+                        + " locationChecked=" + locationChecked);
+        log.info("[FACE-CHECKIN] 打卡成功 recordId={} employeeId={} placeId={} type={} result={} similarity={}",
+                record.getId(), employeeId, request.getPlaceId(), checkinType, result,
+                String.format("%.4f", similarity));
+
+        AttRecordView saved = recordMapper.selectByRequestId(request.getRequestId());
+        return toResult(saved, false, distanceMeters, radiusMeters);
+    }
+
+    /** 人脸通道的类型归一化：仅允许 上班/下班/自动；外勤返回 null（由调用方拒绝） */
+    private String normalizeFaceType(String type) {
+        if (type == null || type.isBlank()) {
+            return AttRecord.TYPE_AUTO;
+        }
+        return switch (type.trim().toUpperCase()) {
+            case AttRecord.TYPE_ON_DUTY, AttRecord.TYPE_OFF_DUTY, AttRecord.TYPE_AUTO -> type.trim().toUpperCase();
+            default -> null;
+        };
+    }
+
+    /** 人脸打卡页的场所选择器：本人已绑定的启用场所 */
+    public List<PlaceBrief> myPlaces(Long employeeId) {
+        if (employeeId == null) {
+            return List.of();
+        }
+        return supportMapper.selectBoundPlaces(employeeId);
     }
 
     /**

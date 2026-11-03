@@ -69,7 +69,13 @@ const routes = [
         path: 'face/mock',
         name: 'face-mock',
         component: () => import('@/views/h5/FaceCheckin.vue'),
-        meta: { title: '人脸打卡（模拟）', icon: 'Camera', group: '考勤', permission: 'face:verify', requiresEmployee: true }
+        meta: { title: '人脸核验（体验）', icon: 'Camera', group: '考勤', permission: 'face:verify', requiresEmployee: true }
+      },
+      {
+        path: 'face/list',
+        name: 'face-list',
+        component: () => import('@/views/attendance/FaceEnrollList.vue'),
+        meta: { title: '人脸注册名单', icon: 'UserFilled', group: '考勤', permission: 'face:enroll' }
       },
       {
         path: 'statistics/dashboard',
@@ -129,7 +135,7 @@ const routes = [
         path: 'face',
         name: 'h5-face',
         component: () => import('@/views/h5/FaceCheckin.vue'),
-        meta: { title: '人脸打卡（模拟）', public: true, hidden: true }
+        meta: { title: '人脸核验（体验）', public: true, hidden: true }
       },
       {
         // 管理员/部门主管在手机上签发员工打卡二维码（页面内自带权限与登录兜底）

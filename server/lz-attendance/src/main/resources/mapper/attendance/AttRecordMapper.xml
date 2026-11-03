@@ -75,6 +75,13 @@
           AND checkin_time &gt;= #{since}
     </select>
 
+    <select id="countRecentAnyPlace" resultType="long">
+        SELECT COUNT(*) FROM att_record
+        WHERE employee_id = #{employeeId}
+          AND checkin_type = #{checkinType}
+          AND checkin_time &gt;= #{since}
+    </select>
+
     <select id="selectByQuery" resultType="com.lianzhi.attendance.attendance.entity.AttRecordView">
         SELECT
         <include refid="ViewColumns"/>

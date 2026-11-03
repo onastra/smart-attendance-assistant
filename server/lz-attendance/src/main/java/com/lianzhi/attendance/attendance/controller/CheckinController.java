@@ -15,11 +15,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,6 +47,22 @@ public class CheckinController {
         AuthUser user = AuthContext.get();
         String requestId = checkinService.issueRequestId(user == null ? null : user.getUserId());
         return R.ok(Map.of("requestId", requestId));
+    }
+
+    @Operation(summary = "我的绑定场所",
+            description = "人脸打卡页的场所选择器数据源：本人已绑定的启用场所")
+    @GetMapping("/my-places")
+    @RequireLogin
+    public R<List<Map<String, Object>>> myPlaces() {
+        AuthUser user = AuthContext.get();
+        return R.ok(checkinService.myPlaces(user.getEmployeeId()).stream()
+                .map(p -> Map.<String, Object>of(
+                        "id", p.getId(),
+                        "placeName", p.getPlaceName(),
+                        "lng", p.getLng(),
+                        "lat", p.getLat(),
+                        "radiusMeters", p.getCoverRadiusM() == null ? 200 : p.getCoverRadiusM()))
+                .toList());
     }
 
     @Operation(summary = "扫码预校验（确认页）",

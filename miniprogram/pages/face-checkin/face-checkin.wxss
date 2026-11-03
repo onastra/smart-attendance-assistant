@@ -1,0 +1,129 @@
+.page {
+  padding-bottom: 60rpx;
+}
+
+/* 人脸状态行 */
+.status-row {
+  display: flex;
+  align-items: center;
+  margin: 6rpx 0 10rpx;
+}
+
+.status-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  margin-right: 14rpx;
+}
+
+.dot-ok {
+  background: #35B87A;
+}
+
+.dot-warn {
+  background: #EFA23F;
+}
+
+.status-text {
+  font-size: 27rpx;
+  color: var(--lz-text);
+}
+
+/* 场所选择器 */
+.picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 6rpx;
+}
+
+.picker-value {
+  font-size: 29rpx;
+  color: var(--lz-text);
+}
+
+.picker-arrow {
+  font-size: 32rpx;
+  color: #A6ADBD;
+}
+
+/* 打卡类型选择 */
+.type-row {
+  display: flex;
+  gap: 16rpx;
+  margin: 8rpx 0 12rpx;
+}
+
+.type-item {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  border-radius: 12rpx;
+  background: #F1F3F9;
+  color: #5A6478;
+  font-size: 27rpx;
+  border: 2rpx solid transparent;
+}
+
+.type-active {
+  background: #EAF1FF;
+  color: var(--lz-primary, #2F6FED);
+  border-color: #2F6FED;
+  font-weight: 600;
+}
+
+/* 拍照区 */
+.photo-area {
+  height: 420rpx;
+  border-radius: 20rpx;
+  background: #F1F3F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.photo-img {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.photo-icon {
+  width: 110rpx;
+  height: 110rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4C8DFF, #2F6FED);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-icon-img {
+  width: 54rpx;
+  height: 54rpx;
+}
+
+.photo-text {
+  margin-top: 20rpx;
+  font-size: 27rpx;
+  color: #8A94A6;
+}
+
+.photo-tip {
+  margin-top: 14rpx;
+}
+
+.face-btn {
+  margin-top: 22rpx;
+}
+
+.retake-btn {
+  text-align: center;
+  margin-top: 18rpx;
+}

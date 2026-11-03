@@ -36,6 +36,8 @@ public class AttRecord {
     public static final String SOURCE_H5 = "H5";
     /** 来源：后台补录 */
     public static final String SOURCE_ADMIN = "ADMIN";
+    /** 来源：真实人脸识别打卡（活体 + 1:1 核验通过） */
+    public static final String SOURCE_FACE = "FACE";
     /** 来源：模拟人脸识别（阶段 5 启用） */
     public static final String SOURCE_FACE_MOCK = "FACE_MOCK";
 

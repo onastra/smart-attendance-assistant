@@ -12,6 +12,13 @@
     <view class="tip scan-tip">扫码后进入确认页，核对场所与围栏信息再提交。</view>
   </view>
 
+  <!-- 刷脸打卡：身份维度校验（活体 + 1:1），与扫码并列的第三通道 -->
+  <view class="card">
+    <view class="card-title">刷脸打卡</view>
+    <view class="tip">无需扫码：活体检测 + 与本人已录人脸 1:1 比对通过后直接写入考勤流水，杜绝代打卡。</view>
+    <button class="btn-plain manual-btn" bindtap="goFaceCheckin">去刷脸打卡</button>
+  </view>
+
   <!-- 手动输入兜底 -->
   <view class="card">
     <view class="card-title">手动输入（兜底）</view>

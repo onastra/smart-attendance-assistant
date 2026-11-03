@@ -32,6 +32,15 @@ public interface AttRecordMapper {
                      @Param("checkinType") String checkinType,
                      @Param("since") LocalDateTime since);
 
+    /**
+     * 重复打卡窗口内是否已有同类型记录（不限场所）。
+     * 人脸打卡通道没有二维码，场所由员工选择，防重口径必须跨通道、跨场所：
+     * 扫码打了上班卡后 5 分钟内刷脸再打上班卡同样要被拦截。
+     */
+    long countRecentAnyPlace(@Param("employeeId") Long employeeId,
+                             @Param("checkinType") String checkinType,
+                             @Param("since") LocalDateTime since);
+
     List<AttRecordView> selectByQuery(AttRecordQuery query);
 
     long countByQuery(AttRecordQuery query);
