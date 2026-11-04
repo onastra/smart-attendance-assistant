@@ -67,11 +67,9 @@
         </where>
     </select>
 
-    <update id="disable">
-        UPDATE face_feature
-        SET status = 0
+    <delete id="deleteByEmployeeId">
+        DELETE FROM face_feature
         WHERE employee_id = #{employeeId}
-          AND status = 1
-    </update>
+    </delete>
 
 </mapper>

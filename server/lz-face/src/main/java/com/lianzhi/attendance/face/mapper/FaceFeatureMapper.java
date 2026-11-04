@@ -21,9 +21,9 @@ public interface FaceFeatureMapper {
 
     /**
      * 同 selectOne，但不过滤 status：供注册流程使用。
-     * 注册必须能"复活"被管理员软删除（status=0）的记录——
-     * 表上有 (employee_id, provider) 唯一索引，若只查有效记录后直接 INSERT，
-     * 删除过注册的员工重新注册时会撞唯一索引报 500。
+     * 注册用 selectAny 判断是否已有记录（含任何历史遗留行），
+     * 有则走 UPDATE 路线而非 INSERT——表上有 (employee_id, provider) 唯一索引，
+     * 直接 INSERT 可能撞唯一索引报 500。
      */
     FaceFeature selectAny(@Param("employeeId") Long employeeId, @Param("provider") String provider);
 
@@ -34,9 +34,9 @@ public interface FaceFeatureMapper {
     long countPage(@Param("keyword") String keyword);
 
     /**
-     * 停用该员工在所有识别引擎下的有效注册。
+     * 物理删除该员工在所有识别引擎下的人脸注册记录。
      * 注意不能按当前 provider 过滤：库里可能残留历史引擎（如 noop 模拟期）的记录，
      * 按 provider 过滤会导致名单上的旧引擎记录怎么删都删不掉。
      */
-    int disable(@Param("employeeId") Long employeeId);
+    int deleteByEmployeeId(@Param("employeeId") Long employeeId);
 }

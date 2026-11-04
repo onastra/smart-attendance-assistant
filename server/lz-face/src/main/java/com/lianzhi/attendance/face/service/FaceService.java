@@ -47,8 +47,9 @@ public class FaceService {
         String feature = recognition.extractFeature(image);
         int mockFlag = recognition.mock() ? 1 : 0;
 
-        // 用 selectAny（含已停用记录）而非 selectOne：删除过注册的员工重新注册时
-        // 必须走 UPDATE 路线复活旧记录，否则 INSERT 撞 (employee_id, provider) 唯一索引
+        // 用 selectAny（不过滤 status）而非 selectOne：若因并发或历史数据导致
+        // 同一 (employee_id, provider) 已有记录，走 UPDATE 路线而非 INSERT，
+        // 避免撞 (employee_id, provider) 唯一索引报 500
         FaceFeature existing = featureMapper.selectAny(target, recognition.provider());
         if (existing == null) {
             FaceFeature featureRow = new FaceFeature();
@@ -145,15 +146,15 @@ public class FaceService {
 
     /**
      * 管理员删除某人的人脸注册（离职/换人等场景）。
-     * 实现=置 status=0 停用而非物理删除：保留审计痕迹，特征向量本身也不含可逆的原图。
+     * 实现=物理删除：直接从 face_feature 表移除该员工所有引擎下的记录。
      */
     public Map<String, Object> remove(Long employeeId, AuthUser user) {
         if (user == null || !user.hasPermission(ADMIN_MARKER)) {
             throw new BusinessException(ResultCode.FORBIDDEN, "只有系统管理员可以删除人脸注册");
         }
-        // 停用该员工所有引擎下的注册：名单是跨引擎展示的，
-        // 若只停用当前 provider，历史引擎（如 noop 模拟期）的残留记录会删不掉
-        int rows = featureMapper.disable(employeeId);
+        // 物理删除该员工所有引擎下的注册：名单是跨引擎展示的，
+        // 若只删当前 provider，历史引擎（如 noop 模拟期）的残留记录会删不掉
+        int rows = featureMapper.deleteByEmployeeId(employeeId);
         log.info("[FACE] 管理员删除人脸注册 employeeId={} rows={}", employeeId, rows);
         return Map.of("employeeId", employeeId, "disabled", rows > 0,
                 "notice", rows > 0 ? "该员工的人脸注册已删除，需重新注册才能刷脸打卡。" : "该员工本就没有有效的人脸注册。");
