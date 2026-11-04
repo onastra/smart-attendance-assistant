@@ -27,6 +27,7 @@ Page({
   },
 
   onLoad: function () {
+    console.log('[face-checkin] build=20261104-v3')  // 版本标记：真机 Console 里看不到此行=跑的是旧代码
     if (!auth.isLoggedIn()) {
       wx.reLaunch({ url: '/pages/login/login' })
       return
@@ -141,8 +142,10 @@ Page({
         throw new Error('场所数据异常，请返回重进或点击重新加载')
       }
       const type = this.data.types[this.data.typeIndex].value
+      console.log('[face-checkin] doSubmit coords=', JSON.stringify(coords), 'place=', place.id, 'type=', type)
       // 幂等请求号：与扫码通道一致，网络重试不会产生第二条流水
       api.post('/api/checkin/request-id', {}).then(function (data) {
+        console.log('[face-checkin] request-id OK:', JSON.stringify(data))
         return that.uploadFace('/api/checkin/face', that.data.photoPath, {
           requestId: data.requestId,
           placeId: place.id,
@@ -151,8 +154,10 @@ Page({
           lat: coords.lat
         })
       }).then(function (result) {
+        console.log('[face-checkin] 打卡返回:', JSON.stringify(result).slice(0, 200))
         that.handleCheckinResult(result)
       }).catch(function (err) {
+        console.error('[face-checkin] 打卡失败:', err && err.code, err && err.reason, err && err.message)
         that.handleSubmitError(err, coords)
       }).then(function () {
         that.setData({ submitting: false })
@@ -181,6 +186,7 @@ Page({
         success: function (res) {
           let payload = null
           try { payload = JSON.parse(res.data) } catch (e) { /* 稍后统一报错 */ }
+          console.log('[face-checkin] upload', path, 'HTTP', res.statusCode, 'body=', String(res.data).slice(0, 200))
           if (!payload || typeof payload.code === 'undefined') {
             reject(new Error('后端响应格式异常（HTTP ' + res.statusCode + '）'))
             return
