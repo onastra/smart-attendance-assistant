@@ -25,5 +25,10 @@ public interface FaceFeatureMapper {
 
     long countPage(@Param("keyword") String keyword);
 
-    int disable(@Param("employeeId") Long employeeId, @Param("provider") String provider);
+    /**
+     * 停用该员工在所有识别引擎下的有效注册。
+     * 注意不能按当前 provider 过滤：库里可能残留历史引擎（如 noop 模拟期）的记录，
+     * 按 provider 过滤会导致名单上的旧引擎记录怎么删都删不掉。
+     */
+    int disable(@Param("employeeId") Long employeeId);
 }

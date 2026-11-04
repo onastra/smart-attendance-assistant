@@ -63,7 +63,7 @@
         UPDATE face_feature
         SET status = 0
         WHERE employee_id = #{employeeId}
-          AND provider    = #{provider}
+          AND status = 1
     </update>
 
 </mapper>

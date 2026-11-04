@@ -149,9 +149,10 @@ public class FaceService {
         if (user == null || !user.hasPermission(ADMIN_MARKER)) {
             throw new BusinessException(ResultCode.FORBIDDEN, "只有系统管理员可以删除人脸注册");
         }
-        int rows = featureMapper.disable(employeeId, recognition.provider());
-        log.info("[FACE] 管理员删除人脸注册 employeeId={} provider={} rows={}",
-                employeeId, recognition.provider(), rows);
+        // 停用该员工所有引擎下的注册：名单是跨引擎展示的，
+        // 若只停用当前 provider，历史引擎（如 noop 模拟期）的残留记录会删不掉
+        int rows = featureMapper.disable(employeeId);
+        log.info("[FACE] 管理员删除人脸注册 employeeId={} rows={}", employeeId, rows);
         return Map.of("employeeId", employeeId, "disabled", rows > 0,
                 "notice", rows > 0 ? "该员工的人脸注册已删除，需重新注册才能刷脸打卡。" : "该员工本就没有有效的人脸注册。");
     }
