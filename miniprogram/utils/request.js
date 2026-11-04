@@ -46,6 +46,9 @@ function request(options) {
         wx.showToast({ title: body.message || '操作失败', icon: 'none' })
         const err = new Error(body.message || '操作失败')
         err.code = body.code
+        // 透传后端 data.reason（如刷脸打卡的 NOT_ENROLLED / FACE_MISMATCH），
+        // 页面靠它区分"先注册"引导和普通失败
+        err.reason = body.data && body.data.reason
         reject(err)
       },
       fail: function () {

@@ -106,13 +106,28 @@ Page({
     if (this.data.submitting) return
     this.setData({ submitting: true })
 
+    // 定位兜底：个别机型上 getLocation 回调可能迟迟不触发（隐私弹窗被遮挡等），
+    // 6 秒后仍未返回就跳过围栏坐标继续提交，避免整条链路卡死在"核验中"
+    let located = false
+    const fallback = setTimeout(function () {
+      if (!located) {
+        located = true
+        that.doSubmit({})
+      }
+    }, 6000)
     wx.getLocation({
       type: 'gcj02',
       success: function (loc) {
+        if (located) return
+        located = true
+        clearTimeout(fallback)
         that.doSubmit({ lng: loc.longitude, lat: loc.latitude })
       },
       fail: function () {
         // 定位失败不阻断：后端对未上报坐标跳过围栏校验并在流水标注
+        if (located) return
+        located = true
+        clearTimeout(fallback)
         that.doSubmit({})
       }
     })
@@ -120,24 +135,33 @@ Page({
 
   doSubmit: function (coords) {
     const that = this
-    const place = this.data.places[this.data.placeIndex]
-    const type = this.data.types[this.data.typeIndex].value
-    // 幂等请求号：与扫码通道一致，网络重试不会产生第二条流水
-    api.post('/api/checkin/request-id', {}).then(function (data) {
-      return that.uploadFace('/api/checkin/face', that.data.photoPath, {
-        requestId: data.requestId,
-        placeId: place.id,
-        checkinType: type,
-        lng: coords.lng,
-        lat: coords.lat
+    try {
+      const place = this.data.places[this.data.placeIndex]
+      if (!place || !place.id) {
+        throw new Error('场所数据异常，请返回重进或点击重新加载')
+      }
+      const type = this.data.types[this.data.typeIndex].value
+      // 幂等请求号：与扫码通道一致，网络重试不会产生第二条流水
+      api.post('/api/checkin/request-id', {}).then(function (data) {
+        return that.uploadFace('/api/checkin/face', that.data.photoPath, {
+          requestId: data.requestId,
+          placeId: place.id,
+          checkinType: type,
+          lng: coords.lng,
+          lat: coords.lat
+        })
+      }).then(function (result) {
+        that.handleCheckinResult(result)
+      }).catch(function (err) {
+        that.handleSubmitError(err, coords)
+      }).then(function () {
+        that.setData({ submitting: false })
       })
-    }).then(function (result) {
-      that.handleCheckinResult(result)
-    }).catch(function (err) {
-      that.handleSubmitError(err, coords)
-    }).then(function () {
-      that.setData({ submitting: false })
-    })
+    } catch (e) {
+      // 同步异常（如场所数据缺失）也要复位按钮并给出提示，不能让"核验中"永久卡住
+      this.setData({ submitting: false })
+      wx.showModal({ title: '打卡失败', content: (e && e.message) || '请重试', showCancel: false })
+    }
   },
 
   uploadFace: function (path, filePath, formData) {
@@ -151,6 +175,7 @@ Page({
         url: config.BASE_URL + path,
         filePath: filePath,
         name: 'image',
+        timeout: 30000,
         formData: body,
         header: { 'Authorization': token ? 'Bearer ' + token : '' },
         success: function (res) {
