@@ -123,13 +123,6 @@
   box-shadow: 0 8rpx 18rpx rgba(15, 158, 110, 0.35);
 }
 
-.face-cta-glyph {
-  color: #ffffff;
-  font-size: 44rpx;
-  font-weight: 500;
-  line-height: 1;
-}
-
 .scan-cta-main {
   flex: 1;
   margin-left: 24rpx;
