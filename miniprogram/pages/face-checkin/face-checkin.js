@@ -12,6 +12,8 @@ Page({
   data: {
     places: [],
     placeIndex: 0,
+    placeLoadError: '',
+    statusLoadError: '',
     types: [
       { value: 'AUTO', text: '自动判定' },
       { value: 'ON_DUTY', text: '上班' },
@@ -36,19 +38,28 @@ Page({
   // 本人绑定的启用场所（后端复验绑定关系，这里只是展示选择器）
   loadPlaces: function () {
     const that = this
+    that.setData({ placeLoadError: '' })
     api.get('/api/checkin/my-places').then(function (places) {
       that.setData({ places: places || [], placeIndex: 0 })
-    }).catch(function () {
-      wx.showToast({ title: '场所列表加载失败', icon: 'none' })
+    }).catch(function (err) {
+      // 失败原因落到页面上：分清"没有绑定"和"请求失败"，避免误判成未绑定场所
+      that.setData({ placeLoadError: (err && err.message) || '网络请求失败' })
     })
+  },
+
+  retryLoad: function () {
+    this.loadPlaces()
+    this.loadFaceStatus()
   },
 
   loadFaceStatus: function () {
     const that = this
+    that.setData({ statusLoadError: '' })
     api.get('/api/face/status').then(function (s) {
       that.setData({ enrolled: !!s.enrolled, providerMock: !!s.mock })
-    }).catch(function () {
-      // 状态拿不到不影响打卡：后端会兜底校验
+    }).catch(function (err) {
+      // 状态拿不到不影响打卡：后端会兜底校验，但要如实显示"未知"而不是"未注册"
+      that.setData({ statusLoadError: (err && err.message) || '网络请求失败' })
     })
   },
 

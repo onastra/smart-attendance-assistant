@@ -127,3 +127,10 @@
   text-align: center;
   margin-top: 18rpx;
 }
+
+/* 加载失败重试按钮：与"重拍"同款朴素样式 */
+.retry-btn {
+  text-align: center;
+  margin-top: 16rpx;
+  color: #2f6fed;
+}

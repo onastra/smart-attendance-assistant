@@ -2,7 +2,11 @@
   <!-- 人脸注册状态 -->
   <view class="card">
     <view class="card-title">人脸状态</view>
-    <view class="status-row">
+    <view class="status-row" wx:if="{{statusLoadError}}">
+      <view class="status-dot dot-warn"></view>
+      <text class="status-text">状态获取失败：{{statusLoadError}}</text>
+    </view>
+    <view class="status-row" wx:else>
       <view class="status-dot {{enrolled ? 'dot-ok' : 'dot-warn'}}"></view>
       <text class="status-text">{{enrolled ? '已注册：可直接刷脸打卡' : '未注册：首次使用请先完成人脸注册'}}</text>
     </view>
@@ -12,7 +16,11 @@
   <!-- 场所选择 -->
   <view class="card">
     <view class="card-title">打卡场所</view>
-    <view wx:if="{{places.length === 0}}" class="tip">你还没有绑定任何启用场所，请联系管理员在「场所管理」中绑定后再刷脸打卡。</view>
+    <block wx:if="{{places.length === 0}}">
+      <view wx:if="{{placeLoadError}}" class="tip">场所列表加载失败：{{placeLoadError}}</view>
+      <view wx:else class="tip">你还没有绑定任何启用场所，请联系管理员在「场所管理」中绑定后再刷脸打卡。</view>
+      <view class="btn-plain manual-btn retry-btn" bindtap="retryLoad">重新加载</view>
+    </block>
     <picker wx:else mode="selector" range="{{places}}" range-key="placeName" value="{{placeIndex}}" bindchange="onPlaceChange">
       <view class="picker-row">
         <text class="picker-value">{{places[placeIndex].placeName || '请选择场所'}}</text>
