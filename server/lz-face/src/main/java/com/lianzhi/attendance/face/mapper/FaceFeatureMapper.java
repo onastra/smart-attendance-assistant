@@ -19,6 +19,14 @@ public interface FaceFeatureMapper {
 
     FaceFeature selectOne(@Param("employeeId") Long employeeId, @Param("provider") String provider);
 
+    /**
+     * 同 selectOne，但不过滤 status：供注册流程使用。
+     * 注册必须能"复活"被管理员软删除（status=0）的记录——
+     * 表上有 (employee_id, provider) 唯一索引，若只查有效记录后直接 INSERT，
+     * 删除过注册的员工重新注册时会撞唯一索引报 500。
+     */
+    FaceFeature selectAny(@Param("employeeId") Long employeeId, @Param("provider") String provider);
+
     List<FaceFeature> selectPage(@Param("keyword") String keyword,
                                  @Param("offset") int offset,
                                  @Param("limit") int limit);

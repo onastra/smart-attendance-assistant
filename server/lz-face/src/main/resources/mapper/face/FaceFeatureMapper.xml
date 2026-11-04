@@ -33,6 +33,14 @@
           AND f.status      = 1
     </select>
 
+    <select id="selectAny" resultType="com.lianzhi.attendance.face.entity.FaceFeature">
+        SELECT <include refid="Columns"/>
+        FROM face_feature f
+        LEFT JOIN hr_employee e ON e.id = f.employee_id
+        WHERE f.employee_id = #{employeeId}
+          AND f.provider    = #{provider}
+    </select>
+
     <select id="selectPage" resultType="com.lianzhi.attendance.face.entity.FaceFeature">
         SELECT <include refid="Columns"/>
         FROM face_feature f

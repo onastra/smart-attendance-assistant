@@ -47,7 +47,9 @@ public class FaceService {
         String feature = recognition.extractFeature(image);
         int mockFlag = recognition.mock() ? 1 : 0;
 
-        FaceFeature existing = featureMapper.selectOne(target, recognition.provider());
+        // 用 selectAny（含已停用记录）而非 selectOne：删除过注册的员工重新注册时
+        // 必须走 UPDATE 路线复活旧记录，否则 INSERT 撞 (employee_id, provider) 唯一索引
+        FaceFeature existing = featureMapper.selectAny(target, recognition.provider());
         if (existing == null) {
             FaceFeature featureRow = new FaceFeature();
             featureRow.setEmployeeId(target);
