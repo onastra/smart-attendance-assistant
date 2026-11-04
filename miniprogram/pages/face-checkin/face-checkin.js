@@ -231,7 +231,7 @@ Page({
       wx.showModal({
         title: '先注册人脸',
         content: '检测到你还没有注册人脸。用刚才这张照片完成注册并继续打卡吗？',
-        confirmText: '注册并打卡',
+        confirmText: '注册打卡',  // 真机 showModal 的 confirmText 上限 4 个汉字，超长会静默弹不出
         success: function (res) {
           if (!res.confirm) return
           that.setData({ submitting: true })
