@@ -5,7 +5,7 @@
     <el-card class="login-card" shadow="always">
       <template #header>
         <div class="login-header">
-          <img class="login-logo" src="/logo.jpg" alt="联智"/>
+          <img class="login-logo" src="/logo.jpg" width="64" height="64" alt="联智"/>
           <div class="login-title">联智 · 智能考勤与业务助手</div>
           <div class="login-subtitle">企业级 AI Agent 中台，请使用账号登录</div>
         </div>

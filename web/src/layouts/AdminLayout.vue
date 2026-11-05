@@ -2,7 +2,7 @@
   <el-container class="layout">
     <el-aside width="236px" class="layout-aside">
       <div class="layout-logo">
-        <img class="logo-img" src="/logo.jpg" alt="联智"/>
+        <img class="logo-img" src="/logo.jpg" width="38" height="38" alt="联智"/>
         <div class="logo-text">
           <div class="logo-title">联智考勤</div>
           <div class="logo-subtitle">AI AGENT 中台</div>
