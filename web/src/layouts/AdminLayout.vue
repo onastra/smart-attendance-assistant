@@ -1,8 +1,8 @@
 <template>
   <el-container class="layout">
-    <el-aside width="232px" class="layout-aside">
+    <el-aside width="236px" class="layout-aside">
       <div class="layout-logo">
-        <div class="logo-mark">联</div>
+        <img class="logo-img" src="/logo.jpg" alt="联智"/>
         <div class="logo-text">
           <div class="logo-title">联智考勤</div>
           <div class="logo-subtitle">AI AGENT 中台</div>
@@ -20,6 +20,7 @@
           </el-menu-item>
         </el-sub-menu>
       </el-menu>
+      <div class="layout-aside-footer">v1.1.0 · Enterprise</div>
     </el-aside>
 
     <el-container>
@@ -29,7 +30,7 @@
           <el-tag v-if="userStore.roles.length" size="small" type="success" effect="light" round>
             {{ userStore.roles.join(' / ') }}
           </el-tag>
-          <el-tag size="small" type="info" effect="plain" round>AI Agent</el-tag>
+          <el-tag size="small" effect="plain" round class="agent-tag">AI Agent</el-tag>
           <el-divider direction="vertical" />
           <div class="layout-user">
             <div class="user-avatar">{{ (userStore.displayName || '用')[0] }}</div>
@@ -39,7 +40,11 @@
         </div>
       </el-header>
       <el-main class="layout-main">
-        <router-view/>
+        <router-view v-slot="{ Component }">
+          <transition name="page-fade" mode="out-in">
+            <component :is="Component"/>
+          </transition>
+        </router-view>
       </el-main>
     </el-container>
   </el-container>
@@ -108,9 +113,10 @@ const handleLogout = () => {
   height: 100vh;
 }
 
-/* ---- 侧边栏：深色品牌区 ---- */
+/* ---- 侧边栏：浅色，logo 品牌区 ---- */
 .layout-aside {
-  background: linear-gradient(180deg, #1c2749 0%, #16203e 100%);
+  background: #ffffff;
+  border-right: 1px solid #eef2f8;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -119,103 +125,106 @@ const handleLogout = () => {
 .layout-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   padding: 0 18px;
-  height: 64px;
+  height: 66px;
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid #f0f4fa;
 }
 
-.logo-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #4c6ef5 0%, #2f54eb 100%);
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 3px 8px rgba(47, 84, 235, 0.45);
+.logo-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  box-shadow: 0 3px 10px rgba(26, 102, 217, 0.25);
 }
 
 .logo-title {
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: 0.5px;
   line-height: 1.2;
+  background: linear-gradient(135deg, #1a66d9 0%, #16a7e0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .logo-subtitle {
-  color: rgba(255, 255, 255, 0.42);
+  color: #9aa8c0;
   font-size: 10px;
-  letter-spacing: 1.5px;
+  letter-spacing: 1.8px;
   margin-top: 2px;
 }
 
 .layout-menu {
   border-right: none;
-  background: transparent;
-  padding: 10px 0;
+  padding: 12px 0;
   flex: 1;
 }
 
-/* 深色菜单：覆盖 Element 默认浅色 */
-.layout-aside :deep(.el-menu) {
-  background: transparent;
-}
-
+/* 菜单胶囊选中态：品牌渐变 + 浮起阴影 */
 .layout-aside :deep(.el-sub-menu__title),
 .layout-aside :deep(.el-menu-item) {
-  color: #9fb0d6;
+  color: #5b6b87;
   height: 44px;
   line-height: 44px;
-  margin: 2px 10px;
-  border-radius: 8px;
+  margin: 3px 12px;
+  border-radius: 10px;
+  transition: all 0.18s ease;
 }
 
 .layout-aside :deep(.el-sub-menu__title:hover),
 .layout-aside :deep(.el-menu-item:hover) {
-  background: rgba(255, 255, 255, 0.07);
-  color: #ffffff;
+  background: #f0f6ff;
+  color: #1a66d9;
 }
 
 .layout-aside :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-  color: #ffffff;
+  color: #1a66d9;
+  font-weight: 600;
 }
 
 .layout-aside :deep(.el-menu-item.is-active) {
   color: #ffffff;
-  background: linear-gradient(90deg, #4c6ef5 0%, #2f54eb 100%);
-  box-shadow: 0 3px 8px rgba(47, 84, 235, 0.4);
+  font-weight: 600;
+  background: linear-gradient(135deg, #1a66d9 0%, #16a7e0 100%);
+  box-shadow: 0 4px 12px rgba(26, 102, 217, 0.35);
 }
 
 .layout-aside :deep(.el-sub-menu .el-menu-item) {
-  background: transparent;
   padding-left: 48px !important;
 }
 
-/* 子菜单展开/收起箭头颜色 */
 .layout-aside :deep(.el-sub-menu__title .el-sub-menu__icon-arrow) {
-  color: #7286ad;
+  color: #a6b3c9;
 }
 
-/* ---- 顶栏 ---- */
+.layout-aside-footer {
+  flex-shrink: 0;
+  padding: 14px 18px;
+  font-size: 11px;
+  color: #b3bfd2;
+  letter-spacing: 0.5px;
+  border-top: 1px solid #f0f4fa;
+}
+
+/* ---- 顶栏：毛玻璃 ---- */
 .layout-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
-  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.06);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 1px 4px rgba(23, 45, 90, 0.05);
   position: relative;
   z-index: 5;
 }
 
 .layout-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--el-text-color-primary);
 }
 
@@ -223,6 +232,11 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.agent-tag {
+  color: #16a7e0;
+  border-color: rgba(22, 167, 224, 0.4);
 }
 
 .layout-user {
@@ -235,13 +249,14 @@ const handleLogout = () => {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4c6ef5 0%, #2f54eb 100%);
+  background: linear-gradient(135deg, #1a66d9 0%, #16a7e0 100%);
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 3px 8px rgba(26, 102, 217, 0.3);
 }
 
 .user-name {
@@ -250,10 +265,28 @@ const handleLogout = () => {
   font-weight: 500;
 }
 
-/* ---- 主区域 ---- */
+/* ---- 主区域：浅灰底 + 品牌色点阵纹理 ---- */
 .layout-main {
-  background: #f4f6fb;
-  padding: 16px;
+  background-color: #f3f6fb;
+  background-image: radial-gradient(rgba(26, 102, 217, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  padding: 18px;
   overflow-y: auto;
+}
+
+/* ---- 页面切换过渡 ---- */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 </style>

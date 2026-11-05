@@ -1,40 +1,45 @@
 /* =====================================================================
-   联智考勤中台 · 全局设计系统
+   联智考勤中台 · 全局设计系统（浅色版 v2）
    ---------------------------------------------------------------------
-   品牌主色取「深邃靛蓝」，配合 Element Plus 的 CSS 变量做整体换肤：
-   页面代码无需改动，卡片 / 表格 / 按钮 / 表单全部走统一口径。
+   品牌色取自自有 logo：深蓝 #1a66d9 → 青蓝 #16a7e0 渐变。
+   整体走「浅色 + 大圆角 + 柔和层次」路线：
+   白色侧边栏、点阵纹理内容区、悬浮卡片、玻璃顶栏。
    ===================================================================== */
 
 :root {
-  /* ---- 品牌色 ---- */
-  --el-color-primary: #2f54eb;
-  --el-color-primary-light-3: #5a77f0;
-  --el-color-primary-light-5: #87a0f5;
-  --el-color-primary-light-7: #b3c5f9;
-  --el-color-primary-light-8: #cbd8fb;
-  --el-color-primary-light-9: #e9eefd;
-  --el-color-primary-dark-2: #2543bc;
+  /* ---- 品牌色（源自 logo） ---- */
+  --el-color-primary: #1a66d9;
+  --el-color-primary-light-3: #4f8ae2;
+  --el-color-primary-light-5: #8cb4ec;
+  --el-color-primary-light-7: #bed6f4;
+  --el-color-primary-light-8: #d7e6f8;
+  --el-color-primary-light-9: #ebf3fc;
+  --el-color-primary-dark-2: #1452ab;
+
+  /* 品牌辅色：logo 中的青蓝，用于点缀 */
+  --lz-accent: #16a7e0;
+  --lz-gradient: linear-gradient(135deg, #1a66d9 0%, #16a7e0 100%);
 
   /* ---- 圆角体系 ---- */
-  --el-border-radius-base: 6px;
-  --el-border-radius-small: 4px;
-  --el-card-border-radius: 10px;
+  --el-border-radius-base: 7px;
+  --el-border-radius-small: 5px;
+  --el-card-border-radius: 14px;
 
   /* ---- 边框与填充 ---- */
-  --el-border-color-lighter: #edf0f6;
-  --el-border-color-light: #e4e8f1;
-  --el-fill-color-light: #f5f7fb;
+  --el-border-color-lighter: #eef2f8;
+  --el-border-color-light: #e5eaf3;
+  --el-fill-color-light: #f4f7fc;
 
   /* ---- 文字 ---- */
-  --el-text-color-primary: #1f2937;
-  --el-text-color-regular: #3d4759;
-  --el-text-color-secondary: #8a94a6;
+  --el-text-color-primary: #17233d;
+  --el-text-color-regular: #3d4a63;
+  --el-text-color-secondary: #8e9ab0;
 
   /* ---- 表格 ---- */
-  --el-table-border-color: #eef1f7;
-  --el-table-header-bg-color: #f7f9fc;
-  --el-table-header-text-color: #55607a;
-  --el-table-row-hover-bg-color: #f4f7ff;
+  --el-table-border-color: #edf1f8;
+  --el-table-header-bg-color: #f6f9fd;
+  --el-table-header-text-color: #5a6a8a;
+  --el-table-row-hover-bg-color: #f2f7ff;
 }
 
 html, body, #app {
@@ -45,34 +50,41 @@ html, body, #app {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---- 页面背景（登录页与 H5 页各自覆盖） ---- */
 body {
-  background: #f4f6fb;
+  background: #f3f6fb;
 }
 
 /* =====================================================================
-   卡片：柔和阴影代替粗描边，标题栏统一节奏
+   卡片：无边框纯阴影、悬浮微动效
    ===================================================================== */
 .el-card {
-  border: 1px solid #eef1f7;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  border: none;
+  box-shadow: 0 2px 10px rgba(23, 45, 90, 0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.el-card:hover {
+  box-shadow: 0 6px 20px rgba(23, 45, 90, 0.09);
 }
 
 .el-card__header {
-  padding: 14px 18px;
-  border-bottom: 1px solid #eef1f7;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eef2f8;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .el-card__body {
-  padding: 18px;
+  padding: 20px;
 }
 
 /* =====================================================================
-   表格：表头浅灰加粗、去割裂感、行悬停高亮
+   表格
    ===================================================================== */
 .el-table {
-  --el-table-header-text-color: #55607a;
   font-size: 13px;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .el-table th.el-table__cell {
@@ -81,54 +93,60 @@ body {
 }
 
 .el-table .el-table__cell {
-  padding: 8px 0;
+  padding: 9px 0;
 }
 
 /* =====================================================================
-   按钮 / 输入框 / 分页 / 标签
+   按钮 / 输入框 / 标签
    ===================================================================== */
 .el-button {
   font-weight: 500;
 }
 
 .el-button--primary {
-  box-shadow: 0 2px 6px rgba(47, 84, 235, 0.25);
+  background: var(--lz-gradient);
+  border: none;
+  box-shadow: 0 3px 8px rgba(26, 102, 217, 0.3);
+}
+
+.el-button--primary:hover,
+.el-button--primary:focus {
+  background: linear-gradient(135deg, #3578e2 0%, #22b4ea 100%);
 }
 
 .el-button--primary.is-link,
 .el-button--primary.is-text {
+  background: none;
   box-shadow: none;
+}
+
+.el-tag {
+  border-radius: 999px;
+  font-weight: 500;
+  padding: 0 10px;
 }
 
 .el-input__wrapper,
 .el-select__wrapper,
 .el-textarea__inner {
-  border-radius: 6px;
-}
-
-.el-pagination {
-  font-weight: 500;
-}
-
-.el-tag {
-  border-radius: 5px;
-  font-weight: 500;
+  border-radius: 8px;
 }
 
 /* =====================================================================
    弹窗 / 消息
    ===================================================================== */
 .el-dialog {
-  border-radius: 12px;
+  border-radius: 16px;
 }
 
 .el-message-box {
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .el-message {
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(23, 45, 90, 0.14);
+  border: none;
 }
 
 /* =====================================================================
@@ -140,12 +158,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cdd4e2;
+  background: #ccd6e6;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #b3bcce;
+  background: #aebbD2;
 }
 
 ::-webkit-scrollbar-track {
@@ -157,10 +175,10 @@ body {
    ===================================================================== */
 .page-card {
   background: #ffffff;
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 20px;
-  border: 1px solid #eef1f7;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  border: none;
+  box-shadow: 0 2px 10px rgba(23, 45, 90, 0.06);
 }
 
 .page-tip {

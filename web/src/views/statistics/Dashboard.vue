@@ -27,7 +27,7 @@
 
     <el-row :gutter="16" class="stat-row">
       <el-col v-for="card in statCards" :key="card.label" :span="4">
-        <el-card shadow="never" class="stat-card">
+        <el-card shadow="never" class="stat-card" :class="card.tone || 'tone-default'">
           <div class="stat-label">{{ card.label }}</div>
           <div class="stat-value" :class="card.tone">{{ card.value }}<span class="stat-unit">{{ card.unit }}</span></div>
         </el-card>
@@ -574,35 +574,54 @@ onBeforeUnmount(() => {
 
 .stat-card {
   text-align: center;
+  border-radius: 14px;
+}
+
+/* 每张统计卡一张淡彩底，数字用同色系深色，浅色但有品牌感 */
+.stat-card.tone-default {
+  background: linear-gradient(160deg, #e8f1fe 0%, #f2f8ff 100%);
+}
+
+.stat-card.tone-primary {
+  background: linear-gradient(160deg, #e3f0fd 0%, #eff7ff 100%);
+}
+
+.stat-card.tone-warn {
+  background: linear-gradient(160deg, #fdf3e3 0%, #fefaf0 100%);
+}
+
+.stat-card.tone-danger {
+  background: linear-gradient(160deg, #fdeaea 0%, #fef2f2 100%);
 }
 
 .stat-label {
   font-size: 13px;
-  color: #909399;
+  color: #7c8aa5;
 }
 
 .stat-value {
   margin-top: 6px;
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
+  color: #17233d;
 }
 
 .stat-unit {
   font-size: 13px;
   font-weight: 400;
-  color: #909399;
+  color: #8e9ab0;
 }
 
 .tone-primary {
-  color: #409eff;
+  color: #1a66d9;
 }
 
 .tone-warn {
-  color: #e6a23c;
+  color: #d98a1d;
 }
 
 .tone-danger {
-  color: #f56c6c;
+  color: #e05252;
 }
 
 .chart-row {

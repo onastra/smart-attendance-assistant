@@ -5,9 +5,7 @@
     <el-card class="login-card" shadow="always">
       <template #header>
         <div class="login-header">
-          <div class="login-brand">
-            <div class="brand-mark">联</div>
-          </div>
+          <img class="login-logo" src="/logo.jpg" alt="联智"/>
           <div class="login-title">联智 · 智能考勤与业务助手</div>
           <div class="login-subtitle">企业级 AI Agent 中台，请使用账号登录</div>
         </div>
@@ -96,40 +94,40 @@ const handleLogin = async () => {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(76, 110, 245, 0.35) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 85%, rgba(37, 67, 188, 0.4) 0%, transparent 55%),
-    linear-gradient(135deg, #1c2749 0%, #16203e 100%);
+    radial-gradient(ellipse at 18% 22%, rgba(26, 102, 217, 0.14) 0%, transparent 52%),
+    radial-gradient(ellipse at 82% 82%, rgba(22, 167, 224, 0.16) 0%, transparent 55%),
+    linear-gradient(160deg, #eef4fd 0%, #f6fbff 60%, #eef4fd 100%);
 }
 
-/* 背景装饰光斑 */
+/* 背景装饰：品牌色光斑 */
 .login-decor {
   position: absolute;
   border-radius: 50%;
-  filter: blur(70px);
+  filter: blur(80px);
   pointer-events: none;
 }
 
 .decor-1 {
-  width: 420px;
-  height: 420px;
-  top: -120px;
-  right: -80px;
-  background: rgba(76, 110, 245, 0.28);
+  width: 460px;
+  height: 460px;
+  top: -140px;
+  right: -100px;
+  background: rgba(26, 102, 217, 0.16);
 }
 
 .decor-2 {
-  width: 360px;
-  height: 360px;
-  bottom: -120px;
-  left: -60px;
-  background: rgba(47, 84, 235, 0.22);
+  width: 380px;
+  height: 380px;
+  bottom: -140px;
+  left: -80px;
+  background: rgba(22, 167, 224, 0.18);
 }
 
 .login-card {
   width: 400px;
   border: none;
-  border-radius: 14px;
-  box-shadow: 0 20px 50px rgba(6, 12, 34, 0.45);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(26, 102, 217, 0.16);
   z-index: 1;
 }
 
@@ -137,30 +135,21 @@ const handleLogin = async () => {
   text-align: center;
 }
 
-.login-brand {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 12px;
-}
-
-.brand-mark {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #4c6ef5 0%, #2f54eb 100%);
-  color: #ffffff;
-  font-size: 24px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 16px rgba(47, 84, 235, 0.4);
+.login-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 22px rgba(26, 102, 217, 0.28);
 }
 
 .login-title {
   font-size: 17px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-weight: 700;
+  background: linear-gradient(135deg, #1a66d9 0%, #16a7e0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .login-subtitle {
@@ -170,12 +159,13 @@ const handleLogin = async () => {
 }
 
 .login-card :deep(.el-input__wrapper) {
-  border-radius: 8px;
+  border-radius: 10px;
+  padding: 4px 14px;
 }
 
 .login-btn {
   width: 100%;
-  border-radius: 8px;
+  border-radius: 10px;
   letter-spacing: 4px;
 }
 
@@ -187,8 +177,8 @@ const handleLogin = async () => {
 }
 
 .login-footer {
-  margin-top: 24px;
-  color: rgba(255, 255, 255, 0.35);
+  margin-top: 26px;
+  color: #9fb4d6;
   font-size: 12px;
   letter-spacing: 2px;
   z-index: 1;
