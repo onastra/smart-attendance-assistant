@@ -1,12 +1,14 @@
 package com.lianzhi.attendance.system.auth;
 
 import com.lianzhi.attendance.framework.auth.PermissionChecker;
+import com.lianzhi.attendance.system.entity.SysRole;
 import com.lianzhi.attendance.system.mapper.SysRoleMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -33,5 +35,20 @@ public class PermissionCheckerImpl implements PermissionChecker {
         }
         Set<String> codes = sysRoleMapper.selectPermCodesByUserId(userId);
         return codes == null ? Collections.emptySet() : codes;
+    }
+
+    @Override
+    public Set<String> rolesOf(Long userId) {
+        if (userId == null) {
+            return Collections.emptySet();
+        }
+        List<SysRole> roles = sysRoleMapper.selectRolesByUserId(userId);
+        if (roles == null || roles.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return roles.stream()
+                .map(SysRole::getRoleCode)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
     }
 }

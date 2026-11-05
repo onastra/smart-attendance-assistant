@@ -27,8 +27,10 @@ import java.util.Map;
 /**
  * 知识库文档接口。
  *
- * <p>权限拆分与统计模块同一套思路：列表给所有人（便于知道库里有什么），
- * 但上传 / 删除 / 重建是写操作，分别用独立权限码控制。</p>
+ * <p>权限口径：列表所有人可看，但<strong>只返回该用户可见范围内的文档</strong>
+ * （PUBLIC / 自己的 PRIVATE / 本部门的 DEPT），管理员可见全部；
+ * 上传 / 删除 / 重建 / 修改可见范围是写操作，仅限 ADMIN 角色
+ * （权限码 + 服务端角色硬校验双保险）。</p>
  */
 @Tag(name = "知识库文档", description = "上传、解析、切片、检索索引与删除重建")
 @RestController
@@ -50,7 +52,7 @@ public class KbDocumentController {
         return R.ok(data);
     }
 
-    @Operation(summary = "文档列表", description = "带 canRead 标记，提示当前用户是否有权阅读该文档")
+    @Operation(summary = "文档列表", description = "只返回当前用户可见范围内的文档；管理员可见全部")
     @GetMapping("/api/kb/documents")
     @RequirePermission("kb:doc:list")
     public R<PageResult<DocumentView>> list(KbDocumentQuery query) {

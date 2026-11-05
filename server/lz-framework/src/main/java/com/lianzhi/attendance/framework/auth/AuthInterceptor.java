@@ -60,6 +60,8 @@ public class AuthInterceptor implements HandlerInterceptor {
                 throw new BusinessException(ResultCode.FORBIDDEN);
             }
             user.addPermissions(checker.permissionsOf(user.getUserId()));
+            // 角色一并回填：部分业务（如知识库写操作仅限管理员）需要按角色硬校验
+            user.addRoles(checker.rolesOf(user.getUserId()));
         }
         return true;
     }

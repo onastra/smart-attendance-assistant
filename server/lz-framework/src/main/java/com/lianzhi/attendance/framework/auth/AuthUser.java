@@ -22,9 +22,15 @@ public class AuthUser {
     private Long employeeId;
     /** 该用户拥有的权限码集合 */
     private Set<String> permissions = Collections.emptySet();
+    /** 该用户拥有的角色编码集合（ADMIN / MANAGER / EMPLOYEE…） */
+    private Set<String> roles = Collections.emptySet();
 
     public boolean hasPermission(String permissionCode) {
         return permissions != null && permissions.contains(permissionCode);
+    }
+
+    public boolean hasRole(String roleCode) {
+        return roles != null && roles.contains(roleCode);
     }
 
     public void addPermissions(Set<String> codes) {
@@ -33,5 +39,13 @@ public class AuthUser {
             merged.addAll(codes);
         }
         this.permissions = merged;
+    }
+
+    public void addRoles(Set<String> codes) {
+        Set<String> merged = new HashSet<>(this.roles == null ? Collections.emptySet() : this.roles);
+        if (codes != null) {
+            merged.addAll(codes);
+        }
+        this.roles = merged;
     }
 }

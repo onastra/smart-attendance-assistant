@@ -72,6 +72,7 @@ public class KnowledgeService {
      * @return 已落库的文档（含最终状态）
      */
     public KbDocument upload(MultipartFile file, String visibility, Long ownerDeptId, AuthUser user) {
+        requireAdmin(user);
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "上传文件为空");
         }
@@ -134,6 +135,7 @@ public class KnowledgeService {
 
     /** 重建索引：只重解析原文件，不动文档元信息 */
     public KbDocument rebuild(Long id, AuthUser user) {
+        requireAdmin(user);
         KbDocument document = requireDocument(id);
         if (document.getFileId() == null) {
             throw new BusinessException(ResultCode.CONFLICT, "该文档没有留存原文件，无法重建，请重新上传");
@@ -156,6 +158,7 @@ public class KnowledgeService {
     }
 
     public void delete(Long id, AuthUser user) {
+        requireAdmin(user);
         KbDocument document = requireDocument(id);
         chunkMapper.deleteByDocumentId(id);
         documentMapper.deleteById(id);
@@ -170,6 +173,16 @@ public class KnowledgeService {
     }
 
     public PageResult<DocumentView> list(KbDocumentQuery query, AuthUser user) {
+        // 列表只显示当前用户可见的文档；管理员可见全部。
+        // 过滤条件在服务端按登录人填入，前端传参无法绕开。
+        boolean admin = isAdmin(user);
+        query.setAdminView(admin);
+        if (!admin) {
+            query.setViewerUserId(user == null ? null : user.getUserId());
+            Long deptId = user != null && user.getEmployeeId() != null
+                    ? documentMapper.selectEmployeeDeptId(user.getEmployeeId()) : null;
+            query.setViewerDeptId(deptId);
+        }
         List<KbDocument> docs = documentMapper.selectPage(query);
         long total = documentMapper.countPage(query);
         List<DocumentView> views = docs.stream()
@@ -186,6 +199,7 @@ public class KnowledgeService {
 
     /** 修改可见范围 */
     public KbDocument updateVisibility(Long id, String visibility, Long ownerDeptId, AuthUser user) {
+        requireAdmin(user);
         KbDocument document = requireDocument(id);
         String normalized = normalizeVisibility(visibility);
         Long deptId = KbDocument.VISIBILITY_DEPT.equals(normalized) ? ownerDeptId : null;
@@ -198,6 +212,23 @@ public class KnowledgeService {
     }
 
     // ---------------- 内部实现 ----------------
+
+    /**
+     * 是否管理员。写操作（上传/改可见范围/删除/重建）仅限管理员：
+     * 权限码可能被角色管理界面误配给其他角色，这里按角色硬校验兜底。
+     */
+    private boolean isAdmin(AuthUser user) {
+        return user != null && user.hasRole("ADMIN");
+    }
+
+    /** 写操作前置校验：非管理员直接拒绝，与前端隐藏入口双保险 */
+    private void requireAdmin(AuthUser user) {
+        if (!isAdmin(user)) {
+            log.warn("[KB] 非管理员尝试写操作 userId={} username={}",
+                    user == null ? null : user.getUserId(), user == null ? null : user.getUsername());
+            throw new BusinessException(ResultCode.FORBIDDEN, "知识库文档仅限管理员操作");
+        }
+    }
 
     /** 解析 + 切片 + 落切片表 + 回写状态；任何失败都转为 FAILED 并写明原因 */
     private void index(KbDocument document, byte[] bytes) {
@@ -322,13 +353,14 @@ public class KnowledgeService {
      * 判断当前用户能否阅读该文档。
      *
      * <p>与 SQL 里的过滤条件<strong>必须保持一致</strong>，否则会出现
-     * "列表里显示无权、检索却能命中"或反之的口径漂移。</p>
+     * "列表里显示无权、检索却能命中"或反之的口径漂移。
+     * 管理员（ADMIN 角色）拥有全部文档的阅读权，与其"列表可见全部"一致。</p>
      */
     public boolean canRead(KbDocument document, AuthUser user) {
         if (document == null) {
             return false;
         }
-        if (KbDocument.VISIBILITY_PUBLIC.equals(document.getVisibility())) {
+        if (isAdmin(user) || KbDocument.VISIBILITY_PUBLIC.equals(document.getVisibility())) {
             return true;
         }
         if (user == null) {

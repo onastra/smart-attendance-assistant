@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <el-card shadow="never">
+    <el-card v-if="isAdmin" shadow="never">
       <template #header>
         <div class="card-header">
           <span>上传知识文档</span>
@@ -71,9 +71,13 @@
         <el-table-column prop="chunkCount" label="切片数" width="80" />
         <el-table-column prop="createdByName" label="上传人" width="90" />
         <el-table-column prop="createdAt" label="上传时间" width="150" />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" :width="isAdmin ? 280 : 110" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="rebuild(row)">重建</el-button>
+            <template v-if="isAdmin">
+              <el-button link type="primary" size="small" @click="rebuild(row)">重建</el-button>
+              <el-button link type="primary" size="small" @click="openVisibility(row)">可见范围</el-button>
+              <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
+            </template>
             <el-button
               link
               type="primary"
@@ -84,8 +88,6 @@
             >
               下载原文
             </el-button>
-            <el-button link type="primary" size="small" @click="openVisibility(row)">可见范围</el-button>
-            <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
         <template #empty>
@@ -130,11 +132,21 @@
 </template>
 
 <script setup>
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, onUnmounted, ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { fetchDocuments, uploadDocument, deleteDocument, rebuildDocument, updateVisibility } from '@/api/kb'
 import { downloadFile } from '@/api/file'
 import { listDepartments } from '@/api/org'
+import { useUserStore } from '@/stores/user'
+
+/**
+ * 写操作（上传/重建/改可见范围/删除）仅管理员可见可做；
+ * 员工进入本页只读自己可见范围内的文档。
+ * 注意：部门接口（system:dept:list）员工没有权限，绝不能在员工视角调用，
+ * 否则页面一打开就弹「没有访问该资源的权限」。
+ */
+const userStore = useUserStore()
+const isAdmin = computed(() => userStore.hasRole('ADMIN'))
 
 const rows = ref([])
 const total = ref(0)
@@ -142,6 +154,9 @@ const loading = ref(false)
 const uploading = ref(false)
 const query = reactive({ pageNum: 1, pageSize: 10 })
 const departments = ref([])
+
+/** 员工视图轮询句柄：管理员调整可见范围后，员工列表无需手动刷新即可更新 */
+let pollTimer = null
 
 const file = ref(null)
 const fileInput = ref(null)
@@ -292,10 +307,23 @@ function visibilityText(row) {
 
 onMounted(async () => {
   await load()
+  // 部门下拉只给管理员用（选可见范围时）；员工没有 system:dept:list 权限，不请求
+  if (!isAdmin.value) {
+    // 员工视图：30 秒轮询，管理员调整可见范围后本页自动跟上
+    pollTimer = setInterval(load, 30000)
+    return
+  }
   try {
     departments.value = await listDepartments() || []
   } catch {
     departments.value = []
+  }
+})
+
+onUnmounted(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
   }
 })
 </script>

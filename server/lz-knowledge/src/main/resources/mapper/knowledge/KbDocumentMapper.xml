@@ -45,6 +45,15 @@
             <if test="visibility != null and visibility != ''">
                 AND doc.visibility = #{visibility}
             </if>
+            <!-- 可见范围过滤：非管理员只能看到 PUBLIC / 自己的 PRIVATE / 本部门的 DEPT。
+                 条件由服务端按登录人填入，与 KnowledgeService.canRead 保持同一口径 -->
+            <if test="adminView == null or !adminView">
+                AND (
+                    doc.visibility = 'PUBLIC'
+                    OR (doc.visibility = 'PRIVATE' AND doc.created_by = #{viewerUserId})
+                    OR (doc.visibility = 'DEPT' AND doc.owner_dept_id = #{viewerDeptId})
+                )
+            </if>
         </where>
     </sql>
 
