@@ -1,10 +1,15 @@
 <template>
   <div class="login-wrapper">
+    <div class="login-decor decor-1"></div>
+    <div class="login-decor decor-2"></div>
     <el-card class="login-card" shadow="always">
       <template #header>
         <div class="login-header">
-          <div class="login-title">联智 · 企业级 AI Agent 智能考勤与业务助手</div>
-          <div class="login-subtitle">请使用账号登录管理后台</div>
+          <div class="login-brand">
+            <div class="brand-mark">联</div>
+          </div>
+          <div class="login-title">联智 · 智能考勤与业务助手</div>
+          <div class="login-subtitle">企业级 AI Agent 中台，请使用账号登录</div>
         </div>
       </template>
 
@@ -23,6 +28,7 @@
 
       <div v-if="lastError" class="login-error">{{ lastError }}</div>
     </el-card>
+    <div class="login-footer">Enterprise AI Agent Attendance Platform</div>
   </div>
 </template>
 
@@ -84,22 +90,77 @@ const handleLogin = async () => {
 .login-wrapper {
   height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(76, 110, 245, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 85%, rgba(37, 67, 188, 0.4) 0%, transparent 55%),
+    linear-gradient(135deg, #1c2749 0%, #16203e 100%);
+}
+
+/* 背景装饰光斑 */
+.login-decor {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+}
+
+.decor-1 {
+  width: 420px;
+  height: 420px;
+  top: -120px;
+  right: -80px;
+  background: rgba(76, 110, 245, 0.28);
+}
+
+.decor-2 {
+  width: 360px;
+  height: 360px;
+  bottom: -120px;
+  left: -60px;
+  background: rgba(47, 84, 235, 0.22);
 }
 
 .login-card {
-  width: 420px;
+  width: 400px;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(6, 12, 34, 0.45);
+  z-index: 1;
 }
 
 .login-header {
   text-align: center;
 }
 
+.login-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.brand-mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #4c6ef5 0%, #2f54eb 100%);
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(47, 84, 235, 0.4);
+}
+
 .login-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .login-subtitle {
@@ -108,8 +169,14 @@ const handleLogin = async () => {
   color: var(--el-text-color-secondary);
 }
 
+.login-card :deep(.el-input__wrapper) {
+  border-radius: 8px;
+}
+
 .login-btn {
   width: 100%;
+  border-radius: 8px;
+  letter-spacing: 4px;
 }
 
 .login-error {
@@ -117,5 +184,13 @@ const handleLogin = async () => {
   color: var(--el-color-danger);
   font-size: 13px;
   text-align: center;
+}
+
+.login-footer {
+  margin-top: 24px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 12px;
+  letter-spacing: 2px;
+  z-index: 1;
 }
 </style>

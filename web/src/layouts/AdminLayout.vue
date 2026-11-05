@@ -1,7 +1,13 @@
 <template>
   <el-container class="layout">
-    <el-aside width="230px" class="layout-aside">
-      <div class="layout-logo">联智 · 考勤中台</div>
+    <el-aside width="232px" class="layout-aside">
+      <div class="layout-logo">
+        <div class="logo-mark">联</div>
+        <div class="logo-text">
+          <div class="logo-title">联智考勤</div>
+          <div class="logo-subtitle">AI AGENT 中台</div>
+        </div>
+      </div>
       <el-menu :default-active="route.path" router class="layout-menu">
         <el-sub-menu v-for="group in menuGroups" :key="group.title" :index="group.title">
           <template #title>
@@ -20,11 +26,15 @@
       <el-header class="layout-header">
         <span class="layout-title">{{ route.meta.title }}</span>
         <div class="layout-header-right">
-          <el-tag v-if="userStore.roles.length" size="small" type="success">
+          <el-tag v-if="userStore.roles.length" size="small" type="success" effect="light" round>
             {{ userStore.roles.join(' / ') }}
           </el-tag>
-          <el-tag size="small" type="info">AI Agent</el-tag>
-          <span class="layout-user">{{ userStore.displayName }}</span>
+          <el-tag size="small" type="info" effect="plain" round>AI Agent</el-tag>
+          <el-divider direction="vertical" />
+          <div class="layout-user">
+            <div class="user-avatar">{{ (userStore.displayName || '用')[0] }}</div>
+            <span class="user-name">{{ userStore.displayName }}</span>
+          </div>
           <el-button link type="primary" @click="handleLogout">退出</el-button>
         </div>
       </el-header>
@@ -98,36 +108,115 @@ const handleLogout = () => {
   height: 100vh;
 }
 
+/* ---- 侧边栏：深色品牌区 ---- */
 .layout-aside {
-  background: #ffffff;
-  border-right: 1px solid var(--el-border-color-lighter);
+  background: linear-gradient(180deg, #1c2749 0%, #16203e 100%);
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .layout-logo {
-  height: 60px;
-  line-height: 60px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  height: 64px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.logo-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #4c6ef5 0%, #2f54eb 100%);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(47, 84, 235, 0.45);
+}
+
+.logo-title {
+  color: #ffffff;
+  font-size: 15px;
   font-weight: 600;
-  font-size: 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.logo-subtitle {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  margin-top: 2px;
 }
 
 .layout-menu {
   border-right: none;
+  background: transparent;
+  padding: 10px 0;
+  flex: 1;
 }
 
+/* 深色菜单：覆盖 Element 默认浅色 */
+.layout-aside :deep(.el-menu) {
+  background: transparent;
+}
+
+.layout-aside :deep(.el-sub-menu__title),
+.layout-aside :deep(.el-menu-item) {
+  color: #9fb0d6;
+  height: 44px;
+  line-height: 44px;
+  margin: 2px 10px;
+  border-radius: 8px;
+}
+
+.layout-aside :deep(.el-sub-menu__title:hover),
+.layout-aside :deep(.el-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+}
+
+.layout-aside :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+  color: #ffffff;
+}
+
+.layout-aside :deep(.el-menu-item.is-active) {
+  color: #ffffff;
+  background: linear-gradient(90deg, #4c6ef5 0%, #2f54eb 100%);
+  box-shadow: 0 3px 8px rgba(47, 84, 235, 0.4);
+}
+
+.layout-aside :deep(.el-sub-menu .el-menu-item) {
+  background: transparent;
+  padding-left: 48px !important;
+}
+
+/* 子菜单展开/收起箭头颜色 */
+.layout-aside :deep(.el-sub-menu__title .el-sub-menu__icon-arrow) {
+  color: #7286ad;
+}
+
+/* ---- 顶栏 ---- */
 .layout-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--el-border-color-lighter);
   background: #ffffff;
+  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.06);
+  position: relative;
+  z-index: 5;
 }
 
 .layout-title {
   font-size: 16px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .layout-header-right {
@@ -137,11 +226,34 @@ const handleLogout = () => {
 }
 
 .layout-user {
-  font-size: 14px;
-  color: var(--el-text-color-regular);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4c6ef5 0%, #2f54eb 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-name {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+}
+
+/* ---- 主区域 ---- */
 .layout-main {
-  background: #f5f7fa;
+  background: #f4f6fb;
+  padding: 16px;
+  overflow-y: auto;
 }
 </style>
