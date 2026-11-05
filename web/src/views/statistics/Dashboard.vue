@@ -21,13 +21,8 @@
         </el-form-item>
         <el-form-item>
           <el-tag size="small" :type="scopeTagType">数据范围：{{ scopeText }}</el-tag>
-          <el-tag size="small" class="source-tag" :type="sourceTagType">{{ sourceText }}</el-tag>
         </el-form-item>
       </el-form>
-      <el-alert v-if="summary.dataSourceNote" :type="sourceTagType" :closable="false" show-icon
-                class="source-note">
-        <template #title>数据来源：{{ summary.dataSourceNote }}</template>
-      </el-alert>
     </el-card>
 
     <el-row :gutter="16" class="stat-row">
@@ -215,12 +210,6 @@ const isEmpty = computed(() => summary.personDays === 0)
 
 const scopeText = computed(() => ({ ALL: '全部', DEPT: '本部门', SELF: '仅本人' }[dataScope.value] || dataScope.value))
 const scopeTagType = computed(() => (dataScope.value === 'ALL' ? 'success' : 'warning'))
-const sourceTagType = computed(() => (
-  { real: 'success', mixed: 'warning', sample: 'danger' }[summary.dataSource] || 'info'
-))
-const sourceText = computed(() => (
-  { real: '真实数据', mixed: '含演示数据', sample: '演示数据' }[summary.dataSource] || summary.dataSource
-))
 const trendTypeText = computed(() => ({ day: '按日', week: '按周', month: '按月' }[query.type]))
 
 /** 平均工时以小时展示：分钟数在卡片上不够直观 */
@@ -577,14 +566,6 @@ onBeforeUnmount(() => {
 
 .filter-card {
   margin-bottom: 0;
-}
-
-.source-tag {
-  margin-left: 8px;
-}
-
-.source-note {
-  margin-top: 8px;
 }
 
 .stat-row {
