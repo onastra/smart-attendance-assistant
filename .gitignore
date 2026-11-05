@@ -61,7 +61,10 @@ web/vite.config.js.timestamp-*.mjs
 web/vite.config.js.timestamp-*.mjs
 
 # ===== 虹软人脸 SDK（本地放置，体积大且需各自账号下载）=====
-# 仅忽略原生库目录；Java SDK jar（约 62KB）入库，供 CI/他人构建解析依赖
+# 仅忽略原生库与发行包附带文档/示例；Java SDK jar（约 62KB）入库，供 CI/他人构建解析依赖
 /server/libs/arcface/libs/WIN64/
+/server/libs/arcface/doc/
+/server/libs/arcface/samplecode/
+/server/libs/arcface/releasenotes.txt
 # 虹软激活文件：与本机设备绑定，换机器必须重新激活，禁止入库共享
 ArcFace64.dat
