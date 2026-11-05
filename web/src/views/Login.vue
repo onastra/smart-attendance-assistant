@@ -21,16 +21,6 @@
         </el-button>
       </el-form>
 
-      <el-alert class="login-note" type="info" :closable="false" show-icon title="演示账号">
-        <template #default>
-          <div class="login-accounts">
-            <div><code>admin</code> / <code>Admin@123</code> — 系统管理员（全部权限）</div>
-            <div><code>manager01</code> / <code>Admin@123</code> — 部门主管</div>
-            <div><code>LZ0001</code> / <code>Emp@123</code> — 普通员工（可见菜单更少）</div>
-          </div>
-        </template>
-      </el-alert>
-
       <div v-if="lastError" class="login-error">{{ lastError }}</div>
     </el-card>
   </div>
@@ -120,22 +110,6 @@ const handleLogin = async () => {
 
 .login-btn {
   width: 100%;
-}
-
-.login-note {
-  margin-top: 16px;
-}
-
-.login-accounts code {
-  background: var(--el-fill-color-light);
-  padding: 1px 5px;
-  border-radius: 3px;
-  font-family: Consolas, monospace;
-}
-
-.login-accounts div {
-  line-height: 22px;
-  font-size: 12px;
 }
 
 .login-error {

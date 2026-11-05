@@ -46,27 +46,3 @@
 .login-btn {
   margin-top: 10rpx;
 }
-
-/* 演示账号 */
-.demo-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 22rpx 0;
-  border-bottom: 2rpx solid var(--lz-line);
-  font-size: 27rpx;
-  color: var(--lz-text);
-}
-
-.demo-row:last-child {
-  border-bottom: none;
-}
-
-.demo-row:active {
-  opacity: 0.65;
-}
-
-.demo-account {
-  color: var(--lz-text-3);
-  font-size: 24rpx;
-}

@@ -48,16 +48,5 @@ Page({
       .then(function () {
         that.setData({ loading: false })
       })
-  },
-
-  fillDemo: function (e) {
-    const role = e.currentTarget.dataset.role
-    if (role === 'admin') {
-      this.setData({ username: 'admin', password: 'Admin@123' })
-    } else if (role === 'manager') {
-      this.setData({ username: 'manager01', password: 'Admin@123' })
-    } else {
-      this.setData({ username: 'LZ0001', password: 'Emp@123' })
-    }
   }
 })

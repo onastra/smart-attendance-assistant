@@ -15,7 +15,6 @@
           登录
         </el-button>
       </el-form>
-      <div class="tip">演示账号：<code>LZ0001</code> / <code>Emp@123</code></div>
     </el-card>
 
     <template v-else>

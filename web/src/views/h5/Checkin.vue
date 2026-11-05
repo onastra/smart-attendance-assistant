@@ -15,7 +15,6 @@
           登录并打卡
         </el-button>
       </el-form>
-      <div class="tip">演示账号：<code>LZ0001</code> / <code>Emp@123</code>（员工）、<code>admin</code> / <code>Admin@123</code>（管理员）</div>
     </el-card>
 
     <template v-else>
