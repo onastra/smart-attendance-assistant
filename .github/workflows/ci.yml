@@ -66,6 +66,15 @@ jobs:
             echo "/opt/apache-maven-3.9.6/bin" >> "$GITHUB_PATH"
           fi
 
+      # 虹软 SDK 不发布在 Maven 中央仓库，jar 随仓库分发（server/libs/arcface/libs），
+      # 构建前先安装进本地仓库。
+      - name: 安装虹软 SDK 到本地仓库
+        run: |
+          mvn -B -ntp install:install-file \
+            -Dfile=server/libs/arcface/libs/arcsoft-sdk-face-3.0.0.0.jar \
+            -DgroupId=com.arcsoft -DartifactId=arcsoft-sdk-face \
+            -Dversion=3.0.0.0 -Dpackaging=jar
+
       - name: 打包（含单元测试）
         working-directory: server
         run: mvn -B -ntp package
